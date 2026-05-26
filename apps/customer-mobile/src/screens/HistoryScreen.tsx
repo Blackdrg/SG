@@ -4,11 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HistoryScreen = () => {
-  const navigation = useNavigation();
-  const [orders, setOrders] = useState([]);
+  const navigation = useNavigation<any>();
+  const [orders, setOrders] = useState<any[]>([]);
   const [filter, setFilter] = useState('all'); // all, preparing, ready, pickedup, delivered, cancelled
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -90,11 +90,11 @@ const HistoryScreen = () => {
     ? orders 
     : orders.filter(order => order.status === filter);
 
-  const handleOrderPress = (orderId) => {
+  const handleOrderPress = (orderId: string) => {
     navigation.navigate('OrderDetails', { orderId });
   };
 
-  const handleReorder = async (orderId) => {
+  const handleReorder = async (orderId: string) => {
     try {
       // In a real app, this would fetch the order details and add items to cart
       // For demo, we'll simulate finding the order
@@ -105,7 +105,7 @@ const HistoryScreen = () => {
       }
       
       // Add items to cart (simplified)
-      const cartItems = order.items.map(item => ({
+      const cartItems = order.items.map((item: any) => ({
         id: `${item.name}-${Date.now()}`, // Simplified ID generation
         name: item.name,
         price: item.price,
@@ -175,7 +175,10 @@ const HistoryScreen = () => {
                 filter === tab.key && styles.activeTab
               ]}
             >
-              <Text style={styles.tabText}>{tab.label}</Text>
+              <Text style={[
+                styles.tabText,
+                filter === tab.key ? { color: '#f04e31', fontWeight: '500' } : null
+              ]}>{tab.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -206,7 +209,7 @@ const HistoryScreen = () => {
                   <Text style={styles.orderRestaurant}>{item.restaurantName}</Text>
                   <View style={styles.orderDetails}>
                     <Text style={styles.orderItemsText}>
-                      {item.items.reduce((sum, i) => sum + i.quantity, 0)} items
+                      {item.items.reduce((sum: number, i: any) => sum + i.quantity, 0)} items
                     </Text>
                     <Text style={styles.orderTimeText}>
                       {item.date} • {item.time}
@@ -288,8 +291,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    color: filter === tab.key ? '#f04e31' : '#666',
-    fontWeight: filter === tab.key ? '500' : 'normal',
+    color: '#666',
   },
   ordersContainer: {
     flex: 1,

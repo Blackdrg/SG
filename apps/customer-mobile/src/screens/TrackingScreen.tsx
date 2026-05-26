@@ -4,13 +4,13 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TrackingScreen = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const { orderId } = route.params;
   
-  const [trackingData, setTrackingData] = useState(null);
+  const [trackingData, setTrackingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [orderStatus, setOrderStatus] = useState('preparing');
 
   useEffect(() => {
@@ -103,8 +103,8 @@ const TrackingScreen = () => {
         <View style={styles.orderInfo}>
           <Text style={styles.orderIdText}>Order #{trackingData?.orderId}</Text>
           <Text style={styles.orderStatusText}>
-            <Text style={[styles.statusBadge, { backgroundColor: statusColors[orderStatus] + '20' }]}>
-              {statusLabels[orderStatus]}
+            <Text style={[styles.statusBadge, { backgroundColor: statusColors[orderStatus as keyof typeof statusColors] + '20' }]}>
+              {statusLabels[orderStatus as keyof typeof statusLabels]}
             </Text>
           </Text>
         </View>
@@ -164,7 +164,7 @@ const TrackingScreen = () => {
         {/* ETA */}
         {trackingData && (
           <View style={styles.etaContainer}>
-            <Text style={styles.etaLabel>Estimated Time of Arrival</Text>
+            <Text style={styles.etaLabel}>Estimated Time of Arrival</Text>
             <Text style={styles.etaTime}>
               {trackingData.estimatedTime > 0 
                 ? `${trackingData.estimatedTime} mins` 
@@ -184,9 +184,9 @@ const TrackingScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity 
               onPress={() => {/* TODO: Implement contact support */}}
-              style={styles.actionButton}
+              style={[styles.actionButton, styles.secondaryActionButton]}
             >
-              <Text style={styles.actionButtonText}>Contact Support</Text>
+              <Text style={styles.secondaryActionButtonText}>Contact Support</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -385,25 +385,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
-  },
-  actionButton: {
     marginRight: 8,
-  },
-  actionButton: {
     backgroundColor: '#f04e31',
   },
   actionButtonText: {
     color: 'white',
     fontWeight: '500',
   },
-  actionButton: {
+  secondaryActionButton: {
     backgroundColor: '#ddd',
   },
-  actionButtonText: {
+  secondaryActionButtonText: {
     color: '#666',
   },
   loadingText: {
-    marginTop: 12,
     fontSize: 16,
     color: '#666',
   },

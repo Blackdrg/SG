@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput, Switch } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CartItem } from './CartScreen';
 
 const CheckoutScreen = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { cartItems } = route.params;
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const { cartItems }: { cartItems: CartItem[] } = route.params;
   
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [tip, setTip] = useState(0);
@@ -18,17 +19,17 @@ const CheckoutScreen = () => {
 
   useEffect(() => {
     // Load default address from storage or use default
-    AsyncStorage.getItem('sg_address').then((addressJson) => {
+    AsyncStorage.getItem('sg_address').then((addressJson: string | null) => {
       if (addressJson) {
         setAddress(JSON.parse(addressJson));
       }
-    }).catch(error => {
+    }).catch((error: any) => {
       console.error('Failed to load address:', error);
     });
   }, []);
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return cartItems.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
   };
 
   const calculateTax = () => {
@@ -119,9 +120,9 @@ const CheckoutScreen = () => {
 
         {/* Items Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items ({cartItems.reduce((sum, item) => sum + item.quantity, 0)})</Text>
+          <Text style={styles.sectionTitle}>Items ({cartItems.reduce((sum: number, item: CartItem) => sum + item.quantity, 0)})</Text>
           <View style={styles.itemsList}>
-            {cartItems.map((item) => (
+            {cartItems.map((item: CartItem) => (
               <View key={item.id} style={styles.itemRow}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemText}>×{item.quantity}</Text>
@@ -350,9 +351,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-  },
-  itemRow: {
-    borderBottomWidth: 0,
   },
   itemName: {
     fontSize: 14,

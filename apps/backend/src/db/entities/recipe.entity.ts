@@ -27,6 +27,12 @@ export class RecipeEntity {
   @Column({ default: 1 })
   servingsNumber: number; // Number of servings this recipe yields
 
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  costPerServing: number; // Cost per serving
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  totalCost: number; // Total cost to make this recipe
+
   @Column('simple-json', { nullable: true })
   ingredients: { // Standardized ingredient list
     inventoryItemId: string;

@@ -11,7 +11,7 @@ const AuthScreen = () => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   const API_URL = 'http://localhost:3001';
 

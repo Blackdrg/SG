@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RestaurantScreen = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const { restaurantId } = route.params;
   
   const [activeCategory, setActiveCategory] = useState('all');
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
 
@@ -61,7 +61,7 @@ const RestaurantScreen = () => {
       const cartJson = await AsyncStorage.getItem('sg_cart');
       if (cartJson) {
         const cart = JSON.parse(cartJson);
-        const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const count = cart.reduce((sum: number, item: any) => sum + item.quantity, 0);
         setCartCount(count);
       }
     } catch (error) {
@@ -69,16 +69,16 @@ const RestaurantScreen = () => {
     }
   };
 
-  const addToCart = (item) => {
+  const addToCart = (item: any) => {
     // Add item to cart in storage
     AsyncStorage.getItem('sg_cart').then((cartJson) => {
-      let cart = [];
+      let cart: any[] = [];
       if (cartJson) {
         cart = JSON.parse(cartJson);
       }
       
       // Check if item already in cart
-      const existingItemIndex = cart.findIndex(cartItem => cartItem.id === item.id);
+      const existingItemIndex = cart.findIndex((cartItem: any) => cartItem.id === item.id);
       if (existingItemIndex >= 0) {
         // Increase quantity
         cart[existingItemIndex].quantity += 1;
@@ -89,7 +89,7 @@ const RestaurantScreen = () => {
       
       // Save updated cart
       AsyncStorage.setItem('sg_cart', JSON.stringify(cart));
-      setCartCount(cart.reduce((sum, item) => sum + item.quantity, 0));
+      setCartCount(cart.reduce((sum: number, item: any) => sum + item.quantity, 0));
     }).catch(error => {
       console.error('Failed to update cart:', error);
     });
@@ -164,7 +164,10 @@ const RestaurantScreen = () => {
                 activeCategory === category.key && styles.activeTab
               ]}
             >
-              <Text style={styles.tabText}>{category.label}</Text>
+              <Text style={[
+                styles.tabText,
+                activeCategory === category.key ? { color: '#f04e31', fontWeight: '600' } : null
+              ]}>{category.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -287,8 +290,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
-    color: activeCategory === category.key ? '#f04e31' : '#666',
-    fontWeight: activeCategory === category.key ? '600' : 'normal',
+    color: '#666',
   },
   menuContainer: {
     flex: 1,

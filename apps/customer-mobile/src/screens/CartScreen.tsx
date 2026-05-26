@@ -3,11 +3,20 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Alert } from
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export interface CartItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
 const CartScreen = () => {
-  const navigation = useNavigation();
-  const [cartItems, setCartItems] = useState([]);
+  const navigation = useNavigation<any>();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const loadCart = async () => {
@@ -30,21 +39,24 @@ const CartScreen = () => {
     loadCart();
   }, []);
 
-  const removeFromCart = (itemId) => {
+  const removeFromCart = (itemId: string) => {
     Alert.alert(
       'Remove from cart',
       'Are you sure you want to remove this item from your cart?',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Remove', onPress: () => {
-          setCartItems(prev => prev.filter(item => item.id !== itemId));
-          AsyncStorage.setItem('sg_cart', JSON.stringify(prev.filter(item => item.id !== itemId)));
+          setCartItems(prev => {
+            const newCart = prev.filter(item => item.id !== itemId);
+            AsyncStorage.setItem('sg_cart', JSON.stringify(newCart));
+            return newCart;
+          });
         }}
       ]
     );
   };
 
-  const updateQuantity = (itemId, newQuantity) => {
+  const updateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       removeFromCart(itemId);
       return;
@@ -52,8 +64,8 @@ const CartScreen = () => {
     setCartItems(prev => prev.map(item => 
       item.id === itemId ? { ...item, quantity: newQuantity } : item
     ));
-    AsyncStorage.getItem('sg_cart').then((cartJson) => {
-      let cart = [];
+    AsyncStorage.getItem('sg_cart').then((cartJson: string | null) => {
+      let cart: CartItem[] = [];
       if (cartJson) {
         cart = JSON.parse(cartJson);
       }
@@ -62,7 +74,7 @@ const CartScreen = () => {
         cart[itemIndex].quantity = newQuantity;
         AsyncStorage.setItem('sg_cart', JSON.stringify(cart));
       }
-    }).catch(error => {
+    }).catch((error: any) => {
       console.error('Failed to update cart:', error);
     });
   };
@@ -83,7 +95,7 @@ const CartScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loading}>
-          <Text style={styles.loadingText>Loading cart...</Text>
+          <Text style={styles.loadingText}>Loading cart...</Text>
         </View>
       </View>
     );

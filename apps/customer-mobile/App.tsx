@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -30,7 +31,6 @@ function MainTabNavigator() {
       <Tab.Screen name="Home" component={HomeScreen} options={{
         tabBarLabel: 'Home',
         tabBarIcon: ({ color, size }) => (
-          {/* Would normally use Ionicons or similar */}
           <Text style={{ color, fontSize: size }}>🏠</Text>
         )
       }} />
@@ -56,8 +56,7 @@ function MainTabNavigator() {
   );
 }
 
-// Import Text since we're using it in the tab icons
-import { Text } from 'react-native';
+// (Text imported at the top)
 
 export default function App() {
   return (

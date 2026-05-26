@@ -28,6 +28,18 @@ export class InventoryItemEntity {
   @Column({ nullable: true })
   reorderQuantity: number; // How much to reorder
 
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  unitCost: number; // Cost per unit
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  totalCost: number; // Total cost of current stock
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  wastage: number; // Total wastage (in units)
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  wastageCost: number; // Cost of wastage
+
   @ManyToOne(() => RestaurantBranchEntity)
   branch: RestaurantBranchEntity;
 

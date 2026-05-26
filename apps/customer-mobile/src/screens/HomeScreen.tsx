@@ -4,11 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
-  const [restaurants, setRestaurants] = useState([]);
+  const navigation = useNavigation<any>();
+  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -65,7 +65,7 @@ const HomeScreen = () => {
     loadRestaurants();
   }, []);
 
-  const handleRestaurantPress = (restaurantId) => {
+  const handleRestaurantPress = (restaurantId: string) => {
     navigation.navigate('Restaurant', { restaurantId });
   };
 
@@ -101,7 +101,7 @@ const HomeScreen = () => {
         </View>
         <TouchableOpacity onPress={handleProfilePress} style={styles.headerRight}>
           <Text style={styles.headerIcon}>👤</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}

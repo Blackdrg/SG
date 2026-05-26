@@ -4,13 +4,13 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const OrderDetailsScreen = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const { orderId } = route.params;
   
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const loadOrderDetails = async () => {
@@ -263,10 +263,10 @@ const OrderDetailsScreen = () => {
             <Text style={styles.infoLabel}>Status</Text>
             <Text style={[
               styles.infoValue,
-              { backgroundColor: statusColors[order.status] + '20' },
-              { color: statusColors[order.status] }
+              { backgroundColor: statusColors[order.status as keyof typeof statusColors] + '20' },
+              { color: statusColors[order.status as keyof typeof statusColors] }
             ]}>
-              {statusLabels[order.status] || order.status}
+              {statusLabels[order.status as keyof typeof statusLabels] || order.status}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -314,7 +314,7 @@ const OrderDetailsScreen = () => {
               <Text style={styles.actionButtonText}>Reorder</Text>
             </TouchableOpacity>
             {/* <TouchableOpacity 
-              onPress={() => {/* TODO: Implement review */}}
+              onPress={() => {}}
               style={styles.actionButton}
             >
               <Text style={styles.actionButtonText}>Leave Review</Text>

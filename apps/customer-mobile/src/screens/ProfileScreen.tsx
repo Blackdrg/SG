@@ -4,8 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileScreen = () => {
-  const navigation = useNavigation();
-  const [userData, setUserData] = useState(null);
+  const navigation = useNavigation<any>();
+  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -112,20 +112,20 @@ const ProfileScreen = () => {
             <TextInput
               placeholder="Full Name"
               value={editFormData.fullName}
-              onChangeText={setEditFormData}
+              onChangeText={(text) => setEditFormData({ ...editFormData, fullName: text })}
               style={styles.input}
             />
             <TextInput
               placeholder="Email"
               value={editFormData.email}
-              onChangeText={setEditFormData}
+              onChangeText={(text) => setEditFormData({ ...editFormData, email: text })}
               autoCapitalize="none"
               style={styles.input}
             />
             <TextInput
               placeholder="Phone Number"
               value={editFormData.phone}
-              onChangeText={setEditFormData}
+              onChangeText={(text) => setEditFormData({ ...editFormData, phone: text })}
               keyboardType="phone-pad"
               style={styles.input}
             />
@@ -172,30 +172,30 @@ const ProfileScreen = () => {
 
             <View style={styles.menuSection}>
               <Text style={styles.sectionTitle}>Account</Text>
-              <View style={styles.menuItem} onPress={() => {/* TODO: Navigate to wallet */}}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to wallet */}}>
                 <Text style={styles.menuItemText}>Wallet</Text>
                 <Text style={styles.menuItemArrow}>›</Text>
-              </View>
-              <View style={styles.menuItem} onPress={() => navigation.navigate('History')}>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('History')}>
                 <Text style={styles.menuItemText}>My Orders</Text>
                 <Text style={styles.menuItemArrow}>›</Text>
-              </View>
-              <View style={styles.menuItem} onPress={() => {/* TODO: Navigate to addresses */}}>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to addresses */}}>
                 <Text style={styles.menuItemText}>Addresses</Text>
                 <Text style={styles.menuItemArrow}>›</Text>
-              </View>
-              <View style={styles.menuItem} onPress={() => {/* TODO: Navigate to payment methods */}}>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to payment methods */}}>
                 <Text style={styles.menuItemText}>Payment Methods</Text>
                 <Text style={styles.menuItemArrow}>›</Text>
-              </View>
-              <View style={styles.menuItem} onPress={() => {/* TODO: Navigate to notifications */}}>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to notifications */}}>
                 <Text style={styles.menuItemText}>Notifications</Text>
                 <Text style={styles.menuItemArrow}>›</Text>
-              </View>
-              <View style={styles.menuItem} onPress={() => {/* TODO: Navigate to help & support */}}>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to help & support */}}>
                 <Text style={styles.menuItemText}>Help & Support</Text>
                 <Text style={styles.menuItemArrow}>›</Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity 
@@ -315,9 +315,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-  },
-  menuItem: {
-    borderBottomWidth: 0,
   },
   menuItemText: {
     fontSize: 16,

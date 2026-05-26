@@ -7,13 +7,13 @@ export class KitchenSLAEntity {
   id: string;
 
   @Column()
-  metricName: string; // e.g., 'prep_delay', 'failed_prep', 'food_wastage', 'avg_cooking_time'
+  metricName: string; // e.g., 'avg_prep_time', 'late_prep_percentage', 'food_rejection_rate', 'kitchen_throughput', 'prep_delay', 'failed_prep', 'food_wastage', 'avg_cooking_time'
 
   @Column('decimal', { precision: 10, scale: 2 })
   value: number; // The measured value
 
   @Column()
-  unit: string; // Unit of measurement (e.g., 'minutes', 'percentage', 'kg')
+  unit: string; // Unit of measurement (e.g., 'minutes', 'percentage', 'kg', 'orders_per_hour')
 
   @Column({ nullable: true })
   targetValue: number; // Target/SLA value

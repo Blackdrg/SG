@@ -25,9 +25,23 @@ export class KitchenController {
     return this.kitchenService.updateInventoryStock(id, quantityChange);
   }
 
+  @Put('inventory/:id/wastage')
+  async recordWastage(
+    @Param('id') id: string,
+    @Body('wastedQuantity') wastedQuantity: number,
+    @Body('reason') reason?: string
+  ) {
+    return this.kitchenService.recordWastage(id, wastedQuantity, reason);
+  }
+
   @Get('inventory/low-stock/:branchId')
   async getLowStockItems(@Param('branchId') branchId: string) {
     return this.kitchenService.getLowStockItems(branchId);
+  }
+
+  @Post('inventory/low-stock/notify/:branchId')
+  async checkAndNotifyLowStock(@Param('branchId') branchId: string) {
+    return this.kitchenService.checkAndNotifyLowStock(branchId);
   }
 
   // Recipe Management Endpoints
@@ -75,6 +89,42 @@ export class KitchenController {
     return this.kitchenService.recordKitchenSLA(data);
   }
 
+  @Post('sla/avg-prep-time/:branchId')
+  async recordAvgPrepTime(
+    @Param('branchId') branchId: string,
+    @Body('prepTimeMinutes') prepTimeMinutes: number,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
+  ) {
+    return this.kitchenService.recordAvgPrepTime(branchId, prepTimeMinutes, period);
+  }
+
+  @Post('sla/late-prep/:branchId')
+  async recordLatePrepPercentage(
+    @Param('branchId') branchId: string,
+    @Body('latePercentage') latePercentage: number,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
+  ) {
+    return this.kitchenService.recordLatePrepPercentage(branchId, latePercentage, period);
+  }
+
+  @Post('sla/food-rejection/:branchId')
+  async recordFoodRejectionRate(
+    @Param('branchId') branchId: string,
+    @Body('rejectionRate') rejectionRate: number,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
+  ) {
+    return this.kitchenService.recordFoodRejectionRate(branchId, rejectionRate, period);
+  }
+
+  @Post('sla/throughput/:branchId')
+  async recordKitchenThroughput(
+    @Param('branchId') branchId: string,
+    @Body('ordersPerHour') ordersPerHour: number,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
+  ) {
+    return this.kitchenService.recordKitchenThroughput(branchId, ordersPerHour, period);
+  }
+
   @Get('sla/branch/:branchId')
   async getKitchenSLABranch(
     @Param('branchId') branchId: string,
@@ -82,6 +132,14 @@ export class KitchenController {
     @Query('limit') limit: number = 100
   ) {
     return this.kitchenService.getKitchenSLABranch(branchId, metricName, limit);
+  }
+
+  @Get('sla/summary/:branchId')
+  async getKitchenSLASummary(
+    @Param('branchId') branchId: string,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'daily'
+  ) {
+    return this.kitchenService.getKitchenSLASummary(branchId, period);
   }
 
   // Supplier Management Endpoints

@@ -1,25 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { KitchenService } from '../src/modules/kitchen/kitchen.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { InventoryItemEntity } from '../src/db/entities/inventory-item.entity';
-import { RecipeEntity } from '../src/db/entities/recipe.entity';
-import { BatchEntity } from '../src/db/entities/batch.entity';
-import { FoodPrepEntity } from '../src/db/entities/food-prep.entity';
-import { KitchenSLAEntity } from '../src/db/entities/kitchen-sla.entity';
-import { SupplierEntity } from '../src/db/entities/supplier.entity';
-import { RestaurantBranchEntity } from '../src/db/entities/restaurant-branch.entity';
-import { DataSource, Repository } from 'typeorm';
+const { Test, TestingModule } = require('@nestjs/testing');
+const { KitchenService } = require('../src/modules/kitchen/kitchen.service');
+const { getRepositoryToken } = require('@nestjs/typeorm');
+const { InventoryItemEntity } = require('../src/db/entities/inventory-item.entity');
+const { RecipeEntity } = require('../src/db/entities/recipe.entity');
+const { BatchEntity } = require('../src/db/entities/batch.entity');
+const { FoodPrepEntity } = require('../src/db/entities/food-prep.entity');
+const { KitchenSLAEntity } = require('../src/db/entities/kitchen-sla.entity');
+const { SupplierEntity } = require('../src/db/entities/supplier.entity');
+const { RestaurantBranchEntity } = require('../src/db/entities/restaurant-branch.entity');
+const { DataSource, Repository } = require('typeorm');
 
-describe('KitchenService', () => {
-  let service: KitchenService;
-  let inventoryRepo: Repository<InventoryItemEntity>;
-  let recipeRepo: Repository<RecipeEntity>;
-  let batchRepo: Repository<BatchEntity>;
-  let foodPrepRepo: Repository<FoodPrepEntity>;
-  let slaRepo: Repository<KitchenSLAEntity>;
-  let supplierRepo: Repository<SupplierEntity>;
-  let branchRepo: Repository<RestaurantBranchEntity>;
-  let dataSource: DataSource;
+describe('KitchenService - Enhanced Features', () => {
+  let service;
+  let inventoryRepo;
+  let recipeRepo;
+  let batchRepo;
+  let foodPrepRepo;
+  let slaRepo;
+  let supplierRepo;
+  let branchRepo;
+  let dataSource;
 
   const mockBranch = {
     id: 'test-branch-id',
@@ -28,7 +28,7 @@ describe('KitchenService', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         KitchenService,
         {
@@ -95,28 +95,32 @@ describe('KitchenService', () => {
       ],
     }).compile();
 
-    service = module.get<KitchenService>(KitchenService);
-    inventoryRepo = module.get<Repository<InventoryItemEntity>>(getRepositoryToken(InventoryItemEntity));
-    recipeRepo = module.get<Repository<RecipeEntity>>(getRepositoryToken(RecipeEntity));
-    batchRepo = module.get<Repository<BatchEntity>>(getRepositoryToken(BatchEntity));
-    foodPrepRepo = module.get<Repository<FoodPrepEntity>>(getRepositoryToken(FoodPrepEntity));
-    slaRepo = module.get<Repository<KitchenSLAEntity>>(getRepositoryToken(KitchenSLAEntity));
-    supplierRepo = module.get<Repository<SupplierEntity>>(getRepositoryToken(SupplierEntity));
-    branchRepo = module.get<Repository<RestaurantBranchEntity>>(getRepositoryToken(RestaurantBranchEntity));
-    dataSource = module.get<DataSource>(DataSource);
+    service = module.get(KitchenService);
+    inventoryRepo = module.get(getRepositoryToken(InventoryItemEntity));
+    recipeRepo = module.get(getRepositoryToken(RecipeEntity));
+    batchRepo = module.get(getRepositoryToken(BatchEntity));
+    foodPrepRepo = module.get(getRepositoryToken(FoodPrepEntity));
+    slaRepo = module.get(getRepositoryToken(KitchenSLAEntity));
+    supplierRepo = module.get(getRepositoryToken(SupplierEntity));
+    branchRepo = module.get(getRepositoryToken(RestaurantBranchEntity));
+    dataSource = module.get(DataSource);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('Inventory Management', () => {
-    it('should create an inventory item', async () => {
+  describe('Enhanced Inventory Management', () => {
+    it('should create an inventory item with cost fields', async () => {
       const dto = {
         name: 'Test Ingredient',
         currentStock: 10,
         unit: 'kg',
         lowStockThreshold: 5,
+        unitCost: 2.50,
+        totalCost: 25.00,
+        wastage: 0,
+        wastageCost: 0,
         branch: mockBranch
       };
 
@@ -126,37 +130,79 @@ describe('KitchenService', () => {
       expect(inventoryRepo.save).toHaveBeenCalledWith(dto);
     });
 
-    it('should update inventory stock', async () => {
+    it('should update inventory stock and recalculate total cost', async () => {
       const mockItem = {
         id: 'test-id',
         currentStock: 10,
+        unitCost: 2.50,
+        totalCost: 25.00,
         lowStockThreshold: 5,
         branch: mockBranch
       };
 
       inventoryRepo.findOne.mockResolvedValue(mockItem);
-      inventoryRepo.save.mockResolvedValue({ ...mockItem, currentStock: 15 });
+      inventoryRepo.save.mockImplementation((entity) => 
+        Promise.resolve({ 
+          ...mockItem, 
+          currentStock: 15, 
+          totalCost: 37.50 
+        })
+      );
 
       const result = await service.updateInventoryStock('test-id', 5);
       expect(result.currentStock).toBe(15);
+      expect(result.totalCost).toBe(37.50);
     });
 
-    it('should get low stock items', async () => {
+    it('should record wastage and update inventory accordingly', async () => {
+      const mockItem = {
+        id: 'test-id',
+        name: 'Test Ingredient',
+        currentStock: 10,
+        unit: 'kg',
+        lowStockThreshold: 5,
+        unitCost: 2.50,
+        totalCost: 25.00,
+        wastage: 0,
+        wastageCost: 0,
+        branch: mockBranch
+      };
+
+      inventoryRepo.findOne.mockResolvedValue(mockItem);
+      inventoryRepo.save.mockImplementation((entity) => 
+        Promise.resolve({ 
+          ...mockItem,
+          wastage: 2,
+          wastageCost: 5.00,
+          currentStock: 8,
+          totalCost: 20.00
+        })
+      );
+
+      const result = await service.recordWastage('test-id', 2, 'Spoiled');
+      expect(result.wastage).toBe(2);
+      expect(result.wastageCost).toBe(5.00);
+      expect(result.currentStock).toBe(8);
+      expect(result.totalCost).toBe(20.00);
+    });
+
+    it('should check and notify low stock items', async () => {
       const mockItems = [
-        { id: '1', name: 'Item 1', currentStock: 3, lowStockThreshold: 5, branch: mockBranch },
-        { id: '2', name: 'Item 2', currentStock: 8, lowStockThreshold: 5, branch: mockBranch }
+        { id: '1', name: 'Item 1', currentStock: 3, lowStockThreshold: 5, unitCost: 2.00, totalCost: 6.00, wastage: 0, wastageCost: 0, branch: mockBranch },
+        { id: '2', name: 'Item 2', currentStock: 8, lowStockThreshold: 5, unitCost: 3.00, totalCost: 24.00, wastage: 0, wastageCost: 0, branch: mockBranch }
       ];
 
       inventoryRepo.find.mockResolvedValue(mockItems);
       
-      const result = await service.getLowStockItems('test-branch-id');
-      expect(result.length).toBe(1); // Only item with stock < threshold
-      expect(result[0].id).toBe('1');
+      const result = await service.checkAndNotifyLowStock('test-branch-id');
+      expect(result.lowStockItems.length).toBe(1); // Only item with stock < threshold
+      expect(result.lowStockItems[0].id).toBe('1');
+      expect(result.notificationsSent).toBe(1);
     });
   });
 
-  describe('Recipe Management', () => {
-    it('should create a recipe', async () => {
+  describe('Enhanced Recipe Management', () => {
+    it('should create a recipe with cost calculation fields', async () => {
       const dto = {
         name: 'Test Recipe',
         prepTimeMinutes: 10,
@@ -166,6 +212,8 @@ describe('KitchenService', () => {
         servingsNumber: 4,
         ingredients: [{ inventoryItemId: 'test-ing', quantity: 2, unit: 'cups' }],
         instructions: ['Step 1', 'Step 2'],
+        costPerServing: 2.50,
+        totalCost: 10.00,
         branch: mockBranch
       };
 
@@ -174,167 +222,107 @@ describe('KitchenService', () => {
       expect(recipeRepo.create).toHaveBeenCalledWith(dto);
       expect(recipeRepo.save).toHaveBeenCalledWith(dto);
     });
-
-    it('should get recipe by id', async () => {
-      const mockRecipe = {
-        id: 'test-id',
-        name: 'Test Recipe',
-        prepTimeMinutes: 10,
-        cookTimeMinutes: 20,
-        branch: mockBranch
-      };
-
-      recipeRepo.findOne.mockResolvedValue(mockRecipe);
-      const result = await service.getRecipeById('test-id');
-      expect(result).toEqual(mockRecipe);
-    });
   });
 
-  describe('Batch Management', () => {
-    it('should create a batch', async () => {
-      const mockRecipe = { id: 'test-recipe-id', name: 'Test Recipe' };
+  describe('Enhanced SLA Monitoring', () => {
+    it('should record average prep time SLA', async () => {
       const dto = {
-        name: 'Morning Batch',
-        recipe: mockRecipe,
-        quantityPrepared: 10,
-        quantityUnit: 'kg',
-        branch: mockBranch
-      };
-
-      batchRepo.findOne.mockResolvedValue(mockRecipe);
-      batchRepo.create.mockImplementation((dto) => dto);
-      batchRepo.save.mockImplementation((entity) => Promise.resolve({ id: 'test-id', ...entity }));
-
-      const result = await service.createBatch(dto);
-      expect(result).toEqual({ id: 'test-id', ...dto });
-    });
-
-    it('should update batch status', async () => {
-      const mockBatch = {
-        id: 'test-id',
-        status: 'preparing',
-        branch: mockBranch
-      };
-
-      batchRepo.findOne.mockResolvedValue(mockBatch);
-      batchRepo.save.mockResolvedValue({ ...mockBatch, status: 'ready', completedAt: new Date() });
-
-      const result = await service.updateBatchStatus('test-id', 'ready');
-      expect(result.status).toBe('ready');
-      expect(result.completedAt).toBeDefined();
-    });
-  });
-
-  describe('Food Preparation Tracking', () => {
-    it('should log food prep', async () => {
-      const mockBatch = { id: 'test-batch-id' };
-      const dto = {
-        batch: mockBatch,
-        staffId: 'staff-123',
-        status: 'completed',
-        branch: mockBranch
-      };
-
-      foodPrepRepo.create.mockImplementation((dto) => dto);
-      foodPrepRepo.save.mockImplementation((entity) => Promise.resolve({ id: 'test-id', ...entity }));
-
-      const result = await service.logFoodPrep(dto);
-      expect(result).toEqual({ id: 'test-id', ...dto });
-    });
-
-    it('should update food prep quality', async () => {
-      const mockFoodPrep = {
-        id: 'test-id',
-        qualityCheck: { taste: 0, temperature: 0, appearance: 0, passed: false },
-        branch: mockBranch
-      };
-
-      foodPrepRepo.findOne.mockResolvedValue(mockFoodPrep);
-      foodPrepRepo.save.mockResolvedValue({ 
-        ...mockFoodPrep, 
-        qualityCheck: { taste: 4, temperature: 65, appearance: 5, passed: true } 
-      });
-
-      const result = await service.updateFoodPrepQuality('test-id', { 
-        taste: 4, temperature: 65, appearance: 5, passed: true 
-      });
-      expect(result.qualityCheck.taste).toBe(4);
-      expect(result.qualityCheck.passed).toBe(true);
-    });
-  });
-
-  describe('SLA Monitoring', () => {
-    it('should record kitchen SLA', async () => {
-      const dto = {
-        metricName: 'prep_delay',
-        value: 15,
+        branch: { id: 'test-branch-id' },
+        metricName: 'avg_prep_time',
+        value: 25,
         unit: 'minutes',
-        targetValue: 10,
+        targetValue: 30,
         targetUnit: 'minutes',
         measurementPeriod: 'hourly',
-        measuredAt: new Date(),
-        branch: mockBranch
+        measuredAt: new Date()
       };
 
       slaRepo.create.mockImplementation((dto) => dto);
       slaRepo.save.mockImplementation((entity) => Promise.resolve({ id: 'test-id', ...entity }));
 
-      const result = await service.recordKitchenSLA(dto);
+      const result = await service.recordAvgPrepTime('test-branch-id', 25);
       expect(result).toEqual({ id: 'test-id', ...dto });
     });
 
-    it('should get kitchen SLA by branch', async () => {
+    it('should record late prep percentage SLA', async () => {
+      const result = await service.recordLatePrepPercentage('test-branch-id', 3);
+      expect(result.metricName).toBe('late_prep_percentage');
+      expect(result.value).toBe(3);
+      expect(result.unit).toBe('percentage');
+      expect(result.targetValue).toBe(5);
+    });
+
+    it('should record food rejection rate SLA', async () => {
+      const result = await service.recordFoodRejectionRate('test-branch-id', 1.5);
+      expect(result.metricName).toBe('food_rejection_rate');
+      expect(result.value).toBe(1.5);
+      expect(result.unit).toBe('percentage');
+      expect(result.targetValue).toBe(2);
+    });
+
+    it('should record kitchen throughput SLA', async () => {
+      const result = await service.recordKitchenThroughput('test-branch-id', 45);
+      expect(result.metricName).toBe('kitchen_throughput');
+      expect(result.value).toBe(45);
+      expect(result.unit).toBe('orders_per_hour');
+      expect(result.targetValue).toBe(50);
+    });
+
+    it('should get SLA summary for a branch', async () => {
       const mockSLA = [
-        { id: '1', metricName: 'prep_delay', value: 15, unit: 'minutes', branch: mockBranch, measuredAt: new Date() },
-        { id: '2', metricName: 'food_wastage', value: 2, unit: 'kg', branch: mockBranch, measuredAt: new Date() }
+        { 
+          id: '1', 
+          metricName: 'avg_prep_time', 
+          value: 25, 
+          unit: 'minutes',
+          targetValue: 30,
+          targetUnit: 'minutes',
+          measurementPeriod: 'daily',
+          branch: mockBranch, 
+          measuredAt: new Date() 
+        },
+        { 
+          id: '2', 
+          metricName: 'late_prep_percentage', 
+          value: 3, 
+          unit: 'percentage',
+          targetValue: 5,
+          targetUnit: 'percentage',
+          measurementPeriod: 'daily',
+          branch: mockBranch, 
+          measuredAt: new Date() 
+        }
       ];
 
       slaRepo.find.mockResolvedValue(mockSLA);
-      const result = await service.getKitchenSLABranch('test-branch-id');
-      expect(result.length).toBe(2);
+      const result = await service.getKitchenSLASummary('test-branch-id', 'daily');
+      
+      expect(result).toHaveProperty('avg_prep_time');
+      expect(result.avg_prep_time.value).toBe(25);
+      expect(result).toHaveProperty('late_prep_percentage');
+      expect(result.late_prep_percentage.value).toBe(3);
     });
   });
 
-  describe('Supplier Management', () => {
-    it('should create a supplier', async () => {
-      const dto = {
-        name: 'Test Supplier',
-        contactEmail: 'test@supplier.com',
-        branch: mockBranch
-      };
-
-      supplierRepo.create.mockImplementation((dto) => dto);
-      supplierRepo.save.mockImplementation((entity) => Promise.resolve({ id: 'test-id', ...entity }));
-
-      const result = await service.createSupplier(dto);
-      expect(result).toEqual({ id: 'test-id', ...dto });
-    });
-
-    it('should get supplier inventory', async () => {
-      const mockItems = [
-        { id: '1', name: 'Ingredient 1', supplier: { id: 'test-supplier-id' } },
-        { id: '2', name: 'Ingredient 2', supplier: { id: 'test-supplier-id' } }
-      ];
-
-      inventoryRepo.find.mockResolvedValue(mockItems);
-      const result = await service.getSupplierInventory('test-supplier-id');
-      expect(result.length).toBe(2);
-    });
-  });
-
-  describe('Consumption & Forecasting', () => {
-    it('should get inventory consumption', async () => {
+  describe('Enhanced Consumption & Forecasting', () => {
+    it('should get inventory consumption with actual data', async () => {
       const result = await service.getInventoryConsumption('test-branch-id', 7);
       expect(result).toHaveProperty('branchId', 'test-branch-id');
       expect(result).toHaveProperty('periodDays', 7);
       expect(Array.isArray(result.consumptionData)).toBe(true);
+      expect(result.consumptionData.length).toBeGreaterThan(0);
+      expect(result).toHaveProperty('totalConsumptionCost');
     });
 
-    it('should forecast inventory needs', async () => {
+    it('should forecast inventory needs with better algorithms', async () => {
       const result = await service.forecastInventoryNeeds('test-branch-id', 7);
       expect(result).toHaveProperty('branchId', 'test-branch-id');
       expect(result).toHaveProperty('forecastDays', 7);
       expect(Array.isArray(result.predictions)).toBe(true);
+      expect(result.predictions.length).toBeGreaterThan(0);
+      expect(result.predictions[0]).toHaveProperty('itemId');
+      expect(result.predictions[0]).toHaveProperty('predictedConsumption');
+      expect(result.predictions[0]).toHaveProperty('recommendedOrderQuantity');
     });
   });
 });

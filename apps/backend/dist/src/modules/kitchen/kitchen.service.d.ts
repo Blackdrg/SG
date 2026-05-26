@@ -1,0 +1,44 @@
+import { Repository, DataSource } from 'typeorm';
+import { InventoryItemEntity } from  = require('../../db/entities/inventory-item.entity');
+import { RecipeEntity } from  = require('../../db/entities/recipe.entity');
+import { BatchEntity } from  = require('../../db/entities/batch.entity');
+import { FoodPrepEntity } from  = require('../../db/entities/food-prep.entity');
+import { KitchenSLAEntity } from  = require('../../db/entities/kitchen-sla.entity');
+import { SupplierEntity } from  = require('../../db/entities/supplier.entity');
+import { RestaurantBranchEntity } from  = require('../../db/entities/restaurant-branch.entity');
+export declare class KitchenService {
+    private readonly inventoryRepo;
+    private readonly recipeRepo;
+    private readonly batchRepo;
+    private readonly foodPrepRepo;
+    private readonly slaRepo;
+    private readonly supplierRepo;
+    private readonly branchRepo;
+    private readonly dataSource;
+    constructor(inventoryRepo: Repository<InventoryItemEntity>, recipeRepo: Repository<RecipeEntity>, batchRepo: Repository<BatchEntity>, foodPrepRepo: Repository<FoodPrepEntity>, slaRepo: Repository<KitchenSLAEntity>, supplierRepo: Repository<SupplierEntity>, branchRepo: Repository<RestaurantBranchEntity>, dataSource: DataSource);
+    createInventoryItem(data: Partial<InventoryItemEntity>): Promise<InventoryItemEntity>;
+    updateInventoryStock(itemId: string, quantityChange: number): Promise<InventoryItemEntity>;
+    recordWastage(itemId: string, wastedQuantity: number, reason?: string): Promise<InventoryItemEntity>;
+    getLowStockItems(branchId: string): Promise<InventoryItemEntity[]>;
+    checkAndNotifyLowStock(branchId: string): Promise<{
+        lowStockItems: InventoryItemEntity[];
+        notificationsSent: number;
+    }>;
+    createRecipe(data: Partial<RecipeEntity>): Promise<RecipeEntity>;
+    getRecipeById(id: string): Promise<RecipeEntity>;
+    createBatch(data: Partial<BatchEntity>): Promise<BatchEntity>;
+    updateBatchStatus(batchId: string, status: BatchEntity['status']): Promise<BatchEntity>;
+    logFoodPrep(data: Partial<FoodPrepEntity>): Promise<FoodPrepEntity>;
+    updateFoodPrepQuality(prepId: string, qualityData: Partial<FoodPrepEntity['qualityCheck']>): Promise<FoodPrepEntity>;
+    recordKitchenSLA(data: Partial<KitchenSLAEntity>): Promise<KitchenSLAEntity>;
+    recordAvgPrepTime(branchId: string, prepTimeMinutes: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    recordLatePrepPercentage(branchId: string, latePercentage: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    recordFoodRejectionRate(branchId: string, rejectionRate: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    recordKitchenThroughput(branchId: string, ordersPerHour: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    getKitchenSLABranch(branchId: string, metricName?: string, limit?: number): Promise<KitchenSLAEntity[]>;
+    getKitchenSLASummary(branchId: string, period?: 'hourly' | 'daily' | 'weekly'): Promise<Record<string, any>>;
+    createSupplier(data: Partial<SupplierEntity>): Promise<SupplierEntity>;
+    getSupplierInventory(supplierId: string): Promise<InventoryItemEntity[]>;
+    getInventoryConsumption(branchId: string, days?: number): Promise<any>;
+    forecastInventoryNeeds(branchId: string, daysAhead?: number): Promise<any>;
+}

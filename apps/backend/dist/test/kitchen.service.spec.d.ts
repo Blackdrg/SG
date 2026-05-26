@@ -1,0 +1,11 @@
+declare const Test: any, TestingModule: any;
+declare const KitchenService: any;
+declare const getRepositoryToken: any;
+declare const InventoryItemEntity: any;
+declare const RecipeEntity: any;
+declare const BatchEntity: any;
+declare const FoodPrepEntity: any;
+declare const KitchenSLAEntity: any;
+declare const SupplierEntity: any;
+declare const RestaurantBranchEntity: any;
+declare const DataSource: any, Repository: any;

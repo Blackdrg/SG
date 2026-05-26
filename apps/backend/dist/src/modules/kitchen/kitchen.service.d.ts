@@ -1,11 +1,11 @@
 import { Repository, DataSource } from 'typeorm';
-import { InventoryItemEntity } from  = require('../../db/entities/inventory-item.entity');
-import { RecipeEntity } from  = require('../../db/entities/recipe.entity');
-import { BatchEntity } from  = require('../../db/entities/batch.entity');
-import { FoodPrepEntity } from  = require('../../db/entities/food-prep.entity');
-import { KitchenSLAEntity } from  = require('../../db/entities/kitchen-sla.entity');
-import { SupplierEntity } from  = require('../../db/entities/supplier.entity');
-import { RestaurantBranchEntity } from  = require('../../db/entities/restaurant-branch.entity');
+import { InventoryItemEntity } from '../../db/entities/inventory-item.entity';
+import { RecipeEntity } from '../../db/entities/recipe.entity';
+import { BatchEntity } from '../../db/entities/batch.entity';
+import { FoodPrepEntity } from '../../db/entities/food-prep.entity';
+import { KitchenSLAEntity } from '../../db/entities/kitchen-sla.entity';
+import { SupplierEntity } from '../../db/entities/supplier.entity';
+import { RestaurantBranchEntity } from '../../db/entities/restaurant-branch.entity';
 export declare class KitchenService {
     private readonly inventoryRepo;
     private readonly recipeRepo;

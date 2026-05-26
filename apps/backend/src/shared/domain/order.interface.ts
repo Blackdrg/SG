@@ -29,6 +29,7 @@ export enum OrderStatus {
   ON_THE_WAY = 'on_the_way',
   DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
+  BATCHED = 'batched' // Order is part of a batch for batch processing
 }
 
 export enum PaymentStatus {

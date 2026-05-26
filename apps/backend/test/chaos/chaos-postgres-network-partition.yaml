@@ -1,0 +1,20 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: postgres-network-partition
+  namespace: spicegarden
+spec:
+  action: partition
+  mode: one
+  selector:
+    namespaces:
+      - spicegarden
+    labelSelectors:
+      "app": "postgres"
+  duration: "5m"
+  partition:
+    - selector:
+        namespaces:
+          - spicegarden
+        labelSelectors:
+          "app": "postgres"

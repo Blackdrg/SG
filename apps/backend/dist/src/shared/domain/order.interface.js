@@ -13,6 +13,7 @@ var OrderStatus;
     OrderStatus["ON_THE_WAY"] = "on_the_way";
     OrderStatus["DELIVERED"] = "delivered";
     OrderStatus["CANCELLED"] = "cancelled";
+    OrderStatus["BATCHED"] = "batched";
 })(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
 var PaymentStatus;
 (function (PaymentStatus) {

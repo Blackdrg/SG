@@ -1,0 +1,47 @@
+groups:
+  - name: spicegarden-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]) / rate(http_request_duration_seconds_count[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP error rate ({{ $value }}%)"
+          description: "More than 5% of requests are returning 5xx errors"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile latency is above 1 second"
+
+      - alert: DatabaseDown
+        expr: up{job="spicegarden-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SpiceGarden backend is down"
+          description: "The backend service is not responding"
+
+      - alert: QueueFailures
+        expr: queue_failures_total > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queue processing failures detected"
+          description: "{{ $value }} queue failures in the last minute"
+
+      - alert: PaymentFailures
+        expr: payment_failures_total > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment processing failures"
+          description: "{{ $value }} payment failures detected"

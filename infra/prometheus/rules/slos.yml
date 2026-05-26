@@ -1,0 +1,32 @@
+groups:
+  - name: spicegarden-slos
+    rules:
+      - alert: SLOAvailability
+        expr: avg_over_time(up{job="spicegarden-backend"}[1h]) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "Availability SLO violated"
+          description: "Service availability below 99.9% for the last hour"
+
+      - alert: SLOLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1h])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "Latency SLO violated"
+          description: "95th percentile latency above 500ms for the last hour"
+
+      - alert: SLOErrorRate
+        expr: rate(http_request_duration_seconds_count{status_code=~"5.."}[1h]) / rate(http_request_duration_seconds_count[1h]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          slo: error-rate
+        annotations:
+          summary: "Error rate SLO violated"
+          description: "Error rate above 1% for the last hour"

@@ -1,0 +1,17 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*log'
+    json.keys_under_root: true
+    processors:
+      - add_docker_metadata: ~
+
+output.opensearch:
+  hosts: ["http://opensearch:9200"]
+  index: "spicegarden-logs-%{+yyyy.MM.dd}"
+  setup.ilm.enabled: false
+
+setup.template.name: "spicegarden"
+setup.template.pattern: "spicegarden-*"
+
+logging.level: info

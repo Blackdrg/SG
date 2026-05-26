@@ -1,0 +1,20 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: websocket-network-delay
+  namespace: spicegarden
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - spicegarden
+    labelSelectors:
+      "app": "backend"
+  delay:
+    latency: "10s"
+    correlation: "100"
+    jitter: "1s"
+  duration: "2m"
+  direction:
+    - "egress"

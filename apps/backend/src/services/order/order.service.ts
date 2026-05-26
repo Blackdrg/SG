@@ -81,7 +81,7 @@ export class OrderService {
       return savedOrder;
     } catch (error) {
       console.error('[OrderService] Failed to place order:', error);
-      if (error.code === '23505') { // Unique violation
+      if ((error as any)?.code === '23505') { // Unique violation
         throw new ConflictException('Order creation failed due to duplicate');
       }
       throw new InternalServerErrorException('Order placement failed due to internal processing error');

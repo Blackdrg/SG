@@ -1,0 +1,15 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: postgres-pod-failure
+  namespace: spicegarden
+spec:
+  action: pod-failure
+  duration: "3m"
+  selector:
+    namespaces:
+      - spicegarden
+    labelSelectors:
+      "app": "postgres"
+  scheduler:
+    cron: "@every 15m"

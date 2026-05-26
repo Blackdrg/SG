@@ -27,7 +27,8 @@ export declare enum OrderStatus {
     PICKED_UP = "picked_up",
     ON_THE_WAY = "on_the_way",
     DELIVERED = "delivered",
-    CANCELLED = "cancelled"
+    CANCELLED = "cancelled",
+    BATCHED = "batched"
 }
 export declare enum PaymentStatus {
     PENDING = "pending",

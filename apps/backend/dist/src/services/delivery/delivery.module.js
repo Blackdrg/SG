@@ -14,6 +14,11 @@ const driver_entity_1 = require("../../db/entities/driver.entity");
 const wallet_entity_1 = require("../../db/entities/wallet.entity");
 const wallet_transaction_entity_1 = require("../../db/entities/wallet-transaction.entity");
 const order_entity_1 = require("../../db/entities/order.entity");
+const batch_entity_1 = require("../../db/entities/batch.entity");
+const driver_assignment_entity_1 = require("../../db/entities/driver-assignment.entity");
+const driver_score_entity_1 = require("../../db/entities/driver-score.entity");
+const driver_fraud_entity_1 = require("../../db/entities/driver-fraud.entity");
+const geo_service_1 = require("../../services/geo/geo.service");
 let DeliveryServiceModule = class DeliveryServiceModule {
 };
 exports.DeliveryServiceModule = DeliveryServiceModule;
@@ -25,9 +30,13 @@ exports.DeliveryServiceModule = DeliveryServiceModule = __decorate([
                 wallet_entity_1.WalletEntity,
                 wallet_transaction_entity_1.WalletTransactionEntity,
                 order_entity_1.OrderEntity,
+                batch_entity_1.BatchEntity,
+                driver_assignment_entity_1.DriverAssignmentEntity,
+                driver_score_entity_1.DriverScoreEntity,
+                driver_fraud_entity_1.DriverFraudEntity,
             ]),
         ],
-        providers: [delivery_service_1.DeliveryService],
+        providers: [delivery_service_1.DeliveryService, geo_service_1.GeoService],
         exports: [delivery_service_1.DeliveryService],
     })
 ], DeliveryServiceModule);

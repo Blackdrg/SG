@@ -33,3 +33,12 @@ logs/
 # Cache
 .cache/
 .vscode/
+
+# Secrets (Docker secrets)
+secrets/
+*.key
+*.pem
+
+# Coverage
+coverage/
+*.lcov

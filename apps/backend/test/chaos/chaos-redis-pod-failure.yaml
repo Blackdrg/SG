@@ -1,0 +1,15 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: redis-pod-failure
+  namespace: spicegarden
+spec:
+  action: pod-failure
+  duration: "3m"
+  selector:
+    namespaces:
+      - spicegarden
+    labelSelectors:
+      "app": "redis"
+  scheduler:
+    cron: "@every 10m"

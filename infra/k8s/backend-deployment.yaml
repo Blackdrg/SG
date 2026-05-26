@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spicegarden-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spicegarden-backend
+  template:
+    metadata:
+      labels:
+        app: spicegarden-backend
+    spec:
+      containers:
+        - name: backend
+          image: spicegarden/backend:latest
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - secretRef:
+                name: spicegarden-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spicegarden-backend
+spec:
+  selector:
+    app: spicegarden-backend
+  ports:
+    - port: 80
+      targetPort: 3001
+  type: ClusterIP

@@ -1,0 +1,72 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "SpiceGarden - Internal Alpha",
+    "tags": ["spicegarden", "internal-alpha"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Current RPS",
+        "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+        "targets": [{"expr": "rate(http_request_duration_seconds_count[1m]", "legendFormat": "RPS"}]
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "HTTP Request Rate",
+        "gridPos": {"x": 4, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {"expr": "rate(http_request_duration_seconds_count[1m])", "legendFormat": "{{method}} {{route}}"},
+          {"expr": "rate(http_request_duration_seconds_count{status_code=~\"5..\"}[1m])", "legendFormat": "5xx Errors"}
+        ]
+      },
+      {
+        "id": 3,
+        "type": "graph",
+        "title": "HTTP Latency (95th percentile)",
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "95th percentile"}
+        ]
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Error Rate",
+        "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+        "targets": [{"expr": "rate(http_request_duration_seconds_count{status_code=~\"5..\"}[5m]) / rate(http_request_duration_seconds_count[5m])", "legendFormat": "Error Rate"}]
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Queue Failures",
+        "gridPos": {"x": 0, "y": 12, "w": 4, "h": 4},
+        "targets": [{"expr": "queue_failures_total", "legendFormat": "Total"}]
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Payment Failures",
+        "gridPos": {"x": 4, "y": 12, "w": 4, "h": 4},
+        "targets": [{"expr": "payment_failures_total", "legendFormat": "Total"}]
+      },
+      {
+        "id": 7,
+        "type": "stat",
+        "title": "Socket Failures",
+        "gridPos": {"x": 8, "y": 12, "w": 4, "h": 4},
+        "targets": [{"expr": "socket_failures_total", "legendFormat": "Total"}]
+      },
+      {
+        "id": 8,
+        "type": "stat",
+        "title": "Active Orders",
+        "gridPos": {"x": 12, "y": 4, "w": 4, "h": 4},
+        "targets": [{"expr": "order_total{status=\"active\"}", "legendFormat": "Active"}]
+      }
+    ],
+    "schemaVersion": 36
+  }
+}

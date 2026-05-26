@@ -13,15 +13,15 @@ const payments_service_1 = require("./payments.service");
 const payments_controller_1 = require("./payments.controller");
 const order_entity_1 = require("../../db/entities/order.entity");
 const wallet_entity_1 = require("../../db/entities/wallet.entity");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
+const wallet_transaction_entity_1 = require("../../db/entities/wallet-transaction.entity");
+const audit_log_entity_1 = require("../../db/entities/audit-log.entity");
+const webhook_module_1 = require("./webhook/webhook.module");
 let PaymentServiceModule = class PaymentServiceModule {
 };
 exports.PaymentServiceModule = PaymentServiceModule;
 exports.PaymentServiceModule = PaymentServiceModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([order_entity_1.OrderEntity, wallet_entity_1.WalletEntity, module_1.WalletTransactionEntity, module_2.AuditLogEntity]), module_3.WebhookModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([order_entity_1.OrderEntity, wallet_entity_1.WalletEntity, wallet_transaction_entity_1.WalletTransactionEntity, audit_log_entity_1.AuditLogEntity]), webhook_module_1.WebhookModule],
         providers: [payments_service_1.PaymentService],
         controllers: [payments_controller_1.PaymentsController],
         exports: [payments_service_1.PaymentService],

@@ -17,33 +17,33 @@ const session_entity_1 = require("./entities/session.entity");
 const audit_log_entity_1 = require("./entities/audit-log.entity");
 const restaurant_entity_1 = require("./entities/restaurant.entity");
 const restaurant_branch_entity_1 = require("./entities/restaurant-branch.entity");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
-const module_4 = require();
-const module_5 = require();
-const module_6 = require();
-const module_7 = require();
-const module_8 = require();
-const module_9 = require();
-const module_10 = require();
-const module_11 = require();
-const module_12 = require();
-const module_13 = require();
-const module_14 = require();
-const module_15 = require();
-const module_16 = require();
-const module_17 = require();
-const module_18 = require();
-const module_19 = require();
-const module_20 = require();
-const module_21 = require();
-const module_22 = require();
-const module_23 = require();
-const module_24 = require();
-const module_25 = require();
-const module_26 = require();
-const module_27 = require();
+const menu_category_entity_1 = require("./entities/menu-category.entity");
+const menu_item_entity_1 = require("./entities/menu-item.entity");
+const inventory_item_entity_1 = require("./entities/inventory-item.entity");
+const driver_entity_1 = require("./entities/driver.entity");
+const wallet_entity_1 = require("./entities/wallet.entity");
+const wallet_transaction_entity_1 = require("./entities/wallet-transaction.entity");
+const address_entity_1 = require("./entities/address.entity");
+const menu_variant_entity_1 = require("./entities/menu-variant.entity");
+const menu_addon_entity_1 = require("./entities/menu-addon.entity");
+const order_item_entity_1 = require("./entities/order-item.entity");
+const subscription_entity_1 = require("./entities/subscription.entity");
+const otp_entity_1 = require("./entities/otp.entity");
+const device_fingerprint_entity_1 = require("./entities/device-fingerprint.entity");
+const recipe_entity_1 = require("./entities/recipe.entity");
+const batch_entity_1 = require("./entities/batch.entity");
+const food_prep_entity_1 = require("./entities/food-prep.entity");
+const kitchen_sla_entity_1 = require("./entities/kitchen-sla.entity");
+const supplier_entity_1 = require("./entities/supplier.entity");
+const driver_assignment_entity_1 = require("./entities/driver-assignment.entity");
+const driver_score_entity_1 = require("./entities/driver-score.entity");
+const delivery_sla_entity_1 = require("./entities/delivery-sla.entity");
+const driver_fraud_entity_1 = require("./entities/driver-fraud.entity");
+const review_schema_1 = require("./schemas/review.schema");
+const postgres_adapter_1 = require("./postgres.adapter");
+const mongo_adapter_1 = require("./mongo.adapter");
+const redis_adapter_1 = require("./redis.adapter");
+const stripe_webhook_entity_1 = require("./entities/stripe-webhook.entity");
 let DbModule = class DbModule {
 };
 exports.DbModule = DbModule;
@@ -67,29 +67,29 @@ exports.DbModule = DbModule = __decorate([
                         audit_log_entity_1.AuditLogEntity,
                         restaurant_entity_1.RestaurantEntity,
                         restaurant_branch_entity_1.RestaurantBranchEntity,
-                        module_1.MenuCategoryEntity,
-                        module_2.MenuItemEntity,
-                        module_3.InventoryItemEntity,
-                        module_4.DriverEntity,
-                        module_5.WalletEntity,
-                        module_6.WalletTransactionEntity,
-                        module_7.AddressEntity,
-                        module_8.MenuVariantEntity,
-                        module_9.MenuAddonEntity,
-                        module_10.OrderItemEntity,
-                        module_11.SubscriptionEntity,
-                        module_12.OtpEntity,
-                        module_13.DeviceFingerprintEntity,
-                        module_14.RecipeEntity,
-                        module_15.BatchEntity,
-                        module_16.FoodPrepEntity,
-                        module_17.KitchenSLAEntity,
-                        module_18.SupplierEntity,
-                        module_19.DriverAssignmentEntity,
-                        module_20.DriverScoreEntity,
-                        module_21.DeliverySLAEntity,
-                        module_22.DriverFraudEntity,
-                        module_27.StripeWebhookEntity,
+                        menu_category_entity_1.MenuCategoryEntity,
+                        menu_item_entity_1.MenuItemEntity,
+                        inventory_item_entity_1.InventoryItemEntity,
+                        driver_entity_1.DriverEntity,
+                        wallet_entity_1.WalletEntity,
+                        wallet_transaction_entity_1.WalletTransactionEntity,
+                        address_entity_1.AddressEntity,
+                        menu_variant_entity_1.MenuVariantEntity,
+                        menu_addon_entity_1.MenuAddonEntity,
+                        order_item_entity_1.OrderItemEntity,
+                        subscription_entity_1.SubscriptionEntity,
+                        otp_entity_1.OtpEntity,
+                        device_fingerprint_entity_1.DeviceFingerprintEntity,
+                        recipe_entity_1.RecipeEntity,
+                        batch_entity_1.BatchEntity,
+                        food_prep_entity_1.FoodPrepEntity,
+                        kitchen_sla_entity_1.KitchenSLAEntity,
+                        supplier_entity_1.SupplierEntity,
+                        driver_assignment_entity_1.DriverAssignmentEntity,
+                        driver_score_entity_1.DriverScoreEntity,
+                        delivery_sla_entity_1.DeliverySLAEntity,
+                        driver_fraud_entity_1.DriverFraudEntity,
+                        stripe_webhook_entity_1.StripeWebhookEntity,
                     ],
                     synchronize: true,
                 }),
@@ -109,34 +109,34 @@ exports.DbModule = DbModule = __decorate([
                 audit_log_entity_1.AuditLogEntity,
                 restaurant_entity_1.RestaurantEntity,
                 restaurant_branch_entity_1.RestaurantBranchEntity,
-                module_1.MenuCategoryEntity,
-                module_2.MenuItemEntity,
-                module_3.InventoryItemEntity,
-                module_4.DriverEntity,
-                module_5.WalletEntity,
-                module_6.WalletTransactionEntity,
-                module_7.AddressEntity,
-                module_8.MenuVariantEntity,
-                module_9.MenuAddonEntity,
-                module_10.OrderItemEntity,
-                module_11.SubscriptionEntity,
-                module_12.OtpEntity,
-                module_13.DeviceFingerprintEntity,
-                module_14.RecipeEntity,
-                module_15.BatchEntity,
-                module_16.FoodPrepEntity,
-                module_17.KitchenSLAEntity,
-                module_18.SupplierEntity,
-                module_19.DriverAssignmentEntity,
-                module_20.DriverScoreEntity,
-                module_21.DeliverySLAEntity,
-                module_22.DriverFraudEntity,
-                module_27.StripeWebhookEntity,
+                menu_category_entity_1.MenuCategoryEntity,
+                menu_item_entity_1.MenuItemEntity,
+                inventory_item_entity_1.InventoryItemEntity,
+                driver_entity_1.DriverEntity,
+                wallet_entity_1.WalletEntity,
+                wallet_transaction_entity_1.WalletTransactionEntity,
+                address_entity_1.AddressEntity,
+                menu_variant_entity_1.MenuVariantEntity,
+                menu_addon_entity_1.MenuAddonEntity,
+                order_item_entity_1.OrderItemEntity,
+                subscription_entity_1.SubscriptionEntity,
+                otp_entity_1.OtpEntity,
+                device_fingerprint_entity_1.DeviceFingerprintEntity,
+                recipe_entity_1.RecipeEntity,
+                batch_entity_1.BatchEntity,
+                food_prep_entity_1.FoodPrepEntity,
+                kitchen_sla_entity_1.KitchenSLAEntity,
+                supplier_entity_1.SupplierEntity,
+                driver_assignment_entity_1.DriverAssignmentEntity,
+                driver_score_entity_1.DriverScoreEntity,
+                delivery_sla_entity_1.DeliverySLAEntity,
+                driver_fraud_entity_1.DriverFraudEntity,
+                stripe_webhook_entity_1.StripeWebhookEntity,
             ]),
-            mongoose_1.MongooseModule.forFeature([{ name: module_23.ReviewDocument.name, schema: module_23.ReviewSchema }]),
+            mongoose_1.MongooseModule.forFeature([{ name: review_schema_1.ReviewDocument.name, schema: review_schema_1.ReviewSchema }]),
         ],
-        providers: [module_24.PostgresAdapter, module_25.MongoAdapter, module_26.RedisAdapter],
-        exports: [module_24.PostgresAdapter, module_25.MongoAdapter, module_26.RedisAdapter, typeorm_1.TypeOrmModule, mongoose_1.MongooseModule],
+        providers: [postgres_adapter_1.PostgresAdapter, mongo_adapter_1.MongoAdapter, redis_adapter_1.RedisAdapter],
+        exports: [postgres_adapter_1.PostgresAdapter, mongo_adapter_1.MongoAdapter, redis_adapter_1.RedisAdapter, typeorm_1.TypeOrmModule, mongoose_1.MongooseModule],
     })
 ], DbModule);
 //# sourceMappingURL=db.module.js.map

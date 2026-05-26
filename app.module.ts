@@ -10,15 +10,15 @@ import { AuthServiceModule } from "./apps/backend/src/services/auth/auth.module"
 import { UserModule } from "./apps/backend/src/services/users/user.module";
 import { OrderServiceModule } from "./apps/backend/src/services/order/order.module";
 import { PaymentServiceModule } from "./apps/backend/src/services/payments/payments.module";
-import { RestaurantServiceModule } = "./apps/backend/src/services/restaurant/restaurant.module";
-import { SearchServiceModule } = "./apps/backend/src/services/search/search.module";
-import { DeliveryServiceModule } = "./apps/backend/src/services/delivery/delivery.module";
-import { AdminServiceModule } = "./apps/backend/src/services/admin/admin.module";
-import { AiServiceModule } = "./apps/backend/src/services/ai/ai.module";
-import { NotificationModule } = "./apps/backend/src/services/notifications/notification.module";
-import { GeoModule } = "./apps/backend/src/services/geo/geo.module";
-import { KitchenModule } = "./apps/backend/src/modules/kitchen/kitchen.module";
-import { DriverAssignmentModule } = "./apps/backend/src/modules/driver-assignment/driver-assignment.module";
+import { RestaurantServiceModule } from "./apps/backend/src/services/restaurant/restaurant.module";
+import { SearchServiceModule } from "./apps/backend/src/services/search/search.module";
+import { DeliveryServiceModule } from "./apps/backend/src/services/delivery/delivery.module";
+import { AdminServiceModule } from "./apps/backend/src/services/admin/admin.module";
+import { AiServiceModule } from "./apps/backend/src/services/ai/ai.module";
+import { NotificationModule } from "./apps/backend/src/services/notifications/notification.module";
+import { GeoModule } from "./apps/backend/src/services/geo/geo.module";
+import { KitchenModule } from "./apps/backend/src/modules/kitchen/kitchen.module";
+import { DriverAssignmentModule } from "./apps/backend/src/modules/driver-assignment/driver-assignment.module";
 // Add other services as needed
 
 @Module({

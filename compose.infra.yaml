@@ -1,0 +1,264 @@
+services:
+  # Main Application
+  spicegarden:
+    image: spicegarden/backend:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - SENTRY_DSN=${SENTRY_DSN}
+    secrets:
+      - db_password
+      - jwt_secret
+      - stripe_secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mongo:
+        condition: service_started
+    networks:
+      - spicegarden-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', res => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL - Primary Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=spicegarden
+      - POSTGRES_USER=spicegarden
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spicegarden -d spicegarden"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spicegarden-net
+
+  # Redis - Cache & Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--loglevel", "notice"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - spicegarden-net
+
+  # MongoDB - Document Store
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spicegarden-net
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=2GB"
+      - "--web.enable-lifecycle"
+    networks:
+      - spicegarden-net
+
+  # Grafana - Dashboards
+  grafana:
+    image: grafana/grafana-enterprise:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://monitoring.spicegarden.local
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - spicegarden-net
+
+  # OpenSearch - Logging & Search
+  opensearch:
+    image: opensearchproject/opensearch:2.15.0
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD_FILE=/run/secrets/opensearch_admin_password
+    secrets:
+      - opensearch_admin_password
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - spicegarden-net
+
+  # OpenSearch Dashboards (Kibana-like)
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.15.0
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=https://opensearch:9200
+    depends_on:
+      - opensearch
+    networks:
+      - spicegarden-net
+
+  # Filebeat - Log Shipper
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.13.0
+    user: root
+    volumes:
+      - ./infra/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - opensearch
+    networks:
+      - spicegarden-net
+
+  # Alertmanager - Alert Routing
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.enable-lifecycle"
+    networks:
+      - spicegarden-net
+
+  # Sentry - Error Tracking (self-hosted)
+  sentry:
+    image: sentry:29
+    ports:
+      - "9000:9000"
+    environment:
+      - SENTRY_SECRET_KEY_FILE=/run/secrets/sentry_secret_key
+      - SENTRY_SYSTEM_SECRET_FILE=/run/secrets/sentry_system_secret
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=sentry
+      - POSTGRES_USER=sentry
+      - POSTGRES_PASSWORD_FILE=/run/secrets/sentry_db_password
+      - SENTRY_POSTGRES_HOST=postgres
+      - SENTRY_POSTGRES_PORT=5432
+      - SENTRY_DB=sentry
+      - SENTRY_USER=sentry
+      - SENTRY_PASSWORD_FILE=/run/secrets/sentry_db_password
+    secrets:
+      - sentry_secret_key
+      - sentry_system_secret
+      - sentry_db_password
+    depends_on:
+      - postgres
+    networks:
+      - spicegarden-net
+
+  # Sentry Worker
+  sentry-worker:
+    image: sentry:29
+    command: ["sentry", "worker"]
+    environment:
+      - SENTRY_SECRET_KEY_FILE=/run/secrets/sentry_secret_key
+      - SENTRY_SYSTEM_SECRET_FILE=/run/secrets/sentry_system_secret
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=sentry
+      - POSTGRES_USER=sentry
+      - POSTGRES_PASSWORD_FILE=/run/secrets/sentry_db_password
+      - SENTRY_POSTGRES_HOST=postgres
+      - SENTRY_POSTGRES_PORT=5432
+      - SENTRY_DB=sentry
+      - SENTRY_USER=sentry
+      - SENTRY_PASSWORD_FILE=/run/secrets/sentry_db_password
+    secrets:
+      - sentry_secret_key
+      - sentry_system_secret
+      - sentry_db_password
+    depends_on:
+      - sentry
+    networks:
+      - spicegarden-net
+
+networks:
+  spicegarden-net:
+    driver: bridge
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  stripe_secret:
+    file: ./secrets/stripe_secret.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
+  opensearch_admin_password:
+    file: ./secrets/opensearch_admin_password.txt
+  sentry_secret_key:
+    file: ./secrets/sentry_secret_key.txt
+  sentry_system_secret:
+    file: ./secrets/sentry_system_secret.txt
+  sentry_db_password:
+    file: ./secrets/sentry_db_password.txt
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
+  prometheus_data:
+  grafana_data:
+  opensearch_data:

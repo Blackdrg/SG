@@ -4,9 +4,9 @@ import { PaymentService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { WalletEntity } from '../../db/entities/wallet.entity';
-import { WalletTransactionEntity } = '../../db/entities/wallet-transaction.entity';
-import { AuditLogEntity } = '../../db/entities/audit-log.entity';
-import { WebhookModule } = './webhook/webhook.module';
+import { WalletTransactionEntity } from '../../db/entities/wallet-transaction.entity';
+import { AuditLogEntity } from '../../db/entities/audit-log.entity';
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([OrderEntity, WalletEntity, WalletTransactionEntity, AuditLogEntity]), WebhookModule],

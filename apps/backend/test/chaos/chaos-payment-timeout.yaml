@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: payment-provider-timeout
+  namespace: spicegarden
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - spicegarden
+    labelSelectors:
+      "app": "backend"
+  delay:
+    latency: "30s"
+  port: 80
+  target: request
+  path: "/payments/*"

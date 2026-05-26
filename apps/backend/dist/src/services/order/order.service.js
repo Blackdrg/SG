@@ -81,7 +81,7 @@ let OrderService = class OrderService {
         }
         catch (error) {
             console.error('[OrderService] Failed to place order:', error);
-            if (error.code === '23505') {
+            if (error?.code === '23505') {
                 throw new common_1.ConflictException('Order creation failed due to duplicate');
             }
             throw new common_1.InternalServerErrorException('Order placement failed due to internal processing error');

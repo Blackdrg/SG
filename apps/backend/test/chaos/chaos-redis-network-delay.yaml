@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: redis-network-delay
+  namespace: spicegarden
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - spicegarden
+    labelSelectors:
+      "app": "redis"
+  delay:
+    latency: "5s"
+  duration: "5m"
+  scheduler:
+    cron: "@every 30m"

@@ -1,0 +1,1 @@
+{"version":3,"file":"queues.js","sourceRoot":"","sources":["../../../src/shared/contracts/queues.ts"],"names":[],"mappings":";;;AAAa,QAAA,WAAW,GAAG;IACzB,eAAe,EAAE,iBAAiB;IAClC,iBAAiB,EAAE,mBAAmB;IACtC,aAAa,EAAE,eAAe;IAC9B,OAAO,EAAE,SAAS;IAClB,SAAS,EAAE,WAAW;CACvB,CAAC"}

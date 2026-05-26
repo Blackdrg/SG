@@ -1,0 +1,16 @@
+{
+  "name": "spicegarden",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run -ws dev",
+    "build": "npm run -ws build",
+    "lint": "npm run -ws lint",
+    "format": "npm run -ws format"
+  }
+}
+

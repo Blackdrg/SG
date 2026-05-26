@@ -1,0 +1,11 @@
+services:
+  spicegarden:
+    image: spicegarden
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      JAVA_OPTS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005,quiet=y
+    ports:
+      - 3005:3005
+      - 5005:5005

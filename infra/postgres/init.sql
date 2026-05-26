@@ -46,7 +46,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
 INSERT INTO restaurants (id, name, address, phone) VALUES
     ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Spice Garden - Downtown', 'Downtown Branch', '+1234567890'),
     ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Spice Garden - Mall Road', 'Mall Road Branch', '+1234567891'),
-    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Spice Garden - Gulshan', 'Gulshan Branch', '+1234567892');
+    ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Spice Garden - Gulshan', 'Gulshan Branch', '+1234567892')
+ON CONFLICT DO NOTHING;
 
--- Create Sentry database
-CREATE DATABASE sentry;
+-- Create Sentry database and user
+CREATE DATABASE sentry OWNER spicegarden;
+CREATE USER sentry WITH PASSWORD 'sentry';
+GRANT ALL PRIVILEGES ON DATABASE sentry TO sentry;

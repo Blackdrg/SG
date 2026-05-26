@@ -15,38 +15,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const common_1 = require("@nestjs/common");
 const admin_service_1 = require("./admin.service");
-const jwt_auth_guard_1 = require("../../security/jwt-auth.guard");
-const roles_guard_1 = require("../../security/roles.guard");
-const roles_decorator_1 = require("../../security/roles.decorator");
-const user_interface_1 = require("../../shared/domain/user.interface");
 let AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
     }
-    async getStats() {
-        return this.adminService.getDashboardStats();
+    async getStats(query) {
+        return this.adminService.getDashboardStats(query.branchId);
     }
-    async getFullStats() {
-        return this.adminService.getDashboardStats();
+    async getFullStats(query) {
+        return this.adminService.getDashboardStats(query.branchId);
     }
     async getOrders(page, limit) {
         return this.adminService.getAllOrders(Number(page) || 1, Number(limit) || 10);
     }
     async banUser(body, req) {
-        return this.adminService.banUser(body.userId, req.user.userId, body.reason);
+        return this.adminService.banUser(body.userId, body.reason);
     }
 };
 exports.AdminController = AdminController;
 __decorate([
     (0, common_1.Get)('dashboard'),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getStats", null);
 __decorate([
     (0, common_1.Get)('stats'),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getFullStats", null);
 __decorate([
@@ -66,8 +64,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "banUser", null);
 exports.AdminController = AdminController = __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_interface_1.UserRole.ADMIN, user_interface_1.UserRole.SUPER_ADMIN),
     (0, common_1.Controller)('admin'),
     __metadata("design:paramtypes", [admin_service_1.AdminService])
 ], AdminController);

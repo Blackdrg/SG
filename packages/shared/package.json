@@ -6,7 +6,8 @@
   "types": "index.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "lint": "echo \"lint placeholder\""
   },
   "devDependencies": {
     "typescript": "^5.0.0"

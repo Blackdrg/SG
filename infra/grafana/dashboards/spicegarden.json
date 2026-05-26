@@ -10,7 +10,7 @@
         "type": "stat",
         "title": "Current RPS",
         "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
-        "targets": [{"expr": "rate(http_request_duration_seconds_count[1m]", "legendFormat": "RPS"}]
+        "targets": [{"expr": "rate(http_request_duration_seconds_count[1m])", "legendFormat": "RPS"}]
       },
       {
         "id": 2,

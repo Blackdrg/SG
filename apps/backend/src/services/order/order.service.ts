@@ -1,9 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Order, OrderStatus, PaymentStatus } from '../../shared/domain/order.interface';
-import { QueueService } from '../../infra/queue/queue.service';
-import { QUEUE_NAMES } from '../../shared/contracts/queues';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan, LessThan } from 'typeorm';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { PaymentService } from '../../services/payments/payments.service';
 import { NotificationService } from '../../services/notifications/notification.service';
@@ -12,7 +10,6 @@ import * as crypto from 'crypto';
 @Injectable()
 export class OrderService {
   constructor(
-    private readonly queueService: QueueService,
     @InjectRepository(OrderEntity)
     private readonly orderRepo: Repository<OrderEntity>,
     private readonly paymentService: PaymentService,
@@ -27,20 +24,6 @@ export class OrderService {
 
     if (orderData.grandTotal <= 0) {
       throw new BadRequestException('Order total must be greater than zero');
-    }
-
-    // Check for duplicate order (based on userId, restaurantId, and timestamp within 5 seconds)
-    const duplicateCheck = await this.orderRepo.findOne({
-      where: {
-        userId: orderData.userId,
-        restaurantId: orderData.restaurantId,
-        createdAt: new Date(Date.now() - 5000), // Last 5 seconds
-      },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (duplicateCheck) {
-      throw new ConflictException('Duplicate order detected. Please wait before placing another order.');
     }
 
     const orderId = crypto.randomUUID();
@@ -69,15 +52,6 @@ export class OrderService {
     try {
       // Save order to database first
       const savedOrder = await this.orderRepo.save(order);
-      
-      // Enqueue order lifecycle event
-      await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-        orderId: savedOrder.id,
-        status: savedOrder.status,
-        userId: savedOrder.userId,
-        restaurantId: savedOrder.restaurantId,
-      });
-
       return savedOrder;
     } catch (error) {
       console.error('[OrderService] Failed to place order:', error);
@@ -88,7 +62,7 @@ export class OrderService {
     }
   }
 
-  async confirmPayment(orderId: string, paymentId: string): Promise<Order> {
+  async confirmPayment(orderId: string, paymentId: string, request: any = null): Promise<Order> {
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
     if (!order) {
       throw new NotFoundException(`Order ${orderId} not found`);
@@ -101,7 +75,7 @@ export class OrderService {
 
     try {
       // Confirm payment with Stripe
-      const paymentIntent = await this.paymentService.confirmPayment(paymentId, order.userId);
+      const paymentIntent = await this.paymentService.confirmPayment(paymentId, order.userId, request);
       
       // Update order status
       order.paymentStatus = PaymentStatus.COMPLETED;
@@ -109,14 +83,6 @@ export class OrderService {
       order.updatedAt = new Date();
       
       const savedOrder = await this.orderRepo.save(order);
-      
-      // Enqueue next lifecycle step
-      await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-        orderId: savedOrder.id,
-        status: savedOrder.status,
-        userId: savedOrder.userId,
-        restaurantId: savedOrder.restaurantId,
-      });
 
       // Send notification
       await this.notificationService.sendPush(
@@ -183,7 +149,6 @@ export class OrderService {
     try {
       // Process refund through payment service
       const refund = await this.paymentService.refundPayment(
-        // Assuming we have payment intent ID stored somewhere - for now using orderId as reference
         order.id, // This would be the actual payment intent ID in production
         order.grandTotal,
         order.userId,
@@ -241,14 +206,6 @@ export class OrderService {
       
       const savedOrder = await this.orderRepo.save(order);
       
-      // Enqueue cancellation event
-      await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-        orderId: savedOrder.id,
-        status: savedOrder.status,
-        userId: savedOrder.userId,
-        restaurantId: savedOrder.restaurantId,
-      });
-
       // Send notifications
       await this.notificationService.sendPush(
         order.userId,
@@ -286,14 +243,6 @@ export class OrderService {
       
       const savedOrder = await this.orderRepo.save(order);
       
-      // Enqueue cancellation event
-      await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-        orderId: savedOrder.id,
-        status: savedOrder.status,
-        userId: savedOrder.userId,
-        restaurantId: savedOrder.restaurantId,
-      });
-
       // Send notifications
       await this.notificationService.sendPush(
         order.userId,
@@ -341,14 +290,6 @@ export class OrderService {
       order.updatedAt = new Date();
       
       const savedOrder = await this.orderRepo.save(order);
-      
-      // Enqueue retry event
-      await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-        orderId: savedOrder.id,
-        status: savedOrder.status,
-        userId: savedOrder.userId,
-        restaurantId: savedOrder.restaurantId,
-      });
 
       return savedOrder;
     } catch (error) {
@@ -364,7 +305,7 @@ export class OrderService {
     const stuckOrders = await this.orderRepo.find({
       where: {
         status: OrderStatus.PREPARING,
-        updatedAt: thirtyMinutesAgo,
+        updatedAt: LessThan(thirtyMinutesAgo),
       },
     });
 
@@ -379,14 +320,6 @@ export class OrderService {
         const savedOrder = await this.orderRepo.save(order);
         resolvedOrders.push(savedOrder);
         
-        // Enqueue state change event
-        await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-          orderId: savedOrder.id,
-          status: savedOrder.status,
-          userId: savedOrder.userId,
-          restaurantId: savedOrder.restaurantId,
-        });
-
         // Send notification
         await this.notificationService.sendPush(
           order.userId,

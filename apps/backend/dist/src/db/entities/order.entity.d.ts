@@ -8,6 +8,7 @@ export declare class OrderEntity {
     orderNumber: string;
     status: OrderStatus;
     paymentStatus: PaymentStatus;
+    paymentIntentId: string;
     subtotal: number;
     tax: number;
     deliveryFee: number;

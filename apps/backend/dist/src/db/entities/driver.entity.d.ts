@@ -8,6 +8,7 @@ export declare class DriverEntity {
     vehicleType: string;
     kycStatus: string;
     isOnline: boolean;
+    isAvailable: boolean;
     rating: number;
     currentLocation: {
         lat: number;
@@ -20,10 +21,10 @@ export declare class DriverEntity {
     isFraudSuspicious: boolean;
     lastFraudCheck: Date;
     fraudFlags: {
-        gpsSpoofingRisk: number;
-        routeDeviationRisk: number;
-        timingAbuseRisk: number;
-        fakeDeliveryRisk: number;
+        gpsSpoofingRisk?: number;
+        routeDeviationRisk?: number;
+        timingAbuseRisk?: number;
+        fakeDeliveryRisk?: number;
     };
     createdAt: Date;
     updatedAt: Date;

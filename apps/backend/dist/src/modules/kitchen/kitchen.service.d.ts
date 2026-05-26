@@ -41,4 +41,5 @@ export declare class KitchenService {
     getSupplierInventory(supplierId: string): Promise<InventoryItemEntity[]>;
     getInventoryConsumption(branchId: string, days?: number): Promise<any>;
     forecastInventoryNeeds(branchId: string, daysAhead?: number): Promise<any>;
+    getKitchenAnalytics(branchId: string): Promise<any>;
 }

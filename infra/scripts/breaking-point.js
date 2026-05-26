@@ -69,10 +69,10 @@ function makeRequest(path, method = 'GET', data = null) {
 
 function generateBreakingOrder(scenario, index) {
   const base = {
-    userId: `breaker-${scenario}-${index}`,
+    userId: `breaker-${index}`,
     restaurantId: Math.floor(Math.random() * 3) + 1,
     items: [],
-    total: 0,
+    grandTotal: 0,
   };
 
   if (scenario === 'INVALID_PAYLOAD') {
@@ -80,23 +80,22 @@ function generateBreakingOrder(scenario, index) {
     return { invalid: true, data: 'not an object', random: () => {} };
   }
 
-  if (scenario === 'INCOMPLETE') {
-    // Missing restaurantId
-    delete base.restaurantId;
+  if (scenario === 'MISSING_FIELDS') {
+    // Missing grandTotal
+    delete base.grandTotal;
     base.items = [{ name: 'Test Item', quantity: 1 }];
-    base.total = 500;
     return base;
   }
 
   if (scenario === 'NEGATIVE') {
     base.items = [{ name: 'Test Item', quantity: -5 }];
-    base.total = -1000;
+    base.grandTotal = -1000;
     return base;
   }
 
   // Normal order
   base.items = [{ name: 'Menu Item', quantity: Math.floor(Math.random() * 5) + 1 }];
-  base.total = Math.floor(Math.random() * 5000) + 500;
+  base.grandTotal = Math.floor(Math.random() * 5000) + 500;
   return base;
 }
 
@@ -112,7 +111,7 @@ async function runBreakingTest(scenarioName, config) {
   for (let u = 0; u < config.users; u++) {
     for (let o = 0; o < config.ordersPerUser; o++) {
       const order = generateBreakingOrder(
-        scenarioName.replace('_', ''),
+        scenarioName.replace(/_/g, ''),
         `${u}-${o}`
       );
 
@@ -131,7 +130,6 @@ async function runBreakingTest(scenarioName, config) {
     }
 
     if (!config.parallel && config.users > 1) {
-      // Stagger users
       await new Promise(r => setTimeout(r, 50));
     }
   }

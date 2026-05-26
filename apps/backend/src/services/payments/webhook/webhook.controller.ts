@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Post, Get, Req, HttpCode, HttpStatus, RawBodyRequest, Headers as HeadersDecorator } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
@@ -13,14 +13,11 @@ export class PaymentWebhookController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
-    @Body() payload: any,
-    @Headers('stripe-signature') signature: string,
-    @Req() req: Request,
+    @Req() req: RawBodyRequest<Request>,
+    @HeadersDecorator('stripe-signature') signature: string,
   ) {
-    // Convert body back to Buffer for Stripe verification
-    const rawBody = JSON.stringify(payload);
-    
-    return await this.webhookService.processWebhook(Buffer.from(rawBody), signature);
+    const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
+    return await this.webhookService.processWebhook(rawBody, signature);
   }
 
   @Get('stats')

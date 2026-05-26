@@ -62,11 +62,15 @@ function makeRequest(path, method = 'GET', data = null) {
 
 async function placeOrder(userId, restaurant) {
   const menuItem = getRandomMenuItem(restaurant);
+  const grandTotal = Math.floor(Math.random() * 5000) + 500;
   const order = {
     userId,
     restaurantId: restaurant.id,
     items: [{ name: menuItem, quantity: Math.floor(Math.random() * 3) + 1 }],
-    total: Math.floor(Math.random() * 5000) + 500,
+    grandTotal,
+    subtotal: grandTotal * 0.85,
+    tax: grandTotal * 0.05,
+    deliveryFee: grandTotal * 0.10,
   };
 
   const result = await makeRequest('/api/orders', 'POST', order);

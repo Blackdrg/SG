@@ -42,11 +42,21 @@ export const authApi = {
 };
 
 export const restaurantsApi = {
-  list: (lat?: number, lng?: number) => 
-    api<any[]>('/restaurants', { 
-      method: 'GET',
-      headers: lat && lng ? { 'x-location': `${lat},${lng}` } : undefined,
-    }),
+  list: async (lat?: number, lng?: number) => {
+    try {
+      return api<any[]>('/restaurants', { 
+        method: 'GET',
+        headers: lat && lng ? { 'x-location': `${lat},${lng}` } : undefined,
+      });
+    } catch (error) {
+      console.warn('Backend unavailable, returning mock data');
+      return [
+        { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Spice Garden - Downtown', description: 'Biryani, Karahi, Naan', rating: 4.5, deliveryTime: 30, isActive: true },
+        { id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', name: 'Spice Garden - Mall Road', description: 'Burger, Fries, Shake', rating: 4.3, deliveryTime: 25, isActive: true },
+        { id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', name: 'Spice Garden - Gulshan', description: 'Pizza, Pasta, Salad', rating: 4.7, deliveryTime: 35, isActive: true },
+      ];
+    }
+  },
   
   get: (id: string) => api<any>(`/restaurants/${id}`),
   

@@ -7,9 +7,14 @@ import { WalletEntity } from '../../db/entities/wallet.entity';
 import { WalletTransactionEntity } from '../../db/entities/wallet-transaction.entity';
 import { AuditLogEntity } from '../../db/entities/audit-log.entity';
 import { WebhookModule } from './webhook/webhook.module';
+import { AuditModule } from '../../audit/audit.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderEntity, WalletEntity, WalletTransactionEntity, AuditLogEntity]), WebhookModule],
+  imports: [
+    TypeOrmModule.forFeature([OrderEntity, WalletEntity, WalletTransactionEntity, AuditLogEntity]),
+    WebhookModule,
+    AuditModule
+  ],
   providers: [PaymentService],
   controllers: [PaymentsController],
   exports: [PaymentService],

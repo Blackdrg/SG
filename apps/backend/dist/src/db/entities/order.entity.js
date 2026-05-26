@@ -48,6 +48,10 @@ __decorate([
     __metadata("design:type", String)
 ], OrderEntity.prototype, "paymentStatus", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], OrderEntity.prototype, "paymentIntentId", void 0);
+__decorate([
     (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
     __metadata("design:type", Number)
 ], OrderEntity.prototype, "subtotal", void 0);

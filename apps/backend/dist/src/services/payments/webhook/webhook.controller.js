@@ -21,9 +21,9 @@ let PaymentWebhookController = class PaymentWebhookController {
         this.webhookService = webhookService;
         this.configService = configService;
     }
-    async handleWebhook(payload, signature, req) {
-        const rawBody = JSON.stringify(payload);
-        return await this.webhookService.processWebhook(Buffer.from(rawBody), signature);
+    async handleWebhook(req, signature) {
+        const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
+        return await this.webhookService.processWebhook(rawBody, signature);
     }
     async getWebhookStats() {
         return await this.webhookService.getWebhookStats();
@@ -33,15 +33,14 @@ exports.PaymentWebhookController = PaymentWebhookController;
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Headers)('stripe-signature')),
-    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], PaymentWebhookController.prototype, "handleWebhook", null);
 __decorate([
-    Get('stats'),
+    (0, common_1.Get)('stats'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)

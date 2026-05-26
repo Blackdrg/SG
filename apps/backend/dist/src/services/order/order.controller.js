@@ -15,32 +15,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderController = void 0;
 const common_1 = require("@nestjs/common");
 const order_service_1 = require("./order.service");
-const jwt_auth_guard_1 = require("../../security/jwt-auth.guard");
-const roles_guard_1 = require("../../security/roles.guard");
-const roles_decorator_1 = require("../../security/roles.decorator");
-const user_interface_1 = require("../../shared/domain/user.interface");
 let OrderController = class OrderController {
     constructor(orderService) {
         this.orderService = orderService;
     }
-    async placeOrder(req, body) {
-        return this.orderService.placeOrder({
-            ...body,
-            userId: req.user.id,
-        });
+    async placeOrder(body) {
+        return this.orderService.placeOrder(body);
+    }
+    async healthCheck() {
+        return { status: 'ok', timestamp: new Date().toISOString() };
     }
 };
 exports.OrderController = OrderController;
 __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_interface_1.UserRole.CUSTOMER),
     (0, common_1.Post)(),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "placeOrder", null);
+__decorate([
+    (0, common_1.Get)('health'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "healthCheck", null);
 exports.OrderController = OrderController = __decorate([
     (0, common_1.Controller)('orders'),
     __metadata("design:paramtypes", [order_service_1.OrderService])

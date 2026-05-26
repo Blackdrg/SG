@@ -15,8 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderService = void 0;
 const common_1 = require("@nestjs/common");
 const order_interface_1 = require("../../shared/domain/order.interface");
-const queue_service_1 = require("../../infra/queue/queue.service");
-const queues_1 = require("../../shared/contracts/queues");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const order_entity_1 = require("../../db/entities/order.entity");
@@ -24,8 +22,7 @@ const payments_service_1 = require("../../services/payments/payments.service");
 const notification_service_1 = require("../../services/notifications/notification.service");
 const crypto = require("crypto");
 let OrderService = class OrderService {
-    constructor(queueService, orderRepo, paymentService, notificationService) {
-        this.queueService = queueService;
+    constructor(orderRepo, paymentService, notificationService) {
         this.orderRepo = orderRepo;
         this.paymentService = paymentService;
         this.notificationService = notificationService;
@@ -36,17 +33,6 @@ let OrderService = class OrderService {
         }
         if (orderData.grandTotal <= 0) {
             throw new common_1.BadRequestException('Order total must be greater than zero');
-        }
-        const duplicateCheck = await this.orderRepo.findOne({
-            where: {
-                userId: orderData.userId,
-                restaurantId: orderData.restaurantId,
-                createdAt: new Date(Date.now() - 5000),
-            },
-            order: { createdAt: 'DESC' },
-        });
-        if (duplicateCheck) {
-            throw new common_1.ConflictException('Duplicate order detected. Please wait before placing another order.');
         }
         const orderId = crypto.randomUUID();
         const now = new Date();
@@ -71,12 +57,6 @@ let OrderService = class OrderService {
         };
         try {
             const savedOrder = await this.orderRepo.save(order);
-            await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                orderId: savedOrder.id,
-                status: savedOrder.status,
-                userId: savedOrder.userId,
-                restaurantId: savedOrder.restaurantId,
-            });
             return savedOrder;
         }
         catch (error) {
@@ -87,7 +67,7 @@ let OrderService = class OrderService {
             throw new common_1.InternalServerErrorException('Order placement failed due to internal processing error');
         }
     }
-    async confirmPayment(orderId, paymentId) {
+    async confirmPayment(orderId, paymentId, request = null) {
         const order = await this.orderRepo.findOne({ where: { id: orderId } });
         if (!order) {
             throw new common_1.NotFoundException(`Order ${orderId} not found`);
@@ -96,17 +76,11 @@ let OrderService = class OrderService {
             throw new common_1.ConflictException('Payment already confirmed for this order');
         }
         try {
-            const paymentIntent = await this.paymentService.confirmPayment(paymentId, order.userId);
+            const paymentIntent = await this.paymentService.confirmPayment(paymentId, order.userId, request);
             order.paymentStatus = order_interface_1.PaymentStatus.COMPLETED;
             order.status = order_interface_1.OrderStatus.PAYMENT_CONFIRMED;
             order.updatedAt = new Date();
             const savedOrder = await this.orderRepo.save(order);
-            await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                orderId: savedOrder.id,
-                status: savedOrder.status,
-                userId: savedOrder.userId,
-                restaurantId: savedOrder.restaurantId,
-            });
             await this.notificationService.sendPush(order.userId, 'Payment Confirmed', `Your payment for order #${order.orderNumber} has been confirmed.`, { orderId: order.id });
             return savedOrder;
         }
@@ -180,12 +154,6 @@ let OrderService = class OrderService {
             order.driverId = null;
             order.updatedAt = new Date();
             const savedOrder = await this.orderRepo.save(order);
-            await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                orderId: savedOrder.id,
-                status: savedOrder.status,
-                userId: savedOrder.userId,
-                restaurantId: savedOrder.restaurantId,
-            });
             await this.notificationService.sendPush(order.userId, 'Order Cancelled by Driver', `Your order #${order.orderNumber} has been cancelled by the driver.`, { orderId: order.id });
             return savedOrder;
         }
@@ -210,12 +178,6 @@ let OrderService = class OrderService {
             order.status = order_interface_1.OrderStatus.CANCELLED;
             order.updatedAt = new Date();
             const savedOrder = await this.orderRepo.save(order);
-            await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                orderId: savedOrder.id,
-                status: savedOrder.status,
-                userId: savedOrder.userId,
-                restaurantId: savedOrder.restaurantId,
-            });
             await this.notificationService.sendPush(order.userId, 'Order Cancelled by Restaurant', `Your order #${order.orderNumber} has been cancelled by the restaurant.`, { orderId: order.id });
             return savedOrder;
         }
@@ -247,12 +209,6 @@ let OrderService = class OrderService {
             order.paymentStatus = order_interface_1.PaymentStatus.PENDING;
             order.updatedAt = new Date();
             const savedOrder = await this.orderRepo.save(order);
-            await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                orderId: savedOrder.id,
-                status: savedOrder.status,
-                userId: savedOrder.userId,
-                restaurantId: savedOrder.restaurantId,
-            });
             return savedOrder;
         }
         catch (error) {
@@ -265,7 +221,7 @@ let OrderService = class OrderService {
         const stuckOrders = await this.orderRepo.find({
             where: {
                 status: order_interface_1.OrderStatus.PREPARING,
-                updatedAt: thirtyMinutesAgo,
+                updatedAt: (0, typeorm_2.LessThan)(thirtyMinutesAgo),
             },
         });
         const resolvedOrders = [];
@@ -275,12 +231,6 @@ let OrderService = class OrderService {
                 order.updatedAt = new Date();
                 const savedOrder = await this.orderRepo.save(order);
                 resolvedOrders.push(savedOrder);
-                await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                    orderId: savedOrder.id,
-                    status: savedOrder.status,
-                    userId: savedOrder.userId,
-                    restaurantId: savedOrder.restaurantId,
-                });
                 await this.notificationService.sendPush(order.userId, 'Order Delayed', `Your order #${order.orderNumber} is experiencing delays. We're working on it.`, { orderId: order.id });
             }
             catch (error) {
@@ -303,9 +253,8 @@ let OrderService = class OrderService {
 exports.OrderService = OrderService;
 exports.OrderService = OrderService = __decorate([
     (0, common_1.Injectable)(),
-    __param(1, (0, typeorm_1.InjectRepository)(order_entity_1.OrderEntity)),
-    __metadata("design:paramtypes", [queue_service_1.QueueService,
-        typeorm_2.Repository,
+    __param(0, (0, typeorm_1.InjectRepository)(order_entity_1.OrderEntity)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
         payments_service_1.PaymentService,
         notification_service_1.NotificationService])
 ], OrderService);

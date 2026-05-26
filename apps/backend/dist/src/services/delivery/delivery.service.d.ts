@@ -30,70 +30,19 @@ export declare class DeliveryService {
     }, customerLocation: {
         lat: number;
         lng: number;
-    }, historicalSpeed?: number): Promise<{
+    }, historicalSpeed?: number): {
         eta: number;
         distance: number;
         duration: number;
         trafficFactor: number;
-    }>;
-    correctETAWithRealTimeData(assignmentId: string): Promise<{
-        correctionFactor: number;
-        originalETA: number;
-        actualTime: number;
-        correctedETA: number;
-    }>;
+    };
+    getTimeOfDayTrafficFactor(): number;
     updateActualDeliveryTime(assignmentId: string, actualTimeMinutes: number): Promise<import("typeorm").UpdateResult>;
-    calculateAndUpdateDriverScore(driverId: string, restaurantId?: string): Promise<DriverScoreEntity>;
-    private calculateScoreComponents;
-    getDriverScore(scoreId: string): Promise<DriverScoreEntity>;
-    getCurrentDriverScore(driverId: string, restaurantId?: string): Promise<DriverScoreEntity | null>;
-    detectFraudFromGPSData(assignmentId: string, gpsData: Array<{
-        lat: number;
-        lng: number;
-        timestamp: Date;
-    }>): Promise<{
-        fraudDetected: boolean;
-        fraudType: 'gps_spoofing' | 'route_deviation' | 'timing_abuse' | 'fake_delivery' | null;
-        riskScore: number;
-        evidence: any;
+    calculateScoreComponents(driverId: string, restaurantId?: string): Promise<{
+        overallScore: number;
+        onTimeRate: number;
+        acceptanceRate: number;
+        cancellationRate: number;
     }>;
-    private detectGPSSpoofing;
-    private detectRouteDeviation;
-    private detectTimingAbuse;
-    private detectFakeDelivery;
-    recordFraudIncident(assignmentId: string, fraudType: 'gps_spoofing' | 'fake_delivery' | 'late_delivery_abuse' | 'route_deviation' | 'other', evidence: any, severity?: 'low' | 'medium' | 'high'): Promise<DriverFraudEntity>;
-    getDriverFraudScore(driverId: string): Promise<{
-        fraudScore: number;
-        isFraudSuspicious: boolean;
-        fraudFlags: {
-            gpsSpoofingRisk: number;
-            routeDeviationRisk: number;
-            timingAbuseRisk: number;
-            fakeDeliveryRisk: number;
-        };
-        lastFraudCheck: Date | null;
-    }>;
-    updateDriverFraudScore(driverId: string): Promise<void>;
     private toRadians;
-    private calculateDistance;
-    createBatch(name: string, description: string, restaurantId: string, recipeId: string, quantityPrepared: number, quantityUnit: string): Promise<BatchEntity>;
-    addOrdersToBatch(batchId: string, orderIds: string[]): Promise<{
-        success: boolean;
-        batchId: string;
-        orderCount: number;
-    }>;
-    assignBatchToDriver(batchId: string, driverId: string): Promise<{
-        success: boolean;
-        batchId: string;
-        driverId: string;
-        orderCount: number;
-        message: string;
-    }>;
-    reassignOrderToDriver(orderId: string, newDriverId: string, reason?: string): Promise<{
-        success: boolean;
-        orderId: string;
-        newDriverId: string;
-        reason: string;
-    }>;
-    completeDelivery(orderId: string, driverId: string, earning: number): Promise<void>;
 }

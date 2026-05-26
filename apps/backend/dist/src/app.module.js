@@ -29,7 +29,6 @@ const metrics_module_1 = require("./metrics/metrics.module");
 const compliance_module_1 = require("./compliance/compliance.module");
 const audit_module_1 = require("./audit/audit.module");
 const wallet_module_1 = require("./services/wallet/wallet.module");
-const sentry_module_1 = require("./infra/observability/sentry.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -58,7 +57,6 @@ exports.AppModule = AppModule = __decorate([
             compliance_module_1.ComplianceModule,
             audit_module_1.AuditModule,
             wallet_module_1.WalletModule,
-            sentry_module_1.SentryModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

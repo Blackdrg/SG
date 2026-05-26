@@ -31,19 +31,35 @@ let RestaurantService = class RestaurantService {
         });
     }
     async findNearby(lat, lng, radiusInKm = 5) {
-        const radius = radiusInKm * 1000;
-        return this.branchRepo
-            .createQueryBuilder('branch')
-            .leftJoinAndSelect('branch.restaurant', 'restaurant')
-            .select([
-            'branch',
-            'restaurant',
-            `ST_DistanceSphere(branch.location::geometry, ST_MakePoint(:lng, :lat)::geometry) AS distance`
-        ])
-            .where(`ST_DistanceSphere(branch.location::geometry, ST_MakePoint(:lng, :lat)::geometry) <= :radius`, { lng, lat, radius })
-            .andWhere('branch.isOnline = :isOnline', { isOnline: true })
-            .orderBy('distance', 'ASC')
-            .getMany();
+        if (lat && lng) {
+            try {
+                const radius = radiusInKm * 1000;
+                return this.branchRepo
+                    .createQueryBuilder('branch')
+                    .leftJoinAndSelect('branch.restaurant', 'restaurant')
+                    .select([
+                    'branch',
+                    'restaurant',
+                    `ST_DistanceSphere(branch.location::geometry, ST_MakePoint(:lng, :lat)::geometry) AS distance`
+                ])
+                    .where(`ST_DistanceSphere(branch.location::geometry, ST_MakePoint(:lng, :lat)::geometry) <= :radius`, { lng, lat, radius })
+                    .andWhere('branch.isOnline = :isOnline', { isOnline: true })
+                    .orderBy('distance', 'ASC')
+                    .getMany();
+            }
+            catch (e) {
+                return this.branchRepo.find({
+                    where: { isOnline: true },
+                    relations: ['restaurant'],
+                    take: 20,
+                });
+            }
+        }
+        return this.branchRepo.find({
+            where: { isOnline: true },
+            relations: ['restaurant'],
+            take: 20,
+        });
     }
     async getRestaurantDetails(slug) {
         return this.restaurantRepo.findOne({

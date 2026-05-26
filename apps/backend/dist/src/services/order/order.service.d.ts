@@ -1,17 +1,15 @@
 import { Order } from '../../shared/domain/order.interface';
-import { QueueService } from '../../infra/queue/queue.service';
 import { Repository } from 'typeorm';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { PaymentService } from '../../services/payments/payments.service';
 import { NotificationService } from '../../services/notifications/notification.service';
 export declare class OrderService {
-    private readonly queueService;
     private readonly orderRepo;
     private readonly paymentService;
     private readonly notificationService;
-    constructor(queueService: QueueService, orderRepo: Repository<OrderEntity>, paymentService: PaymentService, notificationService: NotificationService);
+    constructor(orderRepo: Repository<OrderEntity>, paymentService: PaymentService, notificationService: NotificationService);
     placeOrder(orderData: any): Promise<Order>;
-    confirmPayment(orderId: string, paymentId: string): Promise<Order>;
+    confirmPayment(orderId: string, paymentId: string, request?: any): Promise<Order>;
     handleWebhookDelayed(orderId: string, paymentId: string): Promise<Order>;
     refundAfterDispatch(orderId: string, reason: string): Promise<Order>;
     cancelByDriver(orderId: string, driverId: string): Promise<Order>;

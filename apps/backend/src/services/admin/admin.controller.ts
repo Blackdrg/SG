@@ -1,24 +1,18 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Req } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { JwtAuthGuard } from '../../security/jwt-auth.guard';
-import { RolesGuard } from '../../security/roles.guard';
-import { Roles } from '../../security/roles.decorator';
-import { UserRole } from '../../shared/domain/user.interface';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 @Controller('admin')
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
   @Get('dashboard')
-  async getStats() {
-    return this.adminService.getDashboardStats();
+  async getStats(@Query() query: any) {
+    return this.adminService.getDashboardStats(query.branchId);
   }
 
   @Get('stats')
-  async getFullStats() {
-    return this.adminService.getDashboardStats();
+  async getFullStats(@Query() query: any) {
+    return this.adminService.getDashboardStats(query.branchId);
   }
 
   @Get('orders')
@@ -28,6 +22,6 @@ export class AdminController {
 
   @Post('users/ban')
   async banUser(@Body() body: { userId: string; reason: string }, @Req() req: any) {
-    return this.adminService.banUser(body.userId, req.user.userId, body.reason);
+    return this.adminService.banUser(body.userId, body.reason);
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, Req, BadRequestException, RawBodyRequest } from '@nestjs/common';
+import { Controller, Post, Body, Headers, Req, BadRequestException, RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { PaymentService } from './payments.service';
 import { ConfigService } from '@nestjs/config';
@@ -14,46 +14,25 @@ export class PaymentsController {
     private queueService: QueueService
   ) {}
 
-  @Post('webhook')
-  async handleWebhook(
-    @Headers('stripe-signature') sig: string,
-    @Req() req: RawBodyRequest<Request>
-  ) {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
-    let event: any;
-
-    if (!webhookSecret) {
-      console.warn('STRIPE_WEBHOOK_SECRET is not set. Skipping signature verification (DEV MODE ONLY)');
-      event = req.body; // In dev, we might just pass the body
-    } else {
-      try {
-        event = await this.paymentService.constructEvent(req.rawBody!, sig, webhookSecret);
-      } catch (err: any) {
-        throw new BadRequestException(`Webhook Error: ${err.message}`);
-      }
-    }
-
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        await this.processSuccessfulPayment(paymentIntent);
-        break;
-      case 'payment_intent.payment_failed':
-        console.log(`Payment failed: ${event.data.object.last_payment_error?.message}`);
-        break;
-    }
-
-    return { received: true };
+  @Post('create-intent')
+  async createPaymentIntent(@Body() body: any) {
+    const intent = await this.paymentService.createPaymentIntent(
+      body.amount,
+      body.currency || 'usd',
+      body.userId,
+      { orderId: body.orderId }
+    );
+    return { clientSecret: intent.client_secret };
   }
 
-  private async processSuccessfulPayment(paymentIntent: any) {
-    const orderId = paymentIntent.metadata?.orderId;
-    if (orderId) {
-      await this.queueService.enqueue(QUEUE_NAMES.ORDER_LIFECYCLE, {
-        orderId,
-        status: OrderStatus.PAYMENT_CONFIRMED,
-        transactionId: paymentIntent.id
-      });
-    }
+  @Post('refund')
+  async refund(@Body() body: any) {
+    const refund = await this.paymentService.refundPayment(
+      body.paymentIntentId,
+      body.amount,
+      body.userId,
+      body.reason
+    );
+    return refund;
   }
 }

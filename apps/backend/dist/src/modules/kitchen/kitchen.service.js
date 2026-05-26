@@ -121,8 +121,9 @@ let KitchenService = class KitchenService {
         return this.slaRepo.save(sla);
     }
     async recordAvgPrepTime(branchId, prepTimeMinutes, period = 'hourly') {
+        const branch = await this.branchRepo.findOne({ where: { id: branchId } });
         return this.recordKitchenSLA({
-            branch: { id: branchId },
+            branch,
             metricName: 'avg_prep_time',
             value: prepTimeMinutes,
             unit: 'minutes',
@@ -133,8 +134,9 @@ let KitchenService = class KitchenService {
         });
     }
     async recordLatePrepPercentage(branchId, latePercentage, period = 'hourly') {
+        const branch = await this.branchRepo.findOne({ where: { id: branchId } });
         return this.recordKitchenSLA({
-            branch: { id: branchId },
+            branch,
             metricName: 'late_prep_percentage',
             value: latePercentage,
             unit: 'percentage',
@@ -145,8 +147,9 @@ let KitchenService = class KitchenService {
         });
     }
     async recordFoodRejectionRate(branchId, rejectionRate, period = 'hourly') {
+        const branch = await this.branchRepo.findOne({ where: { id: branchId } });
         return this.recordKitchenSLA({
-            branch: { id: branchId },
+            branch,
             metricName: 'food_rejection_rate',
             value: rejectionRate,
             unit: 'percentage',
@@ -157,8 +160,9 @@ let KitchenService = class KitchenService {
         });
     }
     async recordKitchenThroughput(branchId, ordersPerHour, period = 'hourly') {
+        const branch = await this.branchRepo.findOne({ where: { id: branchId } });
         return this.recordKitchenSLA({
-            branch: { id: branchId },
+            branch,
             metricName: 'kitchen_throughput',
             value: ordersPerHour,
             unit: 'orders_per_hour',
@@ -209,8 +213,6 @@ let KitchenService = class KitchenService {
         return this.inventoryRepo.find({ where: { supplier: { id: supplierId } } });
     }
     async getInventoryConsumption(branchId, days = 7) {
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
         return {
             branchId,
             periodDays: days,
@@ -233,6 +235,51 @@ let KitchenService = class KitchenService {
                 unit: item.unit,
                 recommendedOrderQuantity: Math.ceil(item.consumed * (daysAhead / consumption.periodDays) * 1.2)
             })),
+            generatedAt: new Date()
+        };
+    }
+    async getKitchenAnalytics(branchId) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const [totalOrders, avgPrepTime, rejectionRate, throughput] = await Promise.all([
+            this.slaRepo.count({
+                where: {
+                    branch: { id: branchId },
+                    metricName: 'kitchen_throughput'
+                }
+            }),
+            this.slaRepo.findOne({
+                where: {
+                    branch: { id: branchId },
+                    metricName: 'avg_prep_time',
+                    measuredAt: (0, typeorm_2.MoreThan)(thirtyDaysAgo)
+                },
+                order: { measuredAt: 'DESC' }
+            }),
+            this.slaRepo.findOne({
+                where: {
+                    branch: { id: branchId },
+                    metricName: 'food_rejection_rate',
+                    measuredAt: (0, typeorm_2.MoreThan)(thirtyDaysAgo)
+                },
+                order: { measuredAt: 'DESC' }
+            }),
+            this.slaRepo.findOne({
+                where: {
+                    branch: { id: branchId },
+                    metricName: 'kitchen_throughput',
+                    measuredAt: (0, typeorm_2.MoreThan)(thirtyDaysAgo)
+                },
+                order: { measuredAt: 'DESC' }
+            })
+        ]);
+        return {
+            branchId,
+            period: '30 days',
+            totalOrdersProcessed: totalOrders,
+            avgPrepTimeMinutes: avgPrepTime?.value || 0,
+            rejectionRate: rejectionRate?.value || 0,
+            ordersPerHour: throughput?.value || 0,
             generatedAt: new Date()
         };
     }

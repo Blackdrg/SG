@@ -9,7 +9,7 @@ import { UserRole } from '../../shared/domain/user.interface';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.CUSTOMER)
 export class WalletController {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(private readonly walletService: WalletService) { }
 
   @Get()
   async getWallet(@Request() req: any) {

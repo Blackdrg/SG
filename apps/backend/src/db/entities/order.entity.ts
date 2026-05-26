@@ -27,6 +27,9 @@ export class OrderEntity {
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
   paymentStatus!: PaymentStatus;
 
+  @Column({ nullable: true })
+  paymentIntentId!: string;
+
   @Column('decimal', { precision: 10, scale: 2 })
   subtotal!: number;
 

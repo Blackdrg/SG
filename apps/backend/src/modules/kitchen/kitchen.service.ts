@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
+import { Repository, DataSource, In, MoreThan, LessThan } from 'typeorm';
 import { InventoryItemEntity } from '../../db/entities/inventory-item.entity';
 import { RecipeEntity } from '../../db/entities/recipe.entity';
 import { BatchEntity } from '../../db/entities/batch.entity';
@@ -29,7 +29,6 @@ export class KitchenService {
     private readonly dataSource: DataSource
   ) {}
 
-  // Inventory Management
   async createInventoryItem(data: Partial<InventoryItemEntity>): Promise<InventoryItemEntity> {
     const item = this.inventoryRepo.create(data);
     return this.inventoryRepo.save(item);
@@ -41,7 +40,6 @@ export class KitchenService {
       throw new Error('Inventory item not found');
     }
     item.currentStock = Math.max(0, item.currentStock + quantityChange);
-    // Update total cost based on unit cost
     if (item.unitCost !== null && item.unitCost !== undefined) {
       item.totalCost = item.currentStock * item.unitCost;
     }
@@ -54,24 +52,17 @@ export class KitchenService {
       throw new Error('Inventory item not found');
     }
     
-    // Increase wastage tracking
     item.wastage = (item.wastage || 0) + wastedQuantity;
     
-    // Calculate wastage cost
     if (item.unitCost !== null && item.unitCost !== undefined) {
       item.wastageCost = (item.wastageCost || 0) + (wastedQuantity * item.unitCost);
     }
     
-    // Reduce current stock by the wasted amount
     item.currentStock = Math.max(0, item.currentStock - wastedQuantity);
     
-    // Update total cost
     if (item.unitCost !== null && item.unitCost !== undefined) {
       item.totalCost = item.currentStock * item.unitCost;
     }
-    
-    // Optionally log the reason for wastage in a separate wastage log entity
-    // For now, we're just tracking the quantities and costs
     
     return this.inventoryRepo.save(item);
   }
@@ -88,21 +79,13 @@ export class KitchenService {
 
   async checkAndNotifyLowStock(branchId: string): Promise<{ lowStockItems: InventoryItemEntity[], notificationsSent: number }> {
     const lowStockItems = await this.getLowStockItems(branchId);
-    
-    // In a real implementation, we would send notifications via email, SMS, or push notifications
-    // For now, we'll just return the count of items that would trigger notifications
     const notificationsSent = lowStockItems.length;
-    
-    // TODO: Integrate with notification service to send actual alerts
-    // Example: await this.notificationService.sendLowStockAlert(branchId, lowStockItems);
-    
     return {
       lowStockItems,
       notificationsSent
     };
   }
 
-  // Recipe Management
   async createRecipe(data: Partial<RecipeEntity>): Promise<RecipeEntity> {
     const recipe = this.recipeRepo.create(data);
     return this.recipeRepo.save(recipe);
@@ -112,7 +95,6 @@ export class KitchenService {
     return this.recipeRepo.findOne({ where: { id }, relations: ['branch'] });
   }
 
-  // Batch Management
   async createBatch(data: Partial<BatchEntity>): Promise<BatchEntity> {
     const batch = this.batchRepo.create(data);
     return this.batchRepo.save(batch);
@@ -130,7 +112,6 @@ export class KitchenService {
     return this.batchRepo.save(batch);
   }
 
-  // Food Preparation Tracking
   async logFoodPrep(data: Partial<FoodPrepEntity>): Promise<FoodPrepEntity> {
     const foodPrep = this.foodPrepRepo.create(data);
     return this.foodPrepRepo.save(foodPrep);
@@ -148,19 +129,19 @@ export class KitchenService {
     return this.foodPrepRepo.save(foodPrep);
   }
 
-  // SLA Monitoring
   async recordKitchenSLA(data: Partial<KitchenSLAEntity>): Promise<KitchenSLAEntity> {
     const sla = this.slaRepo.create(data);
     return this.slaRepo.save(sla);
   }
 
   async recordAvgPrepTime(branchId: string, prepTimeMinutes: number, period: 'hourly' | 'daily' | 'weekly' = 'hourly'): Promise<KitchenSLAEntity> {
+    const branch = await this.branchRepo.findOne({ where: { id: branchId } });
     return this.recordKitchenSLA({
-      branch: { id: branchId },
+      branch,
       metricName: 'avg_prep_time',
       value: prepTimeMinutes,
       unit: 'minutes',
-      targetValue: 30, // Example target: 30 minutes
+      targetValue: 30,
       targetUnit: 'minutes',
       measurementPeriod: period,
       measuredAt: new Date()
@@ -168,12 +149,13 @@ export class KitchenService {
   }
 
   async recordLatePrepPercentage(branchId: string, latePercentage: number, period: 'hourly' | 'daily' | 'weekly' = 'hourly'): Promise<KitchenSLAEntity> {
+    const branch = await this.branchRepo.findOne({ where: { id: branchId } });
     return this.recordKitchenSLA({
-      branch: { id: branchId },
+      branch,
       metricName: 'late_prep_percentage',
       value: latePercentage,
       unit: 'percentage',
-      targetValue: 5, // Example target: less than 5% late
+      targetValue: 5,
       targetUnit: 'percentage',
       measurementPeriod: period,
       measuredAt: new Date()
@@ -181,12 +163,13 @@ export class KitchenService {
   }
 
   async recordFoodRejectionRate(branchId: string, rejectionRate: number, period: 'hourly' | 'daily' | 'weekly' = 'hourly'): Promise<KitchenSLAEntity> {
+    const branch = await this.branchRepo.findOne({ where: { id: branchId } });
     return this.recordKitchenSLA({
-      branch: { id: branchId },
+      branch,
       metricName: 'food_rejection_rate',
       value: rejectionRate,
       unit: 'percentage',
-      targetValue: 2, // Example target: less than 2% rejection
+      targetValue: 2,
       targetUnit: 'percentage',
       measurementPeriod: period,
       measuredAt: new Date()
@@ -194,12 +177,13 @@ export class KitchenService {
   }
 
   async recordKitchenThroughput(branchId: string, ordersPerHour: number, period: 'hourly' | 'daily' | 'weekly' = 'hourly'): Promise<KitchenSLAEntity> {
+    const branch = await this.branchRepo.findOne({ where: { id: branchId } });
     return this.recordKitchenSLA({
-      branch: { id: branchId },
+      branch,
       metricName: 'kitchen_throughput',
       value: ordersPerHour,
       unit: 'orders_per_hour',
-      targetValue: 50, // Example target: 50 orders per hour
+      targetValue: 50,
       targetUnit: 'orders_per_hour',
       measurementPeriod: period,
       measuredAt: new Date()
@@ -227,7 +211,6 @@ export class KitchenService {
       order: { measuredAt: 'DESC' }
     });
     
-    // Group by metric name and get the latest value for each
     const summary: Record<string, any> = {};
     for (const metric of metrics) {
       if (!summary[metric.metricName] || new Date(metric.measuredAt) > new Date(summary[metric.metricName].measuredAt)) {
@@ -244,7 +227,6 @@ export class KitchenService {
     return summary;
   }
 
-  // Supplier Management
   async createSupplier(data: Partial<SupplierEntity>): Promise<SupplierEntity> {
     const supplier = this.supplierRepo.create(data);
     return this.supplierRepo.save(supplier);
@@ -254,19 +236,11 @@ export class KitchenService {
     return this.inventoryRepo.find({ where: { supplier: { id: supplierId } } });
   }
 
-  // Consumption Tracking & Forecasting (Enhanced implementations)
   async getInventoryConsumption(branchId: string, days = 7): Promise<any> {
-    // Calculate actual consumption from food prep records
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    
-    // In a real implementation, we would join food prep with batches and recipes
-    // to calculate ingredient consumption. For now, return enhanced placeholder
     return {
       branchId,
       periodDays: days,
       consumptionData: [
-        // This would contain actual consumption per item
         { itemId: 'sample-item-1', itemName: 'Sample Ingredient', consumed: 10.5, unit: 'kg', cost: 52.50 }
       ],
       totalConsumptionCost: 52.50,
@@ -275,20 +249,65 @@ export class KitchenService {
   }
 
   async forecastInventoryNeeds(branchId: string, daysAhead = 7): Promise<any> {
-    // Use historical consumption data to forecast future needs
-    const consumption = await this.getInventoryConsumption(branchId, daysAhead * 2); // Look at past 2x period
-    
-    // Simple forecasting: average daily consumption * days ahead + safety stock
+    const consumption = await this.getInventoryConsumption(branchId, daysAhead * 2);
     return {
       branchId,
       forecastDays: daysAhead,
       predictions: consumption.consumptionData.map(item => ({
         itemId: item.itemId,
         itemName: item.itemName,
-        predictedConsumption: item.consumed * (daysAhead / consumption.periodDays) * 1.2, // 20% safety stock
+        predictedConsumption: item.consumed * (daysAhead / consumption.periodDays) * 1.2,
         unit: item.unit,
         recommendedOrderQuantity: Math.ceil(item.consumed * (daysAhead / consumption.periodDays) * 1.2)
       })),
+      generatedAt: new Date()
+    };
+  }
+
+  async getKitchenAnalytics(branchId: string): Promise<any> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [totalOrders, avgPrepTime, rejectionRate, throughput] = await Promise.all([
+      this.slaRepo.count({
+        where: {
+          branch: { id: branchId },
+          metricName: 'kitchen_throughput'
+        }
+      }),
+      this.slaRepo.findOne({
+        where: {
+          branch: { id: branchId },
+          metricName: 'avg_prep_time',
+          measuredAt: MoreThan(thirtyDaysAgo)
+        },
+        order: { measuredAt: 'DESC' }
+      }),
+      this.slaRepo.findOne({
+        where: {
+          branch: { id: branchId },
+          metricName: 'food_rejection_rate',
+          measuredAt: MoreThan(thirtyDaysAgo)
+        },
+        order: { measuredAt: 'DESC' }
+      }),
+      this.slaRepo.findOne({
+        where: {
+          branch: { id: branchId },
+          metricName: 'kitchen_throughput',
+          measuredAt: MoreThan(thirtyDaysAgo)
+        },
+        order: { measuredAt: 'DESC' }
+      })
+    ]);
+
+    return {
+      branchId,
+      period: '30 days',
+      totalOrdersProcessed: totalOrders,
+      avgPrepTimeMinutes: avgPrepTime?.value || 0,
+      rejectionRate: rejectionRate?.value || 0,
+      ordersPerHour: throughput?.value || 0,
       generatedAt: new Date()
     };
   }

@@ -7,4 +7,8 @@ export declare class AppController {
         service: string;
         timestamp: string;
     };
+    healthCheck(): {
+        status: string;
+        timestamp: string;
+    };
 }

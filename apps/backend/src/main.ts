@@ -1,16 +1,33 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import * as promClient from "prom-client";
 import { MetricsService } from "./metrics/metrics.service";
+import { ConfigService } from "@nestjs/config";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  
+  const configService = app.get(ConfigService);
   const metricsService = app.get(MetricsService);
   
+  // Initialize Sentry if available
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Sentry = require("@sentry/node");
+    const dsn = configService.get<string>("SENTRY_DSN");
+    if (Sentry && dsn) {
+      Sentry.init({
+        dsn,
+        tracesSampleRate: 1.0,
+      });
+      app.use(Sentry.Handlers.requestHandler());
+      app.use(Sentry.Handlers.tracingHandler());
+    }
+  } catch (e) {
+    // Sentry not installed - continue without error tracking
+  }
+
   // Prometheus metrics endpoint
   app.use("/metrics", async (req, res) => {
-    res.set("Content-Type", promClient.register.contentType);
+    res.set("Content-Type", "text/plain");
     res.send(await metricsService.getMetrics());
   });
 
@@ -28,20 +45,6 @@ async function bootstrap() {
     });
     next();
   });
-
-  // Sentry integration (optional - requires @sentry/node)
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Sentry = require("@sentry/node");
-    if (Sentry) {
-      app.use(Sentry.Handlers.requestHandler());
-      app.use(Sentry.Handlers.tracingHandler());
-      // Sentry error handler must be after all routes
-      app.use(Sentry.Handlers.errorHandler());
-    }
-  } catch (e) {
-    // Sentry not installed - continue without error tracking
-  }
 
   await app.listen(3001);
 }

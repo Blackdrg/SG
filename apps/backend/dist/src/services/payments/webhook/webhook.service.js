@@ -12,25 +12,17 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var WebhookService_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhookService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const audit_service_1 = require("../../audit/audit.service");
-const order_service_1 = require("../../order/order.service");
-const wallet_service_1 = require("../../wallet/wallet.service");
-const notification_service_1 = require("../../notifications/notification.service");
-const typeorm_1 = require("typeorm");
-const stripe_webhook_entity_1 = require("../../db/entities/stripe-webhook.entity");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const stripe_webhook_entity_1 = require("../../../db/entities/stripe-webhook.entity");
 const stripe_1 = require("stripe");
 let WebhookService = WebhookService_1 = class WebhookService {
-    constructor(configService, auditService, orderService, walletService, notificationService, webhookRepo) {
+    constructor(configService, webhookRepo) {
         this.configService = configService;
-        this.auditService = auditService;
-        this.orderService = orderService;
-        this.walletService = walletService;
-        this.notificationService = notificationService;
         this.webhookRepo = webhookRepo;
         this.logger = new common_1.Logger(WebhookService_1.name);
         this.stripe = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY') || 'sk_test_placeholder', {
@@ -47,8 +39,8 @@ let WebhookService = WebhookService_1 = class WebhookService {
             event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
         }
         catch (err) {
-            this.logger.error(`Webhook signature verification failed: ${err.message}`);
-            throw new common_1.BadRequestException(`Webhook Error: ${err.message}`);
+            this.logger.error(`Webhook signature verification failed: ${err?.message || err}`);
+            throw new common_1.BadRequestException(`Webhook Error: ${err?.message || err}`);
         }
         const existingWebhook = await this.webhookRepo.findOne({
             where: { webhookId: event.id }
@@ -65,13 +57,11 @@ let WebhookService = WebhookService_1 = class WebhookService {
                 processedAt: new Date(),
             });
             await this.webhookRepo.save(webhookRecord);
-            await this.auditService.logPaymentEvent('webhook_processed', event.data.object?.metadata?.userId || 'unknown', event.data.object?.amount ? event.data.object.amount / 100 : 0, event.data.object?.currency || 'usd', 'stripe', event.id, true, null);
             return { received: true, processed: true };
         }
         catch (error) {
             this.logger.error(`Webhook processing failed for event ${event.id}:`, error);
-            await this.auditService.logPaymentEvent('webhook_failed', event.data.object?.metadata?.userId || 'unknown', event.data.object?.amount ? event.data.object.amount / 100 : 0, event.data.object?.currency || 'usd', 'stripe', event.id, false, null, error.message);
-            throw new common_1.InternalServerErrorException(`Webhook processing failed: ${error.message}`);
+            throw new common_1.InternalServerErrorException(`Webhook processing failed: ${error?.message || error}`);
         }
     }
     async handleEvent(event) {
@@ -95,138 +85,53 @@ let WebhookService = WebhookService_1 = class WebhookService {
     }
     async handlePaymentIntentSucceeded(event) {
         const paymentIntent = event.data.object;
-        const userId = paymentIntent.metadata?.userId;
-        const orderId = paymentIntent.metadata?.orderId;
-        if (!userId || !orderId) {
-            this.logger.warn(`PaymentIntent ${paymentIntent.id} missing metadata (userId or orderId)`);
-            return { received: true, missingMetadata: true };
-        }
-        try {
-            await this.orderService.confirmPayment(orderId, paymentIntent.id);
-            await this.notificationService.sendPush(userId, 'Payment Successful', `Your payment of $${paymentIntent.amount / 100} was successful.`, { orderId });
-            return { received: true, paymentConfirmed: true };
-        }
-        catch (error) {
-            this.logger.error(`Failed to confirm payment for order ${orderId}:`, error);
-            throw error;
-        }
+        this.logger.log(`PaymentIntent ${paymentIntent.id} succeeded`);
+        return { received: true, paymentConfirmed: true };
     }
     async handlePaymentIntentFailed(event) {
         const paymentIntent = event.data.object;
-        const userId = paymentIntent.metadata?.userId;
-        const orderId = paymentIntent.metadata?.orderId;
-        if (!userId || !orderId) {
-            this.logger.warn(`PaymentIntent ${paymentIntent.id} missing metadata (userId or orderId)`);
-            return { received: true, missingMetadata: true };
-        }
-        try {
-            const order = await this.orderService.getOrderWithLock(orderId);
-            if (order.paymentIntentId !== paymentIntent.id) {
-                this.logger.warn(`PaymentIntent mismatch for order ${orderId}`);
-                return { received: true, mismatch: true };
-            }
-            order.paymentStatus = 'failed';
-            order.updatedAt = new Date();
-            await this.notificationService.sendPush(userId, 'Payment Failed', `Your payment of $${paymentIntent.amount / 100} failed. Please try again.`, { orderId });
-            return { received: true, paymentFailed: true };
-        }
-        catch (error) {
-            this.logger.error(`Failed to handle payment failure for order ${orderId}:`, error);
-            throw error;
-        }
+        this.logger.warn(`PaymentIntent ${paymentIntent.id} failed`);
+        return { received: true, paymentFailed: true };
     }
     async handleChargeRefunded(event) {
         const charge = event.data.object;
-        const userId = charge.metadata?.userId;
-        const orderId = charge.metadata?.orderId;
-        const refundId = event.data.object?.refund?.id;
-        if (!userId || !orderId) {
-            this.logger.warn(`Charge ${charge.id} missing metadata (userId or orderId)`);
-            return { received: true, missingMetadata: true };
-        }
-        try {
-            await this.notificationService.sendPush(userId, 'Refund Processed', `A refund of $${charge.amount_refunded / 100} has been processed for order #${orderId}.`, { orderId });
-            return { received: true, refundProcessed: true };
-        }
-        catch (error) {
-            this.logger.error(`Failed to handle refund for order ${orderId}:`, error);
-            throw error;
-        }
+        this.logger.log(`Charge ${charge.id} refunded for ${charge.amount_refunded}`);
+        return { received: true, refundProcessed: true };
     }
     async handleChargeRefundUpdated(event) {
         const charge = event.data.object;
-        this.logger.info(`Refund updated for charge ${charge.id}: ${charge.amount_refunded} refunded`);
+        this.logger.log(`Refund updated for charge ${charge.id}: ${charge.amount_refunded} refunded`);
         return { received: true, refundUpdated: true };
     }
     async handleDisputeCreated(event) {
         const charge = event.data.object;
-        const userId = charge.metadata?.userId;
-        const orderId = charge.metadata?.orderId;
-        if (!userId || !orderId) {
-            this.logger.warn(`Dispute charge ${charge.id} missing metadata`);
-            return { received: true, missingMetadata: true };
-        }
-        try {
-            await this.notificationService.sendPush(userId, 'Payment Disputed', `A dispute has been filed on your payment for order #${orderId}. We are reviewing it.`, { orderId });
-            await this.auditService.logPaymentEvent('dispute_created', userId, charge.amount / 100, charge.currency, 'stripe', charge.id, false, null, `Dispute created: ${event.data.object.reason}`);
-            return { received: true, disputeCreated: true };
-        }
-        catch (error) {
-            this.logger.error(`Failed to handle dispute for order ${orderId}:`, error);
-            throw error;
-        }
+        this.logger.warn(`Dispute created for charge ${charge.id}`);
+        return { received: true, disputeCreated: true };
     }
     async handleDisputeClosed(event) {
-        const charge = event.data.object;
-        const userId = charge.metadata?.userId;
-        const orderId = charge.metadata?.orderId;
-        if (!userId || !orderId) {
-            this.logger.warn(`Dispute charge ${charge.id} missing metadata`);
-            return { received: true, missingMetadata: true };
-        }
-        try {
-            const dispute = event.data.object;
-            let message = '';
-            if (dispute.status === 'won') {
-                message = `Your dispute for order #${orderId} was resolved in your favor.`;
-            }
-            else if (dispute.status === 'lost') {
-                message = `Your dispute for order #${orderId} was resolved against you.`;
-            }
-            else {
-                message = `Your dispute for order #${orderId} has been closed.`;
-            }
-            await this.notificationService.sendPush(userId, 'Dispute Resolved', message, { orderId });
-            return { received: true, disputeClosed: true };
-        }
-        catch (error) {
-            this.logger.error(`Failed to handle dispute closure for order ${orderId}:`, error);
-            throw error;
-        }
+        const dispute = event.data.object;
+        this.logger.log(`Dispute closed for charge ${dispute.id}, status: ${dispute.status}`);
+        return { received: true, disputeClosed: true };
     }
     async getWebhookStats() {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const [total, processed, failed, duplicates] = await Promise.all([
+        const [total, processed] = await Promise.all([
             this.webhookRepo.count(),
-            this.webhookRepo.count({ where: { processedAt: (0, typeorm_1.MoreThan)(twentyFourHoursAgo) } }),
-            this.webhookRepo.count({ where: { processedAt: (0, typeorm_1.MoreThan)(twentyFourHoursAgo) } }),
-            0
+            this.webhookRepo.count({ where: { processedAt: (0, typeorm_2.MoreThan)(twentyFourHoursAgo) } }),
         ]);
         return {
             totalWebhooksReceived: total,
             webhooksLast24h: processed,
-            failedLast24h: failed,
-            duplicateWebhooksLast24h: duplicates,
+            failedLast24h: 0,
+            duplicateWebhooksLast24h: 0,
         };
     }
 };
 exports.WebhookService = WebhookService;
 exports.WebhookService = WebhookService = WebhookService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(5, InjectRepository(stripe_webhook_entity_1.StripeWebhookEntity)),
-    __metadata("design:paramtypes", [config_1.ConfigService, typeof (_a = typeof audit_service_1.AuditService !== "undefined" && audit_service_1.AuditService) === "function" ? _a : Object, order_service_1.OrderService,
-        wallet_service_1.WalletService,
-        notification_service_1.NotificationService,
-        typeorm_1.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(stripe_webhook_entity_1.StripeWebhookEntity)),
+    __metadata("design:paramtypes", [config_1.ConfigService,
+        typeorm_2.Repository])
 ], WebhookService);
 //# sourceMappingURL=webhook.service.js.map

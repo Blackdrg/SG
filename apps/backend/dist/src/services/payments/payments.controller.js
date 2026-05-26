@@ -17,60 +17,36 @@ const common_1 = require("@nestjs/common");
 const payments_service_1 = require("./payments.service");
 const config_1 = require("@nestjs/config");
 const queue_service_1 = require("../../infra/queue/queue.service");
-const queues_1 = require("../../shared/contracts/queues");
-const order_interface_1 = require("../../shared/domain/order.interface");
 let PaymentsController = class PaymentsController {
     constructor(paymentService, configService, queueService) {
         this.paymentService = paymentService;
         this.configService = configService;
         this.queueService = queueService;
     }
-    async handleWebhook(sig, req) {
-        const webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET');
-        let event;
-        if (!webhookSecret) {
-            console.warn('STRIPE_WEBHOOK_SECRET is not set. Skipping signature verification (DEV MODE ONLY)');
-            event = req.body;
-        }
-        else {
-            try {
-                event = await this.paymentService.constructEvent(req.rawBody, sig, webhookSecret);
-            }
-            catch (err) {
-                throw new common_1.BadRequestException(`Webhook Error: ${err.message}`);
-            }
-        }
-        switch (event.type) {
-            case 'payment_intent.succeeded':
-                const paymentIntent = event.data.object;
-                await this.processSuccessfulPayment(paymentIntent);
-                break;
-            case 'payment_intent.payment_failed':
-                console.log(`Payment failed: ${event.data.object.last_payment_error?.message}`);
-                break;
-        }
-        return { received: true };
+    async createPaymentIntent(body) {
+        const intent = await this.paymentService.createPaymentIntent(body.amount, body.currency || 'usd', body.userId, { orderId: body.orderId });
+        return { clientSecret: intent.client_secret };
     }
-    async processSuccessfulPayment(paymentIntent) {
-        const orderId = paymentIntent.metadata?.orderId;
-        if (orderId) {
-            await this.queueService.enqueue(queues_1.QUEUE_NAMES.ORDER_LIFECYCLE, {
-                orderId,
-                status: order_interface_1.OrderStatus.PAYMENT_CONFIRMED,
-                transactionId: paymentIntent.id
-            });
-        }
+    async refund(body) {
+        const refund = await this.paymentService.refundPayment(body.paymentIntentId, body.amount, body.userId, body.reason);
+        return refund;
     }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
-    (0, common_1.Post)('webhook'),
-    __param(0, (0, common_1.Headers)('stripe-signature')),
-    __param(1, (0, common_1.Req)()),
+    (0, common_1.Post)('create-intent'),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], PaymentsController.prototype, "handleWebhook", null);
+], PaymentsController.prototype, "createPaymentIntent", null);
+__decorate([
+    (0, common_1.Post)('refund'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "refund", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, common_1.Controller)('payments'),
     __metadata("design:paramtypes", [payments_service_1.PaymentService,

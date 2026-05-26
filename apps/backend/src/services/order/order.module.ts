@@ -5,11 +5,10 @@ import { OrderController } from './order.controller';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { OrderItemEntity } from '../../db/entities/order-item.entity';
 import { AuditLogEntity } from '../../db/entities/audit-log.entity';
-import { QueueService } from '../../infra/queue/queue.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([OrderEntity, OrderItemEntity, AuditLogEntity])],
-  providers: [OrderService, QueueService],
+  providers: [OrderService],
   controllers: [OrderController],
   exports: [OrderService],
 })

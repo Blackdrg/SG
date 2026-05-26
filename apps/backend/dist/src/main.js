@@ -2,14 +2,28 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
-const promClient = require("prom-client");
 const metrics_service_1 = require("./metrics/metrics.service");
-const Sentry = require("@sentry/node");
+const config_1 = require("@nestjs/config");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, { rawBody: true });
+    const configService = app.get(config_1.ConfigService);
     const metricsService = app.get(metrics_service_1.MetricsService);
+    try {
+        const Sentry = require("@sentry/node");
+        const dsn = configService.get("SENTRY_DSN");
+        if (Sentry && dsn) {
+            Sentry.init({
+                dsn,
+                tracesSampleRate: 1.0,
+            });
+            app.use(Sentry.Handlers.requestHandler());
+            app.use(Sentry.Handlers.tracingHandler());
+        }
+    }
+    catch (e) {
+    }
     app.use("/metrics", async (req, res) => {
-        res.set("Content-Type", promClient.register.contentType);
+        res.set("Content-Type", "text/plain");
         res.send(await metricsService.getMetrics());
     });
     app.use((req, res, next) => {
@@ -20,9 +34,6 @@ async function bootstrap() {
         });
         next();
     });
-    app.use(Sentry.Handlers.requestHandler());
-    app.use(Sentry.Handlers.tracingHandler());
-    app.use(Sentry.Handlers.errorHandler());
     await app.listen(3001);
 }
 bootstrap();

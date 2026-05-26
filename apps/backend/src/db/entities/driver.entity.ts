@@ -23,10 +23,13 @@ export class DriverEntity {
   vehicleType!: string;
 
   @Column({ default: 'pending' })
-  kycStatus!: string; // pending, approved, rejected
+  kycStatus!: string;
 
   @Column({ default: false })
   isOnline!: boolean;
+
+  @Column({ default: false })
+  isAvailable!: boolean;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
   rating!: number;
@@ -37,31 +40,30 @@ export class DriverEntity {
   }})
   currentLocation!: { lat: number; lng: number };
 
-  // Enhanced fields for fraud detection and tracking
   @Column({ default: 0 })
-  totalDeliveries: number; // Total deliveries completed
+  totalDeliveries!: number;
 
   @Column({ default: 0 })
-  totalDistance: number; // Total distance delivered (km)
+  totalDistance!: number;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
-  averageSpeed: number; // Average speed (km/h)
+  averageSpeed!: number;
 
   @Column('decimal', { precision: 5, scale: 2, default: 100 })
-  fraudScore: number; // Fraud risk score (0-100, higher = more risky)
+  fraudScore!: number;
 
   @Column({ default: false })
-  isFraudSuspicious: boolean; // Flagged for potential fraud
+  isFraudSuspicious!: boolean;
 
   @Column({ nullable: true })
-  lastFraudCheck: Date; // Last time fraud checks were run
+  lastFraudCheck!: Date;
 
   @Column('simple-json', { nullable: true })
-  fraudFlags: { // Specific fraud flags detected
-    gpsSpoofingRisk: number; // 0-1
-    routeDeviationRisk: number; // 0-1
-    timingAbuseRisk: number; // 0-1
-    fakeDeliveryRisk: number; // 0-1
+  fraudFlags!: {
+    gpsSpoofingRisk?: number;
+    routeDeviationRisk?: number;
+    timingAbuseRisk?: number;
+    fakeDeliveryRisk?: number;
   };
 
   @CreateDateColumn()

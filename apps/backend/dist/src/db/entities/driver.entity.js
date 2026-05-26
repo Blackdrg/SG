@@ -49,6 +49,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], DriverEntity.prototype, "isOnline", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], DriverEntity.prototype, "isAvailable", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 3, scale: 2, default: 0 }),
     __metadata("design:type", Number)
 ], DriverEntity.prototype, "rating", void 0);

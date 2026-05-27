@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Icon</title>
+</head>
+<body>
+  <canvas id="canvas" width="256" height="256"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const gradient = ctx.createLinearGradient(0, 0, 256, 256);
+    gradient.addColorStop(0, '#10b981');
+    gradient.addColorStop(1, '#059669');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 256, 256);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 120px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SG', 128, 130);
+    
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '20px Arial';
+    ctx.fillText('SpiceGarden', 128, 200);
+    
+    canvas.toBlob(blob => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        console.log(reader.result);
+      };
+      reader.readAsDataURL(blob);
+    });
+  </script>
+</body>
+</html>

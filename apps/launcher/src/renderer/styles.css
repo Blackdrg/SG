@@ -1,0 +1,176 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #f1f5f9;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.dashboard {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  color: #10b981;
+  margin-bottom: 8px;
+}
+
+.dashboard-header p {
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+.quick-actions {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.quick-actions h2 {
+  margin-bottom: 16px;
+  color: #e2e8f0;
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.action-buttons button {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.action-buttons button:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.action-buttons button:nth-child(2) {
+  background: #6b7280;
+}
+
+.action-buttons button:nth-child(2):hover {
+  background: #4b5563;
+}
+
+.action-buttons button:nth-child(3) {
+  background: #f59e0b;
+}
+
+.action-buttons button:nth-child(3):hover {
+  background: #d97706;
+}
+
+.services-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.services-section h2 {
+  margin-bottom: 16px;
+  color: #e2e8f0;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.service-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.service-header h3 {
+  font-size: 16px;
+  color: #e2e8f0;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.port-info {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.system-monitor {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.system-monitor h2 {
+  margin-bottom: 16px;
+  color: #e2e8f0;
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.monitor-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.monitor-card h3 {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.monitor-card p {
+  font-size: 24px;
+  font-weight: 700;
+  color: #10b981;
+}

@@ -55,11 +55,11 @@ exports.DbModule = DbModule = __decorate([
                 imports: [config_1.ConfigModule],
                 useFactory: (configService) => ({
                     type: "postgres",
-                    host: configService.get("DB_HOST", "localhost"),
-                    port: configService.get("DB_PORT", 5432),
-                    username: configService.get("DB_USER", "postgres"),
-                    password: configService.get("DB_PASS", "postgres"),
-                    database: configService.get("DB_NAME", "spicegarden"),
+                    host: "localhost",
+                    port: 5432,
+                    username: "spicegarden",
+                    password: "nkYD5s1HBlr8VpyB42btP1On32kBMg4PWy/fRH5zgZ8=",
+                    database: "spicegarden",
                     entities: [
                         user_entity_1.UserEntity,
                         order_entity_1.OrderEntity,

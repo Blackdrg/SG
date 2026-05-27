@@ -1,0 +1,1 @@
+apps/launcher/build/win-unpacked/SpiceGarden[[:space:]]Launcher.exe filter=lfs diff=lfs merge=lfs -text

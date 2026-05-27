@@ -20,19 +20,31 @@ const typeorm_2 = require("typeorm");
 const order_entity_1 = require("../../db/entities/order.entity");
 const payments_service_1 = require("../../services/payments/payments.service");
 const notification_service_1 = require("../../services/notifications/notification.service");
+const retry_service_1 = require("../../services/payments/retry.service");
+const idempotency_service_1 = require("../../services/payments/idempotency.service");
+const production_notification_service_1 = require("../../services/notifications/production-notification.service");
 const crypto = require("crypto");
 let OrderService = class OrderService {
-    constructor(orderRepo, paymentService, notificationService) {
+    constructor(orderRepo, paymentService, notificationService, retryService, idempotency, productionNotification) {
         this.orderRepo = orderRepo;
         this.paymentService = paymentService;
         this.notificationService = notificationService;
+        this.retryService = retryService;
+        this.idempotency = idempotency;
+        this.productionNotification = productionNotification;
     }
-    async placeOrder(orderData) {
+    async placeOrder(orderData, idempotencyKey) {
         if (!orderData.userId || !orderData.restaurantId || !orderData.grandTotal) {
             throw new common_1.BadRequestException('Missing required order data: userId, restaurantId, or grandTotal');
         }
         if (orderData.grandTotal <= 0) {
             throw new common_1.BadRequestException('Order total must be greater than zero');
+        }
+        if (idempotencyKey) {
+            const existing = await this.idempotency.validateOrCreate(idempotencyKey, 'place_order', orderData.userId, { restaurantId: orderData.restaurantId, grandTotal: orderData.grandTotal });
+            if (existing.isDuplicate && existing.response) {
+                return existing.response;
+            }
         }
         const orderId = crypto.randomUUID();
         const now = new Date();
@@ -57,6 +69,9 @@ let OrderService = class OrderService {
         };
         try {
             const savedOrder = await this.orderRepo.save(order);
+            if (idempotencyKey) {
+                await this.idempotency.complete(idempotencyKey, 'place_order', savedOrder);
+            }
             return savedOrder;
         }
         catch (error) {
@@ -67,7 +82,7 @@ let OrderService = class OrderService {
             throw new common_1.InternalServerErrorException('Order placement failed due to internal processing error');
         }
     }
-    async confirmPayment(orderId, paymentId, request = null) {
+    async confirmPayment(orderId, paymentId, request) {
         const order = await this.orderRepo.findOne({ where: { id: orderId } });
         if (!order) {
             throw new common_1.NotFoundException(`Order ${orderId} not found`);
@@ -256,6 +271,9 @@ exports.OrderService = OrderService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(order_entity_1.OrderEntity)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         payments_service_1.PaymentService,
-        notification_service_1.NotificationService])
+        notification_service_1.NotificationService,
+        retry_service_1.RetryService,
+        idempotency_service_1.IdempotencyService,
+        production_notification_service_1.ProductionNotificationService])
 ], OrderService);
 //# sourceMappingURL=order.service.js.map

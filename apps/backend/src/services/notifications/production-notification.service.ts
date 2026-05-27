@@ -78,9 +78,6 @@ export class ProductionNotificationService {
     const channels = this.configService.get<ProductionNotificationConfig>('NOTIFICATION_CHANNELS', this.defaultChannels);
 
     if (alert.severity === 'critical' || alert.severity === 'high') {
-      if (channels.webhook) {
-        await this.sendWebhookAlert(alert);
-      }
       if (channels.slack) {
         await this.sendSlackAlert(alert);
       }
@@ -91,7 +88,7 @@ export class ProductionNotificationService {
     }
 
     if (alert.severity === 'critical' && channels.sms) {
-      await this.sendSMSNotification(alert);
+      await this.sendSMSForAlert(alert);
     }
 
     if (channels.push) {
@@ -99,7 +96,7 @@ export class ProductionNotificationService {
     }
   }
 
-  private async sendWebhookAlert(alert: AlertPayload): Promise<void> {
+  private async sendWebhookAlertForNotification(alert: AlertPayload): Promise<void> {
     const webhookUrl = this.configService.get<string>('ALERT_WEBHOOK_URL');
     if (!webhookUrl) {
       this.logger.warn('No webhook URL configured for alerts');
@@ -198,7 +195,7 @@ export class ProductionNotificationService {
     }
   }
 
-  private async sendSMSNotification(alert: AlertPayload): Promise<void> {
+  private async sendSMSForAlert(alert: AlertPayload): Promise<void> {
     const accountSid = this.configService.get<string>('TWILIO_SID');
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
     const adminPhone = this.configService.get<string>('ADMIN_ALERT_PHONE');

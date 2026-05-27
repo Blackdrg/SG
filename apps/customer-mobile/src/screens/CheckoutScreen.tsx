@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput, Switch } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing, Alert, ScrollView } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CartItem } from './CartScreen';
+import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
 
 const CheckoutScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { cartItems }: { cartItems: CartItem[] } = route.params;
+  const { cartItems }: { cartItems: CartItem[] } = route.params || { cartItems: [] };
   
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'cash'>('card');
   const [tip, setTip] = useState(0);
   const [promoCode, setPromoCode] = useState('');
   const [promoMessage, setPromoMessage] = useState('');
@@ -17,19 +18,28 @@ const CheckoutScreen = () => {
   const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState('Home - Sector 17, Chandigarh');
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
-    // Load default address from storage or use default
-    AsyncStorage.getItem('sg_address').then((addressJson: string | null) => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: DESIGN_TOKENS.motion.page,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+
+    AsyncStorage.getItem('sg_address').then((addressJson) => {
       if (addressJson) {
         setAddress(JSON.parse(addressJson));
       }
-    }).catch((error: any) => {
+    }).catch((error) => {
       console.error('Failed to load address:', error);
     });
-  }, []);
+  }, [fadeAnim]);
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
+    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
   const calculateTax = () => {
@@ -40,11 +50,10 @@ const CheckoutScreen = () => {
     if (!promoCode) return 0;
     const subtotal = calculateSubtotal();
     
-    // Simple promo validation
     if (promoCode.toUpperCase() === 'WELCOME50') {
-      return Math.min(subtotal * 0.5, 100); // 50% off up to ₹100
+      return Math.min(subtotal * 0.5, 100);
     } else if (promoCode.toUpperCase() === 'SAVE20') {
-      return Math.min(subtotal * 0.2, 50); // 20% off up to ₹50
+      return Math.min(subtotal * 0.2, 50);
     }
     return 0;
   };
@@ -53,7 +62,7 @@ const CheckoutScreen = () => {
     const subtotal = calculateSubtotal();
     const tax = calculateTax();
     const promoDiscount = calculatePromoDiscount();
-    return subtotal + tax + tip - promoDiscount;
+    return subtotal + tax + tip + 20 - promoDiscount;
   };
 
   const applyPromo = () => {
@@ -74,262 +83,282 @@ const CheckoutScreen = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (!cartItems || cartItems.length === 0) {
+      Alert.alert('Error', 'Your cart is empty');
+      return;
+    }
+
     setLoading(true);
+    
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 1.05,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     try {
-      // In a real app, this would make an API call to create the order
-      // For demo, we'll simulate success
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Clear cart after successful order
       await AsyncStorage.removeItem('sg_cart');
       
-      // Generate a fake order ID for tracking
       const orderId = 'SG' + Math.floor(Math.random() * 900000 + 100000).toString();
-      
       navigation.navigate('Tracking', { orderId });
     } catch (error) {
       console.error('Failed to place order:', error);
-      // Even on error, proceed to tracking for demo purposes
       navigation.navigate('Tracking');
     } finally {
       setLoading(false);
     }
   };
 
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Your cart is empty</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Browse Restaurants</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Checkout</Text>
-      </View>
-
-      <View style={styles.content}>
-        {/* Delivery Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Address</Text>
-          <View style={styles.addressRow}>
-            <Text style={styles.addressText}>{address}</Text>
-            <TouchableOpacity onPress={() => {/* TODO: Implement address selection */}} style={styles.editButton}>
-              <Text style={styles.editButtonText}>Change</Text>
-            </TouchableOpacity>
-          </View>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()} 
+            style={styles.backButton}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerText}>Checkout</Text>
         </View>
 
-        {/* Items Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items ({cartItems.reduce((sum: number, item: CartItem) => sum + item.quantity, 0)})</Text>
-          <View style={styles.itemsList}>
-            {cartItems.map((item: CartItem) => (
-              <View key={item.id} style={styles.itemRow}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemText}>×{item.quantity}</Text>
-                <Text style={styles.itemPrice}>&#8377;{item.price * item.quantity}</Text>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            <View style={styles.addressRow}>
+              <Text style={styles.addressText}>{address}</Text>
+              <TouchableOpacity style={styles.editButton}>
+                <Text style={styles.editButtonText}>Change</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Items ({cartItems.reduce((sum, item) => sum + item.quantity, 0)})
+            </Text>
+            <View style={styles.itemsList}>
+              {cartItems.map((item) => (
+                <View key={item.id} style={styles.itemRow}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemText}>×{item.quantity}</Text>
+                  <Text style={styles.itemPrice}>₹{item.price * item.quantity}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <View style={styles.paymentOptions}>
+              {(['card', 'upi', 'cash'] as const).map((method) => (
+                <TouchableOpacity
+                  key={method}
+                  onPress={() => setPaymentMethod(method)}
+                  style={[styles.paymentOption, paymentMethod === method && styles.selectedPaymentOption]}
+                  accessibilityLabel={`Pay with ${method}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: paymentMethod === method }}
+                >
+                  <Text style={styles.paymentOptionText}>
+                    {method === 'card' ? '💳 Card' : method === 'upi' ? '📱 UPI' : '💵 Cash'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tip</Text>
+            <View style={styles.tipOptions}>
+              {([0, 30, 50, 100] as const).map((tipAmount) => (
+                <TouchableOpacity
+                  key={tipAmount}
+                  onPress={() => setTip(tipAmount)}
+                  style={[styles.tipOption, tip === tipAmount && styles.selectedTipOption]}
+                  accessibilityLabel={`Add ₹${tipAmount} tip`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: tip === tipAmount }}
+                >
+                  <Text style={styles.tipOptionText}>
+                    {tipAmount === 0 ? 'No tip' : `₹${tipAmount}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Promo Code</Text>
+            <View style={styles.promoRow}>
+              <TextInput
+                placeholder="Enter promo code"
+                value={promoCode}
+                onChangeText={setPromoCode}
+                style={styles.promoInput}
+                accessibilityLabel="Promo code input"
+              />
+              <TouchableOpacity onPress={applyPromo} style={styles.promoButton}>
+                <Text style={styles.promoButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+            {promoError && <Text style={styles.promoError}>{promoError}</Text>}
+            {promoMessage && <Text style={styles.promoSuccess}>{promoMessage}</Text>}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Order Summary</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Item Total</Text>
+              <Text style={styles.summaryAmount}>₹{calculateSubtotal().toFixed(0)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Delivery Fee</Text>
+              <Text style={styles.summaryAmount}>₹20</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Taxes</Text>
+              <Text style={styles.summaryAmount}>₹{calculateTax().toFixed(0)}</Text>
+            </View>
+            {tip > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Tip</Text>
+                <Text style={styles.summaryAmount}>₹{tip}</Text>
               </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Payment Method */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
-          <View style={styles.paymentOptions}>
-            <TouchableOpacity 
-              onPress={() => setPaymentMethod('card')}
-              style={[
-                styles.paymentOption,
-                paymentMethod === 'card' && styles.selectedPaymentOption
-              ]}
-            >
-              <Text style={styles.paymentOptionText}>&#x1F4B3; Card</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setPaymentMethod('upi')}
-              style={[
-                styles.paymentOption,
-                paymentMethod === 'upi' && styles.selectedPaymentOption
-              ]}
-            >
-              <Text style={styles.paymentOptionText}>&#x1F4B0; UPI</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setPaymentMethod('cash')}
-              style={[
-                styles.paymentOption,
-                paymentMethod === 'cash' && styles.selectedPaymentOption
-              ]}
-            >
-              <Text style={styles.paymentOptionText}>&#x1F4B5; Cash</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Tip */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tip</Text>
-          <View style={styles.tipOptions}>
-            <TouchableOpacity 
-              onPress={() => setTip(0)}
-              style={[
-                styles.tipOption,
-                tip === 0 && styles.selectedTipOption
-              ]}
-            >
-              <Text style={styles.tipOptionText}>No tip</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setTip(30)}
-              style={[
-                styles.tipOption,
-                tip === 30 && styles.selectedTipOption
-              ]}
-            >
-              <Text style={styles.tipOptionText}>&#x20B9;30</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setTip(50)}
-              style={[
-                styles.tipOption,
-                tip === 50 && styles.selectedTipOption
-              ]}
-            >
-              <Text style={styles.tipOptionText}>&#x20B9;50</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setTip(100)}
-              style={[
-                styles.tipOption,
-                tip === 100 && styles.selectedTipOption
-              ]}
-            >
-              <Text style={styles.tipOptionText}>&#x20B9;100</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Promo Code */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Promo Code</Text>
-          <View style={styles.promoRow}>
-            <TextInput
-              placeholder="Enter promo code"
-              value={promoCode}
-              onChangeText={setPromoCode}
-              style={styles.promoInput}
-            />
-            <TouchableOpacity onPress={applyPromo} style={styles.promoButton}>
-              <Text style={styles.promoButtonText}>Apply</Text>
-            </TouchableOpacity>
-          </View>
-          {promoError && (
-            <Text style={styles.promoError}>{promoError}</Text>
-          )}
-          {promoMessage && (
-            <Text style={styles.promoSuccess}>{promoMessage}</Text>
-          )}
-        </View>
-
-        {/* Order Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Item Total</Text>
-            <Text style={styles.summaryAmount}>&#8377;{calculateSubtotal().toFixed(0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery Fee</Text>
-            <Text style={styles.summaryAmount}>&#8377;20</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Taxes</Text>
-            <Text style={styles.summaryAmount}>&#8377;{calculateTax().toFixed(0)}</Text>
-          </View>
-          {tip > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tip</Text>
-              <Text style={styles.summaryAmount}>&#8377;{tip}</Text>
+            )}
+            {calculatePromoDiscount() > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Promo Discount</Text>
+                <Text style={styles.summaryAmount}>-₹{calculatePromoDiscount().toFixed(0)}</Text>
+              </View>
+            )}
+            <View style={styles.summaryRowTotal}>
+              <Text style={styles.summaryLabelTotal}>Total</Text>
+              <Text style={styles.summaryAmountTotal}>₹{calculateTotal().toFixed(0)}</Text>
             </View>
-          )}
-          {calculatePromoDiscount() > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Promo Discount</Text>
-              <Text style={styles.summaryAmount}>-&#8377;{calculatePromoDiscount().toFixed(0)}</Text>
-            </View>
-          )}
-          <View style={styles.summaryRowTotal}>
-            <Text style={styles.summaryLabelTotal}>Total</Text>
-            <Text style={styles.summaryAmountTotal}>&#8377;{calculateTotal().toFixed(0)}</Text>
           </View>
-        </View>
+        </ScrollView>
 
-        {/* Place Order Button */}
-        <TouchableOpacity 
-          onPress={handlePlaceOrder}
-          style={[
-            styles.placeOrderButton,
-            loading && styles.buttonLoading
-          ]}
-        >
-          <Text style={styles.placeOrderButtonText}>
-            {loading ? 'Processing...' : 'Place Order'}
-          </Text>
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <TouchableOpacity
+            onPress={handlePlaceOrder}
+            style={[styles.placeOrderButton, loading && styles.buttonLoading]}
+            accessibilityLabel="Place your order"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
+          >
+            <Text style={styles.placeOrderButtonText}>
+              {loading ? 'Processing...' : `Place Order • ₹${calculateTotal().toFixed(0)}`}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: DESIGN_TOKENS.colors.background,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    marginBottom: 20,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  primaryButton: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: DESIGN_TOKENS.radius.button,
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
+    padding: DESIGN_TOKENS.spacing.md,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: DESIGN_TOKENS.colors.border,
   },
   backButton: {
-    padding: 8,
+    padding: DESIGN_TOKENS.spacing.xs,
   },
   backButtonText: {
     fontSize: 20,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textPrimary,
   },
   headerText: {
     fontSize: 20,
     fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   content: {
     flex: 1,
   },
   section: {
-    margin: 16,
-    backgroundColor: 'white',
-    borderRadius: 12,
+    marginHorizontal: DESIGN_TOKENS.spacing.md,
+    marginVertical: DESIGN_TOKENS.spacing.sm,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.card,
     overflow: 'hidden',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    padding: 16,
+    padding: DESIGN_TOKENS.spacing.md,
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   addressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: DESIGN_TOKENS.spacing.md,
   },
   addressText: {
     fontSize: 14,
-    color: '#666',
-    maxWidth: '70%',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    flex: 1,
+    marginRight: DESIGN_TOKENS.spacing.md,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   editButton: {
     paddingHorizontal: 12,
@@ -337,12 +366,13 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     fontSize: 14,
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
     fontWeight: '500',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   itemsList: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    paddingVertical: DESIGN_TOKENS.spacing.xs,
   },
   itemRow: {
     flexDirection: 'row',
@@ -350,134 +380,151 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: DESIGN_TOKENS.colors.border,
   },
   itemName: {
     fontSize: 14,
     fontWeight: '500',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   itemText: {
     fontSize: 14,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   itemPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   paymentOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 12,
+    padding: DESIGN_TOKENS.spacing.sm,
   },
   paymentOption: {
     padding: 12,
     marginRight: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderRadius: DESIGN_TOKENS.radius.md,
   },
   selectedPaymentOption: {
-    borderColor: '#f04e31',
-    backgroundColor: '#fff0f0',
+    borderColor: DESIGN_TOKENS.colors.primary,
+    backgroundColor: `${DESIGN_TOKENS.colors.primary}10`,
   },
   paymentOptionText: {
     fontSize: 14,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   tipOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 12,
+    padding: DESIGN_TOKENS.spacing.sm,
   },
   tipOption: {
     padding: 12,
     marginRight: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderRadius: DESIGN_TOKENS.radius.md,
   },
   selectedTipOption: {
-    borderColor: '#f04e31',
-    backgroundColor: '#fff0f0',
+    borderColor: DESIGN_TOKENS.colors.primary,
+    backgroundColor: `${DESIGN_TOKENS.colors.primary}10`,
   },
   tipOptionText: {
     fontSize: 14,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   promoRow: {
     flexDirection: 'row',
-    padding: 12,
+    padding: DESIGN_TOKENS.spacing.sm,
   },
   promoInput: {
     flex: 1,
     height: 40,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderRadius: DESIGN_TOKENS.radius.sm,
     paddingHorizontal: 8,
     marginRight: 8,
+    fontSize: 16,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   promoButton: {
-    backgroundColor: '#f04e31',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 4,
+    borderRadius: DESIGN_TOKENS.radius.sm,
+    justifyContent: 'center',
   },
   promoButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: '500',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   promoError: {
-    color: '#c62828',
+    color: DESIGN_TOKENS.colors.danger,
     fontSize: 12,
     marginTop: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: DESIGN_TOKENS.spacing.sm,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   promoSuccess: {
-    color: '#2e7d32',
+    color: DESIGN_TOKENS.colors.success,
     fontSize: 12,
     marginTop: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: DESIGN_TOKENS.spacing.sm,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
     paddingVertical: 8,
   },
   summaryRowTotal: {
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: DESIGN_TOKENS.colors.border,
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   summaryAmount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   summaryLabelTotal: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   summaryAmountTotal: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   placeOrderButton: {
-    backgroundColor: '#f04e31',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
     paddingVertical: 16,
-    margin: 16,
-    borderRadius: 8,
+    margin: DESIGN_TOKENS.spacing.md,
+    borderRadius: DESIGN_TOKENS.radius.button,
     alignItems: 'center',
   },
   buttonLoading: {
@@ -487,15 +534,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
 });
 

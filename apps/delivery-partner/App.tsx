@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, Animated, Easing } from 'react-native';
 import { io, Socket } from 'socket.io-client';
+import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 type DeliveryStatus = 'idle' | 'assigned' | 'navigating_to_pickup' | 'at_pickup' | 'navigating_to_drop' | 'completed';
 
@@ -28,20 +27,16 @@ interface DailyEarnings {
   ordersToday: number;
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const DRIVER_NAME = 'Raj Kumar';
 const VEHICLE = 'Bajaj Dominar 400 | DL8CAB 7890';
 const DEFAULT_OTP = '234567';
 
 const issueTypes = [
-  { icon: '🚧', label: 'Road Blocked' },
-  { icon: '📵', label: 'No Response' },
-  { icon: '🔋', label: 'Battery Low' },
-  { icon: '🍽️', label: 'Food Stuck' },
+  { icon: '🚧', label: 'Road Blocked', color: DESIGN_TOKENS.colors.warning },
+  { icon: '📵', label: 'No Response', color: DESIGN_TOKENS.colors.danger },
+  { icon: '🔋', label: 'Battery Low', color: DESIGN_TOKENS.colors.warning },
+  { icon: '🍽️', label: 'Food Stuck', color: DESIGN_TOKENS.colors.warning },
 ];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtTime(d?: Date) {
   return d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
@@ -54,8 +49,6 @@ function timeAgo(d?: Date) {
   if (mins < 60) return `${mins}m ago`;
   return `${Math.floor(mins / 60)}h ago`;
 }
-
-// ── Mock incoming order ───────────────────────────────────────────────────────
 
 function demoIncoming(): Order {
   return {
@@ -70,8 +63,6 @@ function demoIncoming(): Order {
   };
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function DriverApp() {
   const [isOnline, setIsOnline] = useState(false);
   const [incomingOrder, setIncomingOrder] = useState<Order | null>(null);
@@ -83,10 +74,20 @@ export default function DriverApp() {
   const [log, setLog] = useState<string[]>([]);
   const [expandedIssue, setExpandedIssue] = useState(false);
   const [activeScreen, setActiveScreen] = useState<'home' | 'earnings'>('home');
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
-  const addLog = (msg: string) => setLog((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 9)]);
+  const addLog = useCallback((msg: string) => setLog((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 9)]), []);
 
-  // ── Socket ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: DESIGN_TOKENS.motion.page,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
   useEffect(() => {
     const s: Socket = io('http://localhost:3001', {
@@ -101,18 +102,16 @@ export default function DriverApp() {
       if (isOnline) { setIncomingOrder(order); addLog(`New order: #${order.orderNumber} (₹${order.amount})`); }
     });
     return () => { s.disconnect(); };
-  }, [isOnline]);
+  }, [isOnline, addLog]);
 
   useEffect(() => {
     if (!isOnline) { socket?.emit('driverOffline'); return; }
     socket?.emit('driverOnline', { name: DRIVER_NAME, vehicle: VEHICLE });
     addLog('Went online — awaiting orders');
     return () => { socket?.emit('driverOffline'); };
-  }, [isOnline, socket]);
+  }, [isOnline, socket, addLog]);
 
-  // ── Actions ──────────────────────────────────────────────────────────────
-
-  const acceptOrder = () => {
+  const acceptOrder = useCallback(() => {
     if (!incomingOrder) return;
     const accepted = { ...incomingOrder, status: 'assigned' as const, acceptedAt: new Date() };
     setActiveDelivery(accepted);
@@ -120,27 +119,27 @@ export default function DriverApp() {
     setEarnings((prev) => ({ ...prev, pending: prev.pending + accepted.amount }));
     addLog(`Accepted #${accepted.orderNumber}`);
     Alert.alert('🎉 Order Accepted', `Heading to ${accepted.restaurant.name}`);
-  };
+  }, [incomingOrder, addLog]);
 
-  const rejectOrder = () => {
+  const rejectOrder = useCallback(() => {
     if (!incomingOrder) return;
     setIncomingOrder(null);
     addLog(`Rejected #${incomingOrder.orderNumber}`);
     socket?.emit('orderRejected', { orderId: incomingOrder.id, reason: 'declined_by_driver' });
-  };
+  }, [incomingOrder, socket, addLog]);
 
-  const navigateTo = (destination: string, addr: string) => {
+  const navigateTo = useCallback((destination: string, addr: string) => {
     Alert.alert('🚗 Navigation', `Opening maps to ${destination}: ${addr}.\n(In production, this opens Google Maps.)`);
     addLog(`Navigating → ${destination}`);
-  };
+  }, [addLog]);
 
-  const confirmPickup = () => {
+  const confirmPickup = useCallback(() => {
     if (!activeDelivery) return;
-    setDeliveryOtp(DEFAULT_OTP); // auto-fill for demo
+    setDeliveryOtp(DEFAULT_OTP);
     addLog(`Arrived at pickup: ${activeDelivery.restaurant.name}`);
-  };
+  }, [activeDelivery, addLog]);
 
-  const verifyOtpAndPickup = () => {
+  const verifyOtpAndPickup = useCallback(() => {
     if (!activeDelivery) return;
     if (deliveryOtp !== activeDelivery.otp) {
       setOtpError('Invalid OTP — ask the customer');
@@ -152,9 +151,9 @@ export default function DriverApp() {
     setActiveDelivery(picked);
     addLog(`OTP verified — picked up #${picked.orderNumber}`);
     Alert.alert('✅ Pickup Confirmed', 'Navigate to customer now!');
-  };
+  }, [activeDelivery, deliveryOtp, addLog]);
 
-  const completeDelivery = () => {
+  const completeDelivery = useCallback(() => {
     if (!activeDelivery) return;
     setEarnings((prev) => ({
       ...prev,
@@ -166,16 +165,14 @@ export default function DriverApp() {
     Alert.alert('✅ Delivered!', `+₹${activeDelivery.amount} added to today's earnings`);
     setActiveDelivery(null);
     setDeliveryOtp('');
-  };
+  }, [activeDelivery, addLog]);
 
-  const reportIssue = (label: string) => {
+  const reportIssue = useCallback((label: string) => {
     addLog(`Issue reported: ${label}`);
     socket?.emit('driverIssue', { orderId: activeDelivery?.id, issue: label });
     Alert.alert('Issue Reported', `${label} — Support has been notified.`);
     setExpandedIssue(false);
-  };
-
-  // ── Derived ──────────────────────────────────────────────────────────────
+  }, [socket, activeDelivery, addLog]);
 
   const statusLabel: Record<string, string> = {
     idle: '✋ IDLE',
@@ -186,13 +183,8 @@ export default function DriverApp() {
     completed: '🏁 DONE',
   };
 
-  const statusIdx = (s: DeliveryStatus) => ['idle','assigned','navigating_to_pickup','at_pickup','navigating_to_drop','completed'].indexOf(activeDelivery?.status || 'idle');
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <View style={styles.container}>
-      {/* ── Header ───────────────────────────────────────────────────────── */}
+        <Animated.View style={{ flex: 1, backgroundColor: DESIGN_TOKENS.colors.background, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>🛵 SpiceGarden Driver</Text>
@@ -203,26 +195,30 @@ export default function DriverApp() {
           <Text style={isOnline ? styles.onlineText : styles.offlineText}>
             {isOnline ? '● ONLINE' : '● OFFLINE'}
           </Text>
-          <Switch value={isOnline} onValueChange={setIsOnline}
-            trackColor={{ false: '#555', true: '#4caf50' }}
-            thumbColor="white" />
+          <Switch 
+            value={isOnline} 
+            onValueChange={setIsOnline}
+            trackColor={{ false: '#555', true: DESIGN_TOKENS.colors.success }}
+            thumbColor="white"
+            accessibilityLabel="Toggle online status"
+          />
         </View>
       </View>
 
-      {/* ── Quick stats row ───────────────────────────────────────────────── */}
       <View style={styles.statsRow}>
         <StatCard label="Today" value={`₹${earnings.today}`} sub={`${earnings.ordersToday} orders`} />
         <StatCard label="Pending" value={`₹${earnings.pending}`} sub="to be credited" />
         <StatCard label="Bonus" value={`₹${earnings.bonus}`} sub="weekly" />
       </View>
 
-      {/* ── Tab switcher ──────────────────────────────────────────────────── */}
       <View style={styles.tabRow}>
         {(['home', 'earnings'] as const).map((t) => (
           <TouchableOpacity
             key={t}
             onPress={() => setActiveScreen(t)}
             style={[styles.tab, activeScreen === t && styles.tabActive]}
+            accessibilityLabel={`Switch to ${t} screen`}
+            accessibilityRole="tab"
           >
             <Text style={[styles.tabLabel, activeScreen === t && styles.tabLabelActive]}>
               {t === 'home' ? '🏠 Active' : '💰 Earnings'}
@@ -231,11 +227,8 @@ export default function DriverApp() {
         ))}
       </View>
 
-      {/* ── HOME SCREEN ───────────────────────────────────────────────────── */}
       {activeScreen === 'home' && (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-
-          {/* ── Incoming order alert ─────────────────────────────────────── */}
           {incomingOrder ? (
             <View style={styles.incomingCard}>
               <View style={styles.alertBanner}>
@@ -253,22 +246,30 @@ export default function DriverApp() {
               <DetailRow label="Order ID OTP:" value={`${incomingOrder.otp}`} />
 
               <View style={styles.actionRow}>
-                <TouchableOpacity style={[styles.btn, styles.btnReject]} onPress={rejectOrder}>
+                <TouchableOpacity 
+                  style={[styles.btn, styles.btnReject]} 
+                  onPress={rejectOrder}
+                  accessibilityLabel="Reject order"
+                  accessibilityRole="button"
+                >
                   <Text style={styles.btnText}>Reject</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.btn, styles.btnAccept]} onPress={acceptOrder}>
+                <TouchableOpacity 
+                  style={[styles.btn, styles.btnAccept]} 
+                  onPress={acceptOrder}
+                  accessibilityLabel="Accept order"
+                  accessibilityRole="button"
+                >
                   <Text style={styles.btnText}>✅ Accept</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : null}
 
-          {/* ── Active delivery ───────────────────────────────────────────── */}
           {!incomingOrder && activeDelivery ? (
             <View style={styles.activeCard}>
               <Text style={styles.cardTitle}>🚚 Active Delivery</Text>
 
-              {/* Status progress */}
               <View style={styles.progressContainer}>
                 {['assigned','navigating_to_pickup','at_pickup','navigating_to_drop','completed'].map((s, i) => {
                   const currentStatus = activeDelivery.status;
@@ -291,7 +292,6 @@ export default function DriverApp() {
                 })}
               </View>
 
-              {/* Restaurant / Customer context */}
               <View style={styles.contextCards}>
                 <View style={styles.contextCard}>
                   <Text style={styles.contextLabel}>🏪 PICKUP</Text>
@@ -306,11 +306,12 @@ export default function DriverApp() {
                 </View>
               </View>
 
-              {/* Dynamic action buttons */}
               {activeDelivery.status === 'assigned' && (
                 <TouchableOpacity
                   style={styles.navBtn}
                   onPress={() => navigateTo('restaurant', activeDelivery.restaurant.name)}
+                  accessibilityLabel="Navigate to pickup location"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.navBtnText}>📍 Navigate to Pickup</Text>
                 </TouchableOpacity>
@@ -342,7 +343,7 @@ export default function DriverApp() {
                       </View>
                     ))}
                   </View>
-                  <TouchableOpacity style={[styles.btn, { backgroundColor: '#ff9800', flex: 1 }]} onPress={() => setDeliveryOtp(activeDelivery.otp)}>
+                  <TouchableOpacity style={[styles.btn, { backgroundColor: DESIGN_TOKENS.colors.warning, flex: 1 }]} onPress={() => setDeliveryOtp(activeDelivery.otp)}>
                     <Text style={styles.btnText}>📋 Auto-fill OTP</Text>
                   </TouchableOpacity>
                   {otpError ? <Text style={styles.otpError}>{otpError}</Text> : null}
@@ -377,7 +378,6 @@ export default function DriverApp() {
             </View>
           ) : null}
 
-          {/* ── Idle state ────────────────────────────────────────────────── */}
           {!incomingOrder && !activeDelivery && (
             <View style={styles.idleCard}>
               <Text style={styles.idleIcon}>⏳</Text>
@@ -399,12 +399,13 @@ export default function DriverApp() {
             </View>
           )}
 
-          {/* ── Issue reporting ───────────────────────────────────────────── */}
           {activeDelivery && (
             <View style={styles.issueSection}>
               <TouchableOpacity
                 onPress={() => setExpandedIssue(!expandedIssue)}
                 style={styles.issueToggle}
+                accessibilityLabel="Report an issue"
+                accessibilityRole="button"
               >
                 <Text style={styles.issueToggleText}>⚠️ Report an Issue</Text>
                 <Text style={styles.issueChevron}>{expandedIssue ? '▲' : '▼'}</Text>
@@ -426,7 +427,6 @@ export default function DriverApp() {
             </View>
           )}
 
-          {/* ── Activity log ──────────────────────────────────────────────── */}
           {log.length > 0 && (
             <View style={styles.logCard}>
               <Text style={styles.logTitle}>📋 Recent Activity</Text>
@@ -440,7 +440,6 @@ export default function DriverApp() {
         </ScrollView>
       )}
 
-      {/* ── EARNINGS SCREEN ────────────────────────────────────────────────── */}
       {activeScreen === 'earnings' && (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.earnBigCard}>
@@ -456,21 +455,21 @@ export default function DriverApp() {
             <StatCard label="Acceptance" value="97%" sub="this month" />
           </View>
 
-          <Card title="🏆 Performance" sub="This week">
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🏆 Performance</Text>
+            <Text style={styles.cardSubtitle}>This week</Text>
             <View style={{ gap: 8 }}>
               <EarnRow label="On-time deliveries" value="184 / 190" pct={97} />
               <EarnRow label="Customer rating" value="4.8 / 5.0" pct={96} />
               <EarnRow label="Acceptance rate" value="97%" pct={97} />
               <EarnRow label="Completed orders" value="42 / week" pct={88} />
             </View>
-          </Card>
+          </View>
         </ScrollView>
       )}
-    </View>
+    </Animated.View>
   );
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
@@ -505,30 +504,18 @@ function EarnRow({ label, value, pct }: { label: string; value: string; pct: num
   );
 }
 
-function Card({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      {sub && <Text style={styles.cardSubtitle}>{sub}</Text>}
-      {children}
-    </View>
-  );
-}
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
     padding: 16, backgroundColor: '#1a1a1a', borderBottomWidth: 1, borderBottomColor: '#333',
   },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#f04e31' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary },
   subtitle: { color: '#888', fontSize: 13, marginTop: 2 },
   vehicleTag: { color: '#555', fontSize: 11, marginTop: 1 },
   onlineToggle: { flexDirection: 'row', alignItems: 'center' },
-  onlineText: { color: '#4caf50', marginRight: 8, fontWeight: 'bold', fontSize: 14 },
-  offlineText: { color: '#f44336', marginRight: 8, fontWeight: 'bold', fontSize: 14 },
+  onlineText: { color: DESIGN_TOKENS.colors.success, marginRight: 8, fontWeight: 'bold', fontSize: 14 },
+  offlineText: { color: DESIGN_TOKENS.colors.danger, marginRight: 8, fontWeight: 'bold', fontSize: 14 },
 
   statsRow: { flexDirection: 'row', padding: 12, gap: 10 },
   statCard: {
@@ -541,24 +528,24 @@ const styles = StyleSheet.create({
 
   tabRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 8, backgroundColor: '#161616' },
   tab: { flex: 1, paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
-  tabActive: { backgroundColor: '#2a2a4a', borderBottomWidth: 2, borderBottomColor: '#f04e31' },
+  tabActive: { backgroundColor: '#2a2a4a', borderBottomWidth: 2, borderBottomColor: DESIGN_TOKENS.colors.primary },
   tabLabel: { color: '#666', fontSize: 13 },
-  tabLabelActive: { color: '#f04e31', fontWeight: 'bold' },
+  tabLabelActive: { color: DESIGN_TOKENS.colors.primary, fontWeight: 'bold' },
 
   content: { flex: 1 },
 
   incomingCard: {
     margin: 14, backgroundColor: '#1e1a1a', borderRadius: 14,
-    borderWidth: 2, borderColor: '#f04e31', overflow: 'hidden',
+    borderWidth: 2, borderColor: DESIGN_TOKENS.colors.primary, overflow: 'hidden',
   },
   alertBanner: {
-    backgroundColor: '#f04e31', paddingVertical: 8, alignItems: 'center',
+    backgroundColor: DESIGN_TOKENS.colors.primary, paddingVertical: 8, alignItems: 'center',
   },
   alertBannerText: { color: 'white', fontWeight: 'bold', fontSize: 13, letterSpacing: 1.5 },
 
   activeCard: {
     margin: 14, backgroundColor: '#1a1e1a', borderRadius: 14,
-    borderWidth: 2, borderColor: '#4caf50', padding: 16,
+    borderWidth: 2, borderColor: DESIGN_TOKENS.colors.success, padding: 16,
   },
 
   idleCard: {
@@ -575,11 +562,11 @@ const styles = StyleSheet.create({
   progressDot: {
     width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', zIndex: 2,
   },
-  progressDotActive: { backgroundColor: '#4caf50' },
+  progressDotActive: { backgroundColor: DESIGN_TOKENS.colors.success },
   progressDotInactive: { backgroundColor: '#333' },
   progressDotText: { fontSize: 11, color: 'white', fontWeight: 'bold' },
   progressLine: { flex: 1, height: 3, backgroundColor: '#333', marginHorizontal: 4 },
-  progressLineActive: { backgroundColor: '#4caf50' },
+  progressLineActive: { backgroundColor: DESIGN_TOKENS.colors.success },
   progressLabel: { fontSize: 10, textAlign: 'center', color: '#666', marginTop: 3, maxWidth: 50 },
 
   contextCards: { flexDirection: 'row', gap: 10, marginVertical: 12 },
@@ -589,21 +576,21 @@ const styles = StyleSheet.create({
   contextLabel: { fontSize: 10, color: '#888', textTransform: 'uppercase', marginBottom: 4 },
   contextName: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 2 },
   contextAddr: { fontSize: 12, color: '#aaa' },
-  contextPhone: { fontSize: 12, color: '#4caf50', marginTop: 4 },
+  contextPhone: { fontSize: 12, color: DESIGN_TOKENS.colors.success, marginTop: 4 },
 
   navBtn: {
     backgroundColor: '#2196f3', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8,
   },
-  arriveBtn: { backgroundColor: '#ff9800', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
-  completeBtn: { backgroundColor: '#4caf50', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  arriveBtn: { backgroundColor: DESIGN_TOKENS.colors.warning, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  completeBtn: { backgroundColor: DESIGN_TOKENS.colors.success, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
 
   otpRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginVertical: 12 },
   otpSlot: {
     width: 40, height: 48, borderRadius: 6, backgroundColor: '#1e1e1e',
     alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#444',
   },
-  otpChar: { fontSize: 18, fontWeight: 'bold', color: '#f04e31' },
-  otpError: { color: '#ff4444', textAlign: 'center', fontSize: 13 },
+  otpChar: { fontSize: 18, fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary },
+  otpError: { color: DESIGN_TOKENS.colors.danger, textAlign: 'center', fontSize: 13 },
 
   issueSection: {
     marginHorizontal: 14, marginBottom: 14, backgroundColor: '#1e1a1a',
@@ -615,8 +602,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10, borderTopRightRadius: 10,
     borderBottomWidth: 1, borderBottomColor: '#333',
   },
-  issueToggleText: { color: '#ff9800', fontWeight: 'bold', fontSize: 14 },
-  issueChevron: { color: '#ff9800', fontSize: 12, marginLeft: 8 },
+  issueToggleText: { color: DESIGN_TOKENS.colors.warning, fontWeight: 'bold', fontSize: 14 },
+  issueChevron: { color: DESIGN_TOKENS.colors.warning, fontSize: 12, marginLeft: 8 },
   issueGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 10, gap: 8 },
   issueBtn: {
     width: (SCREEN_W - 52) / 4, backgroundColor: '#2a2a2a', borderRadius: 8,
@@ -630,15 +617,15 @@ const styles = StyleSheet.create({
   },
   logTitle: { color: '#aaa', fontSize: 12, marginBottom: 8, fontWeight: 'bold', textTransform: 'uppercase' },
   logEntry: { color: '#666', fontSize: 11, fontFamily: 'monospace', paddingVertical: 1 },
-  logEntryNew: { color: '#4caf50' },
+  logEntryNew: { color: DESIGN_TOKENS.colors.success },
 
   earnBigCard: {
     margin: 14, padding: 24, borderRadius: 14, alignItems: 'center',
     backgroundColor: '#1e3a1e',
-    borderWidth: 2, borderColor: '#4caf50',
+    borderWidth: 2, borderColor: DESIGN_TOKENS.colors.success,
   },
   earnLabel: { color: '#888', fontSize: 14, textTransform: 'uppercase' },
-  earnAmount: { fontSize: 48, fontWeight: 'bold', color: '#4caf50', marginVertical: 8 },
+  earnAmount: { fontSize: 48, fontWeight: 'bold', color: DESIGN_TOKENS.colors.success, marginVertical: 8 },
   earnSub: { color: '#aaa', fontSize: 14 },
   earnGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14, gap: 10, paddingBottom: 14 },
 
@@ -649,13 +636,14 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontSize: 13, color: '#888', marginBottom: 12 },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   amountBadge: {
-    background: '#1e3a1e', color: '#4caf50',
+    backgroundColor: '#1e3a1e', color: DESIGN_TOKENS.colors.success,
     paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, fontSize: 16, fontWeight: 'bold',
   },
 
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   btn: { flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
-  btnAccept: { backgroundColor: '#f04e31', flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
+  btnAccept: { backgroundColor: DESIGN_TOKENS.colors.primary, flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
   btnReject: { backgroundColor: '#444', flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
+  navBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
   btnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
 });

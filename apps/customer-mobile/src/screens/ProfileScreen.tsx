@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput, Switch, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
 
 const ProfileScreen = () => {
   const navigation = useNavigation<any>();
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+  });
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -13,6 +18,13 @@ const ProfileScreen = () => {
     email: '',
     phone: '',
   });
+  const [errors, setErrors] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+  });
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -24,7 +36,6 @@ const ProfileScreen = () => {
             fullName: user.name || '',
             email: user.email || '',
             phone: user.phone || '',
-            // In a real app, we'd have more profile data
           });
           setEditFormData({
             fullName: user.name || '',
@@ -36,16 +47,33 @@ const ProfileScreen = () => {
         console.error('Failed to load profile:', error);
       } finally {
         setLoading(false);
+        
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: DESIGN_TOKENS.motion.page,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start();
       }
     };
 
     loadProfile();
-  }, []);
+  }, [fadeAnim]);
+
+  const validateEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (value && !emailRegex.test(value)) {
+      setErrors(prev => ({ ...prev, email: 'Invalid email format' }));
+      return false;
+    }
+    setErrors(prev => ({ ...prev, email: '' }));
+    return true;
+  };
 
   const handleSaveProfile = async () => {
+    if (!validateEmail(editFormData.email)) return;
+    
     try {
-      // In a real app, this would make an API call to update the profile
-      // For demo, we'll just update local storage
       await AsyncStorage.setItem('sg_user', JSON.stringify({
         name: editFormData.fullName,
         email: editFormData.email,
@@ -59,8 +87,6 @@ const ProfileScreen = () => {
       });
       
       setIsEditing(false);
-      
-      Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
       console.error('Failed to save profile:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
@@ -74,156 +100,204 @@ const ProfileScreen = () => {
       navigation.replace('Auth');
     } catch (error) {
       console.error('Failed to logout:', error);
-      Alert.alert('Error', 'Failed to logout. Please try again.');
     }
   };
 
-  if (loading && !userData) {
+  if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.loading}>
+      <View style={styles.loadingContainer}
+        accessible={true}
+        accessibilityLabel="Loading profile"
+        accessibilityRole="progressbar"
+      >
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.loadingSpinner} />
           <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
+        </Animated.View>
       </View>
     );
   }
 
+  const menuItems = [
+    { id: 'wallet', label: 'Wallet', icon: '💰', screen: 'Wallet' },
+    { id: 'orders', label: 'My Orders', icon: '📦', screen: 'History' },
+    { id: 'addresses', label: 'Addresses', icon: '📍', screen: 'Addresses' },
+    { id: 'payment', label: 'Payment Methods', icon: '💳', screen: 'Payment' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔', screen: 'Notifications' },
+    { id: 'support', label: 'Help & Support', icon: '❓', screen: 'Support' },
+  ];
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          {isEditing ? (
-            <Text style={styles.headerText}>Edit Profile</Text>
-          ) : (
-            <Text style={styles.headerText}>Profile</Text>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerText}>
+              {isEditing ? 'Edit Profile' : 'Profile'}
+            </Text>
+          </View>
+          {!isEditing && (
+            <TouchableOpacity 
+              onPress={() => setIsEditing(true)} 
+              style={styles.editButton}
+              accessibilityLabel="Edit profile"
+              accessibilityRole="button"
+            >
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
           )}
         </View>
-        {!isEditing && (
-          <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-        )}
+
+        <View style={styles.content}>
+          {isEditing ? (
+            <View style={styles.editForm}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <TextInput
+                  placeholder="Enter your full name"
+                  value={editFormData.fullName}
+                  onChangeText={(text) => setEditFormData({ ...editFormData, fullName: text })}
+                  style={styles.input}
+                  accessibilityLabel="Full name"
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  placeholder="Enter your email"
+                  value={editFormData.email}
+                  onChangeText={(text) => {
+                    setEditFormData({ ...editFormData, email: text });
+                    if (errors.email) validateEmail(text);
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  style={styles.input}
+                  accessibilityLabel="Email address"
+                />
+                {errors.email && <Text style={styles.fieldError}>{errors.email}</Text>}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <TextInput
+                  placeholder="Enter your phone number"
+                  value={editFormData.phone}
+                  onChangeText={(text) => setEditFormData({ ...editFormData, phone: text })}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                  accessibilityLabel="Phone number"
+                />
+              </View>
+              <TouchableOpacity 
+                onPress={handleSaveProfile}
+                style={styles.saveButton}
+                accessibilityLabel="Save profile changes"
+                accessibilityRole="button"
+              >
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setIsEditing(false)}
+                style={styles.cancelButton}
+                accessibilityLabel="Cancel editing"
+                accessibilityRole="button"
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={styles.profileHeader}>
+                <View style={styles.profileImageContainer}>
+                  <Text style={styles.profileImage}>👤</Text>
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={styles.profileName}>{userData.fullName || 'User Name'}</Text>
+                  <Text style={styles.profileEmail}>{userData.email || 'email@example.com'}</Text>
+                  <Text style={styles.profilePhone}>📞 {userData.phone || '+91 XXXXX XXXXX'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.statsContainer}>
+                <View style={styles.statBox}>
+                  <Text style={styles.statNumber}>24</Text>
+                  <Text style={styles.statLabel}>Orders</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Text style={styles.statNumber}>4.8</Text>
+                  <Text style={styles.statLabel}>Rating</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Text style={styles.statNumber}>SPICE+</Text>
+                  <Text style={styles.statLabel}>Member</Text>
+                </View>
+              </View>
+
+              <View style={styles.menuSection}>
+                <Text style={styles.sectionTitle}>Account</Text>
+                {menuItems.map((item) => (
+                  <TouchableOpacity 
+                    key={item.id} 
+                    style={styles.menuItem}
+                    onPress={() => item.screen && navigation.navigate(item.screen as any)}
+                    accessibilityLabel={`Go to ${item.label}`}
+                    accessibilityRole="link"
+                  >
+                    <Text style={styles.menuItemIcon}>{item.icon}</Text>
+                    <Text style={styles.menuItemText}>{item.label}</Text>
+                    <Text style={styles.menuItemArrow}>›</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity 
+                onPress={handleLogout}
+                style={styles.logoutButton}
+                accessibilityLabel="Sign out of your account"
+                accessibilityRole="button"
+              >
+                <Text style={styles.logoutButtonText}>Sign Out</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
-
-      <View style={styles.content}>
-        {isEditing ? (
-          <View style={styles.editForm}>
-            <TextInput
-              placeholder="Full Name"
-              value={editFormData.fullName}
-              onChangeText={(text) => setEditFormData({ ...editFormData, fullName: text })}
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Email"
-              value={editFormData.email}
-              onChangeText={(text) => setEditFormData({ ...editFormData, email: text })}
-              autoCapitalize="none"
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Phone Number"
-              value={editFormData.phone}
-              onChangeText={(text) => setEditFormData({ ...editFormData, phone: text })}
-              keyboardType="phone-pad"
-              style={styles.input}
-            />
-            <TouchableOpacity 
-              onPress={handleSaveProfile}
-              style={styles.saveButton}
-            >
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setIsEditing(false)}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <View style={styles.profileHeader}>
-              <View style={styles.profileImageContainer}>
-                <Text style={styles.profileImage}>👤</Text>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{userData?.fullName || 'User Name'}</Text>
-                <Text style={styles.profileEmail}>{userData?.email || 'email@example.com'}</Text>
-                <Text style={styles.profilePhone}>📞 {userData?.phone || '+91 XXXXX XXXXX'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.statsContainer}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>24</Text>
-                <Text style={styles.statLabel}>Orders</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>4.8</Text>
-                <Text style={styles.statLabel}>Rating</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>SPICE+</Text>
-                <Text style={styles.statLabel}>Member</Text>
-              </View>
-            </View>
-
-            <View style={styles.menuSection}>
-              <Text style={styles.sectionTitle}>Account</Text>
-              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to wallet */}}>
-                <Text style={styles.menuItemText}>Wallet</Text>
-                <Text style={styles.menuItemArrow}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('History')}>
-                <Text style={styles.menuItemText}>My Orders</Text>
-                <Text style={styles.menuItemArrow}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to addresses */}}>
-                <Text style={styles.menuItemText}>Addresses</Text>
-                <Text style={styles.menuItemArrow}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to payment methods */}}>
-                <Text style={styles.menuItemText}>Payment Methods</Text>
-                <Text style={styles.menuItemArrow}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to notifications */}}>
-                <Text style={styles.menuItemText}>Notifications</Text>
-                <Text style={styles.menuItemArrow}>›</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => {/* TODO: Navigate to help & support */}}>
-                <Text style={styles.menuItemText}>Help & Support</Text>
-                <Text style={styles.menuItemArrow}>›</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity 
-              onPress={handleLogout}
-              style={styles.logoutButton}
-            >
-              <Text style={styles.logoutButtonText}>Sign Out</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: DESIGN_TOKENS.colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingSpinner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: DESIGN_TOKENS.colors.primary,
+    borderTopColor: 'transparent',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    marginTop: 16,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
+    padding: DESIGN_TOKENS.spacing.md,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: DESIGN_TOKENS.colors.border,
   },
   headerContent: {
     flex: 1,
@@ -231,30 +305,33 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 20,
     fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   editButton: {
-    padding: 8,
+    padding: DESIGN_TOKENS.spacing.xs,
   },
   editButtonText: {
     fontSize: 14,
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
     fontWeight: '500',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   content: {
     flex: 1,
   },
   profileHeader: {
     alignItems: 'center',
-    padding: 24,
+    padding: DESIGN_TOKENS.spacing.xl,
   },
   profileImageContainer: {
     width: 80,
     height: 80,
-    backgroundColor: '#f04e31',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: DESIGN_TOKENS.spacing.md,
   },
   profileImage: {
     fontSize: 36,
@@ -267,121 +344,145 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 4,
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   profileEmail: {
     fontSize: 16,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
     marginBottom: 4,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   profilePhone: {
     fontSize: 14,
-    color: '#999',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 16,
-    paddingHorizontal: 16,
+    marginVertical: DESIGN_TOKENS.spacing.lg,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
   },
   statBox: {
     alignItems: 'center',
-    padding: 12,
+    padding: DESIGN_TOKENS.spacing.sm,
   },
   statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
     marginTop: 4,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   menuSection: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.card,
     overflow: 'hidden',
-    marginHorizontal: 16,
+    marginHorizontal: DESIGN_TOKENS.spacing.md,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    padding: 16,
+    padding: DESIGN_TOKENS.spacing.md,
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: DESIGN_TOKENS.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: DESIGN_TOKENS.colors.border,
+  },
+  menuItemIcon: {
+    fontSize: 16,
+    marginRight: 12,
   },
   menuItemText: {
+    flex: 1,
     fontSize: 16,
-    color: '#1a1a1a',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   menuItemArrow: {
     fontSize: 16,
-    color: '#999',
+    color: DESIGN_TOKENS.colors.textSecondary,
   },
   logoutButton: {
-    margin: 16,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
+    margin: DESIGN_TOKENS.spacing.md,
+    backgroundColor: DESIGN_TOKENS.colors.elevated,
+    borderRadius: DESIGN_TOKENS.radius.button,
     paddingVertical: 12,
   },
   logoutButtonText: {
     fontSize: 16,
-    color: '#c62828',
+    color: DESIGN_TOKENS.colors.dangerDark,
     fontWeight: '500',
     textAlign: 'center',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   editForm: {
-    padding: 16,
+    padding: DESIGN_TOKENS.spacing.md,
+  },
+  inputGroup: {
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: DESIGN_TOKENS.spacing.xs,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderRadius: DESIGN_TOKENS.radius.input,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
     fontSize: 16,
-    backgroundColor: 'white',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.danger,
+    marginTop: 4,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   saveButton: {
-    backgroundColor: '#f04e31',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: DESIGN_TOKENS.radius.button,
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: DESIGN_TOKENS.spacing.xs,
   },
   saveButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   cancelButton: {
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: DESIGN_TOKENS.radius.button,
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: DESIGN_TOKENS.spacing.xs,
     borderWidth: 1,
-    borderColor: '#f04e31',
+    borderColor: DESIGN_TOKENS.colors.primary,
   },
   cancelButtonText: {
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
     fontSize: 16,
     fontWeight: '500',
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
 });
 

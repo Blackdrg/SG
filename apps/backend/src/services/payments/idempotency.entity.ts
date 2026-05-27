@@ -1,16 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, Unique } from 'typeorm';
 
 @Entity('idempotency_keys')
-@Unique(['key', 'operation'])
+@Index(['key', 'operation'], { unique: true })
 export class IdempotencyEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
   @Column()
   key: string;
 
-  @Index()
   @Column()
   operation: string;
 

@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spicegarden-backend-staging
+  labels:
+    app: spicegarden-backend
+    environment: staging
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: spicegarden-backend
+      environment: staging
+  template:
+    metadata:
+      labels:
+        app: spicegarden-backend
+        environment: staging
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: backend
+          image: ghcr.io/spicegarden/backend:${IMAGE_TAG:-develop}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - secretRef:
+                name: spicegarden-secrets-staging
+          env:
+            - name: NODE_ENV
+              value: "staging"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spicegarden-backend-staging
+  labels:
+    app: spicegarden-backend
+spec:
+  selector:
+    app: spicegarden-backend
+    environment: staging
+  ports:
+    - port: 80
+      targetPort: 3001
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spicegarden-config-staging
+  labels:
+    app: spicegarden-backend
+data:
+  LOG_LEVEL: "debug"
+  ENABLE_SWAGGER: "true"
+  API_URL: "https://staging-api.spicegarden.com"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spicegarden-ingress-staging
+  labels:
+    app: spicegarden-backend
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  tls:
+    - hosts:
+        - staging-api.spicegarden.com
+      secretName: spicegarden-staging-tls
+  rules:
+    - host: staging-api.spicegarden.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: spicegarden-backend-staging
+                port:
+                  number: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: spicegarden-backend-hpa-staging
+  labels:
+    app: spicegarden-backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: spicegarden-backend-staging
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

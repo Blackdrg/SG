@@ -1,0 +1,23 @@
+:root {
+  --icon-primary: theme('colors.primary');
+  --icon-secondary: theme('colors.textPrimary');
+  --icon-muted: theme('colors.textSecondary');
+  --icon-danger: theme('colors.danger');
+  --icon-success: theme('colors.success');
+  --icon-warning: theme('colors.warning');
+}
+
+/* Icon Sizes */
+:root {
+  --icon-size-tiny: 12px;
+  --icon-size-inline: 16px;
+  --icon-size-normal: 20px;
+  --icon-size-nav: 24px;
+  --icon-size-hero: 32px;
+  --icon-size-empty: 48px;
+}
+
+/* Icon Stroke */
+:root {
+  --icon-stroke: 2px;
+}

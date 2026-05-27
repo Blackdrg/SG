@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Headers, UseGuards, Request, Get, Query } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { RolesGuard } from '../../security/roles.guard';
@@ -10,8 +10,11 @@ export class OrderController {
   constructor(private orderService: OrderService) {}
 
   @Post()
-  async placeOrder(@Body() body: any) {
-    return this.orderService.placeOrder(body);
+  async placeOrder(
+    @Body() body: any,
+    @Headers('x-idempotency-key') idempotencyKey?: string
+  ) {
+    return this.orderService.placeOrder(body, idempotencyKey);
   }
 
   @Get('health')

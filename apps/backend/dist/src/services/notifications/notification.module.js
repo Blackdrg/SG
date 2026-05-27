@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const common_2 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const notification_service_1 = require("./notification.service");
+const production_notification_service_1 = require("./production-notification.service");
 const user_device_entity_1 = require("../../db/entities/user-device.entity");
 let NotificationModule = class NotificationModule {
 };
@@ -19,8 +20,8 @@ exports.NotificationModule = NotificationModule = __decorate([
     (0, common_1.Global)(),
     (0, common_2.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([user_device_entity_1.UserDeviceEntity])],
-        providers: [notification_service_1.NotificationService],
-        exports: [notification_service_1.NotificationService],
+        providers: [notification_service_1.NotificationService, production_notification_service_1.ProductionNotificationService],
+        exports: [notification_service_1.NotificationService, production_notification_service_1.ProductionNotificationService],
     })
 ], NotificationModule);
 //# sourceMappingURL=notification.module.js.map

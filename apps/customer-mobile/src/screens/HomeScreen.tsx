@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -9,20 +10,29 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     const loadUser = async () => {
-      const userJson = await AsyncStorage.getItem('sg_user');
-      if (userJson) {
-        setUser(JSON.parse(userJson));
+      try {
+        const userJson = await AsyncStorage.getItem('sg_user');
+        if (userJson) {
+          setUser(JSON.parse(userJson));
+        }
+      } catch (e) {
+        console.error('Failed to load user:', e);
       }
     };
     
     const loadRestaurants = async () => {
       try {
         setLoading(true);
-        // In a real app, this would be an API call
-        // For demo, using mock data
+        setError(null);
+        
         setTimeout(() => {
           setRestaurants([
             {
@@ -54,16 +64,32 @@ const HomeScreen = () => {
             },
           ]);
           setLoading(false);
+          
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: DESIGN_TOKENS.motion.page,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+              toValue: 0,
+              duration: DESIGN_TOKENS.motion.page,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+          ]).start();
         }, 1000);
       } catch (error) {
-        console.error('Failed to load restaurants:', error);
+        setError('Failed to load restaurants. Pull to refresh.');
         setLoading(false);
+        console.error('Failed to load restaurants:', error);
       }
     };
     
     loadUser();
     loadRestaurants();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const handleRestaurantPress = (restaurantId: string) => {
     navigation.navigate('Restaurant', { restaurantId });
@@ -81,125 +107,231 @@ const HomeScreen = () => {
     navigation.navigate('Profile');
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#f04e31" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.primary} />
+        <Text style={styles.loadingText}>Finding the best restaurants...</Text>
+      </View>
+    );
+  }
+
+  if (error && !refreshing) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorIcon}>⚠️</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerGreeting}>
-            {user ? `Hi, ${user.name?.split(' ')[0] || ''}!` : 'Hi there!'}
-          </Text>
-          <Text style={styles.headerSubtext}>What are you craving today?</Text>
-        </View>
-        <TouchableOpacity onPress={handleProfilePress} style={styles.headerRight}>
-          <Text style={styles.headerIcon}>👤</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <TouchableOpacity onPress={handleSearchPress} style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <Text style={styles.searchText}>Search restaurants, dishes…</Text>
-      </View>
-
-      {/* Categories */}
-      <View style={styles.categories}>
-        <TouchableOpacity 
-          style={[styles.categoryButton, styles.activeCategory]} 
-          onPress={() => {}}>
-          <Text style={styles.categoryText}>Burgers</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.categoryButton} 
-          onPress={() => {}}>
-          <Text style={styles.categoryText}>Pizza</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.categoryButton} 
-          onPress={() => {}}>
-          <Text style={styles.categoryText}>Sandwiches</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.categoryButton} 
-          onPress={() => {}}>
-          <Text style={styles.categoryText}>Salads</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Restaurants List */}
-      <View style={styles.restaurantsContainer}>
-        <FlatList
-          data={restaurants}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              onPress={() => handleRestaurantPress(item.id)}
-              style={styles.restaurantCard}
-            >
-              <Image 
-                source={{ uri: item.image }} 
-                style={styles.restaurantImage}
-              />
-              <View style={styles.restaurantInfo}>
-                <Text style={styles.restaurantName}>{item.name}</Text>
-                <Text style={styles.restaurantDescription}>{item.description}</Text>
-                <View style={styles.restaurantDetails}>
-                  <Text style={styles.detailText}>⭐ {item.rating}</Text>
-                  <Text style={styles.detailText}>⏱ {item.deliveryTime}</Text>
-                  <Text style={styles.detailText}>📍 {item.distance}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No restaurants found</Text>
-            </View>
+      <Animated.View 
+        style={[
+          styles.content,
+          { 
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }] 
           }
-          ListFooterComponent={<View style={{ height: 80 }} />}
-        />
-      </View>
+        ]}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerGreeting}
+              accessible={true}
+              accessibilityLabel={`Hello${user ? ', ' + (user.name?.split(' ')[0] || '') : ''}`}
+            >
+              {`Hello${user ? ', ' + (user.name?.split(' ')[0] || '') + '!' : ' there!'}`}
+            </Text>
+            <Text style={styles.headerSubtext}>What are you craving today?</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={handleProfilePress} 
+            style={styles.headerRight}
+            accessibilityLabel="View profile"
+            accessibilityRole="button"
+          >
+            <Text style={styles.headerIcon}>👤</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => {}} style={styles.navItem}>
-          <Text style={styles.navText}>Home</Text>
+        <TouchableOpacity 
+          onPress={handleSearchPress} 
+          style={styles.searchBar}
+          accessibilityLabel="Search restaurants and dishes"
+          accessibilityRole="button"
+        >
+          <Text style={styles.searchIcon}>🔍</Text>
+          <Text style={styles.searchText}>Search restaurants, dishes…</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleSearchPress} style={styles.navItem}>
-          <Text style={styles.navText}>Search</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleCartPress} style={styles.navItem}>
-          <Text style={styles.navText}>Cart</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleProfilePress} style={styles.navItem}>
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
+
+        <View style={styles.categories}>
+          {['Burgers', 'Pizza', 'Sandwiches', 'Salads'].map((cat, index) => (
+            <TouchableOpacity 
+              key={cat}
+              style={[styles.categoryButton]}
+              accessibilityLabel={`Browse ${cat} category`}
+              accessibilityRole="button"
+            >
+              <Text style={styles.categoryText}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.restaurantsContainer}>
+          <FlatList
+            data={restaurants}
+            keyExtractor={(item) => item.id}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            renderItem={({ item, index }) => (
+              <AnimatedTouchableOpacity 
+                onPress={() => handleRestaurantPress(item.id)} 
+                style={styles.restaurantCard}
+                delay={index * 100}
+              >
+                <Image 
+                  source={{ uri: item.image }} 
+                  style={styles.restaurantImage}
+                  accessibilityLabel={`${item.name} restaurant`}
+                  onError={() => console.log('Image load failed')}
+                />
+                <View style={styles.restaurantInfo}>
+                  <Text style={styles.restaurantName}>{item.name}</Text>
+                  <Text style={styles.restaurantDescription}>{item.description}</Text>
+                  <View style={styles.restaurantDetails}>
+                    <Text style={styles.detailText}>⭐ {item.rating}</Text>
+                    <Text style={styles.detailText}>⏱ {item.deliveryTime}</Text>
+                    <Text style={styles.detailText}>📍 {item.distance}</Text>
+                  </View>
+                </View>
+              </AnimatedTouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No restaurants found</Text>
+                <Text style={styles.emptySubtext}>Try a different location or check back later</Text>
+              </View>
+            }
+            ListFooterComponent={<View style={{ height: 80 }} />}
+          />
+        </View>
+      </Animated.View>
+
+      <View style={styles.bottomNav}
+        accessible={true}
+        accessibilityLabel="Main navigation"
+        accessibilityRole="tablist"
+      >
+        {[
+          { key: 'home', label: 'Home', icon: '🏠', path: 'Home' },
+          { key: 'search', label: 'Search', icon: '🔍', path: 'Search' },
+          { key: 'cart', label: 'Cart', icon: '🛒', path: 'Cart' },
+          { key: 'profile', label: 'Profile', icon: '👤', path: 'Profile' },
+        ].map((tab) => (
+          <TouchableOpacity 
+            key={tab.key}
+            onPress={() => tab.key !== 'home' && navigation.navigate(tab.path as any)}
+            style={styles.navItem}
+            accessibilityLabel={tab.label}
+            accessibilityRole="tab"
+          >
+            <Text style={styles.navIcon}>{tab.icon}</Text>
+            <Text style={styles.navText}>{tab.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
+  );
+};
+
+const AnimatedTouchableOpacity = ({ children, delay = 0, ...props }: any) => {
+  const animValue = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    Animated.timing(animValue, {
+      toValue: 1,
+      duration: DESIGN_TOKENS.motion.standard,
+      delay,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [delay, animValue]);
+
+  return (
+    <Animated.View style={{ opacity: animValue, transform: [{ scale: animValue }] }}>
+      <TouchableOpacity {...props}>{children}</TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: DESIGN_TOKENS.colors.background,
+  },
+  content: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    marginTop: 16,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: DESIGN_TOKENS.colors.danger,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  retryButton: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: DESIGN_TOKENS.radius.button,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
+    padding: DESIGN_TOKENS.spacing.md,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: DESIGN_TOKENS.colors.border,
   },
   headerLeft: {
     flex: 1,
@@ -207,12 +339,14 @@ const styles = StyleSheet.create({
   headerGreeting: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   headerSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
     marginTop: 4,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   headerRight: {
     width: 40,
@@ -226,54 +360,53 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 8,
-    margin: 16,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    padding: DESIGN_TOKENS.spacing.sm,
+    marginHorizontal: DESIGN_TOKENS.spacing.md,
+    marginVertical: DESIGN_TOKENS.spacing.sm,
+    borderRadius: DESIGN_TOKENS.radius.md,
     elevation: 2,
   },
   searchIcon: {
     fontSize: 18,
-    color: '#999',
-    marginRight: 8,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    marginRight: DESIGN_TOKENS.spacing.xs,
   },
   searchText: {
     fontSize: 16,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
     flex: 1,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   categories: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    marginBottom: DESIGN_TOKENS.spacing.md,
   },
   categoryButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    backgroundColor: 'white',
-  },
-  activeCategory: {
-    backgroundColor: '#f04e31',
-    borderColor: '#f04e31',
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderRadius: DESIGN_TOKENS.radius.full,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
   },
   categoryText: {
     fontSize: 14,
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
     fontWeight: '500',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   restaurantsContainer: {
     flex: 1,
   },
   restaurantCard: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 12,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    marginHorizontal: DESIGN_TOKENS.spacing.md,
+    marginVertical: DESIGN_TOKENS.spacing.xs,
+    borderRadius: DESIGN_TOKENS.radius.card,
     overflow: 'hidden',
     elevation: 3,
   },
@@ -283,17 +416,21 @@ const styles = StyleSheet.create({
   },
   restaurantInfo: {
     flex: 1,
-    padding: 12,
+    padding: DESIGN_TOKENS.spacing.sm,
+    justifyContent: 'space-between',
   },
   restaurantName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   restaurantDescription: {
     fontSize: 14,
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
     marginBottom: 8,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   restaurantDetails: {
     flexDirection: 'row',
@@ -301,31 +438,43 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: '#999',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   emptyState: {
-    padding: 40,
+    padding: DESIGN_TOKENS.spacing.xxl,
     alignItems: 'center',
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    marginBottom: 8,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   bottomNav: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    backgroundColor: 'white',
+    borderTopColor: DESIGN_TOKENS.colors.border,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
   },
   navItem: {
     alignItems: 'center',
     paddingVertical: 8,
   },
+  navIcon: {
+    fontSize: 22,
+  },
   navText: {
     fontSize: 12,
-    color: '#999',
+    color: DESIGN_TOKENS.colors.textSecondary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
 });
 

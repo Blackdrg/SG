@@ -194,9 +194,9 @@ const OrderDetailsScreen = () => {
         <View style={styles.restaurantSection}>
           <View style={styles.restaurantRow}>
             <Image 
-              source={{ uri: order.restaurantImage }} 
-              style={styles.restaurantImage}
-            />
+                source={{ uri: order.restaurantImage }} 
+                style={styles.restaurantImage as any}
+              />
             <View style={styles.restaurantInfo}>
               <Text style={styles.restaurantName}>{order.restaurantName}</Text>
               <Text style={styles.restaurantDetail}>Restaurant Partner</Text>
@@ -208,11 +208,11 @@ const OrderDetailsScreen = () => {
         <View style={styles.itemsSection}>
           <Text style={styles.sectionTitle}>Order Items</Text>
           <View style={styles.itemsList}>
-            {order.items.map((item) => (
+            {order.items.map((item: any) => (
               <View key={item.id} style={styles.itemRow}>
                 <Image 
                   source={{ uri: item.image }} 
-                  style={styles.itemImage}
+                  style={styles.itemImage as any}
                 />
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.name}</Text>
@@ -415,9 +415,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  itemRow: {
-    borderBottomWidth: 0,
-  },
+  // duplicate itemRow style removed
   itemImage: {
     width: 50,
     height: 50,
@@ -565,13 +563,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#666',
-  },
+// duplicate backButtonText removed
 });
 
 export default OrderDetailsScreen;

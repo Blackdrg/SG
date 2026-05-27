@@ -19,8 +19,8 @@ let OrderController = class OrderController {
     constructor(orderService) {
         this.orderService = orderService;
     }
-    async placeOrder(body) {
-        return this.orderService.placeOrder(body);
+    async placeOrder(body, idempotencyKey) {
+        return this.orderService.placeOrder(body, idempotencyKey);
     }
     async healthCheck() {
         return { status: 'ok', timestamp: new Date().toISOString() };
@@ -30,8 +30,9 @@ exports.OrderController = OrderController;
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Headers)('x-idempotency-key')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "placeOrder", null);
 __decorate([

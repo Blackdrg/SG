@@ -1,9 +1,7 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { IdempotencyEntity } from './idempotency.entity';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
 
 export interface IdempotencyOptions {
   headerName?: string;
@@ -11,6 +9,8 @@ export interface IdempotencyOptions {
 
 @Injectable()
 export class IdempotencyService {
+  private readonly logger = new Logger(IdempotencyService.name);
+
   constructor(
     @InjectRepository(IdempotencyEntity)
     private readonly idempotencyRepo: Repository<IdempotencyEntity>,
@@ -31,6 +31,7 @@ export class IdempotencyService {
     });
 
     if (existing?.isCompleted) {
+      this.logger.warn(`Duplicate request detected for operation ${operation} with key ${key}`);
       return { isDuplicate: true, response: existing.responsePayload };
     }
 
@@ -69,10 +70,8 @@ export class IdempotencyService {
       where: {
         userId,
         operation,
-        createdAt: MoreThanOrEqual(since)
+        createdAt: MoreThanOrEqual(since) as any
       }
     });
   }
 }
-
-import { Reflector } from '@nestjs/core';

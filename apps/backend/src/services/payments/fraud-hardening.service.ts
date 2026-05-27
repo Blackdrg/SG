@@ -1,9 +1,8 @@
-import { Injectable, Logger, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, Count } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { PaymentFraudFlagEntity } from './payment-fraud.entity';
-import { NotificationService } from '../notifications/notification.service';
 import { AuditService } from '../../audit/audit.service';
 
 export interface FraudCheckContext {
@@ -29,7 +28,6 @@ export class FraudHardeningService {
 
   constructor(
     private configService: ConfigService,
-    private notificationService: NotificationService,
     private auditService: AuditService,
     @InjectRepository(PaymentFraudFlagEntity)
     private readonly fraudFlagRepo: Repository<PaymentFraudFlagEntity>,
@@ -72,12 +70,11 @@ export class FraudHardeningService {
     const hourlyTransactions = await this.fraudFlagRepo.count({
       where: {
         userId,
-        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000))
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)) as any
       }
     });
 
     const dailyLimit = this.configService.get<number>('PAYMENT_DAILY_LIMIT_PER_USER', 50000);
-    const hourlyLimit = this.configService.get<number>('PAYMENT_HOURLY_LIMIT_PER_USER', 5000);
     const maxTransactionsPerHour = this.configService.get<number>('PAYMENT_MAX_TRANSACTIONS_PER_HOUR', 10);
 
     if (hourlyTransactions > maxTransactionsPerHour) {
@@ -117,10 +114,12 @@ export class FraudHardeningService {
     }
 
     if (context.amount && context.amount <= this.configService.get<number>('PAYMENT_MIN_AMOUNT', 5)) {
-      const smallAmountCount = await this.fraudFlagRepo.count({
-        where: { userId: context.userId, amount: context.amount },
-        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000))
-      });
+      const smallAmountCount = await this.fraudFlagRepo
+        .createQueryBuilder('f')
+        .where('f.userId = :userId', { userId: context.userId })
+        .andWhere('f.amount = :amount', { amount: context.amount })
+        .andWhere('f.createdAt >= :since', { since: new Date(Date.now() - 60 * 60 * 1000) })
+        .getCount();
       if (smallAmountCount > 5) {
         riskScore += 30;
         reasons.push('Potential card testing with small amounts');
@@ -172,17 +171,17 @@ export class FraudHardeningService {
     const saved = await this.fraudFlagRepo.save(flag);
 
     if (data.riskScore >= 50) {
-      await this.auditService.log({
-        action: 'fraud_flag_raised',
-        performedBy: data.userId,
-        entityType: 'Payment',
-        entityId: data.paymentIntentId,
-        metadata: {
+      await this.auditService.log(
+        'fraud_flag_raised',
+        data.userId,
+        'Payment',
+        data.paymentIntentId,
+        {
           riskScore: data.riskScore,
           reasons: data.reasons,
           flagType: flag.flagType,
         }
-      });
+      );
     }
 
     return saved;
@@ -212,7 +211,7 @@ export class FraudHardeningService {
       where: {
         userId,
         isBlocked: true,
-        blockedAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000))
+        blockedAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)) as any
       }
     });
 
@@ -222,7 +221,7 @@ export class FraudHardeningService {
   async getFraudHistory(userId: string, limit: number = 50): Promise<PaymentFraudFlagEntity[]> {
     return this.fraudFlagRepo.find({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'DESC' as any },
       take: limit,
     });
   }
@@ -241,10 +240,10 @@ export class FraudHardeningService {
         .getRawOne()
         .then(r => Number(r?.count || 0)),
       this.fraudFlagRepo.count({
-        where: { createdAt: MoreThanOrEqual(twentyFourHoursAgo) }
+        where: { createdAt: MoreThanOrEqual(twentyFourHoursAgo) as any }
       }),
       this.fraudFlagRepo.count({
-        where: { createdAt: MoreThanOrEqual(sevenDaysAgo) }
+        where: { createdAt: MoreThanOrEqual(sevenDaysAgo) as any }
       }),
     ]);
 

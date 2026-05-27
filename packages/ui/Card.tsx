@@ -1,31 +1,50 @@
 import React from 'react';
-import { DESIGN_TOKENS } from './tokens';
+import { DESIGN_TOKENS, MOTION_EASING } from './tokens';
 
 interface CardProps {
   children: React.ReactNode;
   title?: string;
-  isElevated?: boolean;
+  variant?: 'default' | 'elevated' | 'list';
   style?: React.CSSProperties;
 }
 
-export const Card = ({ children, title, isElevated = false, style: passedStyle }: CardProps) => {
+export const Card = ({ children, title, variant = 'default', style }: CardProps) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'elevated':
+        return {
+          boxShadow: DESIGN_TOKENS.shadows.large,
+          transform: 'translateY(0)',
+        };
+      case 'list':
+        return {
+          boxShadow: DESIGN_TOKENS.shadows.small,
+        };
+      default:
+        return {
+          boxShadow: DESIGN_TOKENS.shadows.small,
+        };
+    }
+  };
+
   return (
     <div style={{
-      border: isElevated ? 'none' : `1px solid ${DESIGN_TOKENS.colors.neutral}`,
-      borderRadius: `${DESIGN_TOKENS.radius.lg}px`,
-      padding: `${DESIGN_TOKENS.spacing.md}px`,
+      border: `1px solid ${DESIGN_TOKENS.colors.border}`,
+      borderRadius: `${DESIGN_TOKENS.radius.card}px`,
+      padding: `${DESIGN_TOKENS.spacing.lg}px`,
       margin: `${DESIGN_TOKENS.spacing.md}px 0`,
-      boxShadow: isElevated ? '0 8px 16px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.05)',
-      backgroundColor: 'white',
-      transition: `all ${DESIGN_TOKENS.motion.standard}ms ease-in-out`,
+      backgroundColor: DESIGN_TOKENS.colors.surface,
+      transition: `all ${DESIGN_TOKENS.motion.standard}ms ${MOTION_EASING.easeInOut}`,
       fontFamily: DESIGN_TOKENS.typography.fontFamily,
-      ...passedStyle,
+      ...getVariantStyles(),
+      ...style,
     }}>
       {title && (
         <h3 style={{ 
           marginTop: 0, 
-          ...DESIGN_TOKENS.typography.headingM,
-          color: DESIGN_TOKENS.colors.secondary 
+          marginBottom: DESIGN_TOKENS.spacing.md,
+          ...DESIGN_TOKENS.typography.headingS,
+          color: DESIGN_TOKENS.colors.textPrimary
         }}>
           {title}
         </h3>

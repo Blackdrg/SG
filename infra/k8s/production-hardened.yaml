@@ -1,0 +1,376 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spicegarden-backend
+  labels:
+    app: spicegarden-backend
+    environment: production
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: spicegarden-backend
+  template:
+    metadata:
+      labels:
+        app: spicegarden-backend
+        environment: production
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: ghcr.io/spicegarden/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: spicegarden-secrets
+            - configMapRef:
+                name: spicegarden-config
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=512"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - spicegarden-backend
+                topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spicegarden-backend
+  labels:
+    app: spicegarden-backend
+spec:
+  selector:
+    app: spicegarden-backend
+  ports:
+    - port: 80
+      targetPort: 3001
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spicegarden-config
+  labels:
+    app: spicegarden-backend
+data:
+  LOG_LEVEL: "info"
+  ENABLE_SWAGGER: "false"
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: spicegarden-backend-pdb
+  labels:
+    app: spicegarden-backend
+spec:
+  minAvailable: 2
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: spicegarden-backend
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: spicegarden-backend-hpa
+  labels:
+    app: spicegarden-backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: spicegarden-backend
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spicegarden-backend-ingress
+  labels:
+    app: spicegarden-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: spicegarden-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-controller
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: TCP
+          port: 3001
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spicegarden-backend-egress
+  labels:
+    app: spicegarden-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: spicegarden-backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: spicegarden-data
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 27017
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: spicegarden-backup
+  labels:
+    app: spicegarden-backup
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          containers:
+            - name: backup
+              image: ghcr.io/spicegarden/backend:latest
+              imagePullPolicy: Always
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_FILE="/backup/spicegarden_${BACKUP_TIMESTAMP}.tar.gz"
+                  
+                  pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -h postgres > /tmp/postgres.sql
+                  mongodump --host mongodb -d spicegarden --out /tmp/mongo
+                  redis-cli -h redis SAVE && redis-cli -h redis --rdb /tmp/redis.rdb
+                  
+                  tar -czf "$BACKUP_FILE" -C /tmp postgres.sql mongo redis.rdb
+                  echo "Backup created: $BACKUP_FILE"
+              env:
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: spicegarden-secrets
+                      key: postgres-user
+                - name: POSTGRES_DB
+                  valueFrom:
+                    secretKeyRef:
+                      name: spicegarden-secrets
+                      key: postgres-db
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: spicegarden-secrets
+                      key: postgres-password
+                - name: REDIS_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: spicegarden-secrets
+                      key: redis-password
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+                - name: tmp-storage
+                  mountPath: /tmp
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: spicegarden-backup-pvc
+            - name: tmp-storage
+              emptyDir: {}
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-type
+                        operator: In
+                        values:
+                          - backup
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spicegarden-backup-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard-backup
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spicegarden-prod-ingress
+  labels:
+    app: spicegarden-backend
+    environment: production
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+spec:
+  tls:
+    - hosts:
+        - api.spicegarden.com
+      secretName: spicegarden-prod-tls
+  rules:
+    - host: api.spicegarden.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: spicegarden-backend
+                port:
+                  number: 80

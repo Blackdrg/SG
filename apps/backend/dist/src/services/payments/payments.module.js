@@ -11,10 +11,18 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const payments_service_1 = require("./payments.service");
 const payments_controller_1 = require("./payments.controller");
+const payment_hardening_service_1 = require("./payment-hardening.service");
+const retry_service_1 = require("./retry.service");
+const fraud_hardening_service_1 = require("./fraud-hardening.service");
+const idempotency_service_1 = require("./idempotency.service");
 const order_entity_1 = require("../../db/entities/order.entity");
 const wallet_entity_1 = require("../../db/entities/wallet.entity");
 const wallet_transaction_entity_1 = require("../../db/entities/wallet-transaction.entity");
 const audit_log_entity_1 = require("../../db/entities/audit-log.entity");
+const idempotency_entity_1 = require("./idempotency.entity");
+const payment_validation_entity_1 = require("./payment-validation.entity");
+const payment_fraud_entity_1 = require("./payment-fraud.entity");
+const payment_event_entity_1 = require("./payment-event.entity");
 const webhook_module_1 = require("./webhook/webhook.module");
 const audit_module_1 = require("../../audit/audit.module");
 let PaymentServiceModule = class PaymentServiceModule {
@@ -23,13 +31,22 @@ exports.PaymentServiceModule = PaymentServiceModule;
 exports.PaymentServiceModule = PaymentServiceModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([order_entity_1.OrderEntity, wallet_entity_1.WalletEntity, wallet_transaction_entity_1.WalletTransactionEntity, audit_log_entity_1.AuditLogEntity]),
+            typeorm_1.TypeOrmModule.forFeature([
+                order_entity_1.OrderEntity,
+                wallet_entity_1.WalletEntity,
+                wallet_transaction_entity_1.WalletTransactionEntity,
+                audit_log_entity_1.AuditLogEntity,
+                idempotency_entity_1.IdempotencyEntity,
+                payment_validation_entity_1.PaymentValidationEventEntity,
+                payment_fraud_entity_1.PaymentFraudFlagEntity,
+                payment_event_entity_1.PaymentEventEntity,
+            ]),
             webhook_module_1.WebhookModule,
             audit_module_1.AuditModule
         ],
-        providers: [payments_service_1.PaymentService],
+        providers: [payments_service_1.PaymentService, payment_hardening_service_1.PaymentHardeningService, retry_service_1.RetryService, fraud_hardening_service_1.FraudHardeningService, idempotency_service_1.IdempotencyService],
         controllers: [payments_controller_1.PaymentsController],
-        exports: [payments_service_1.PaymentService],
+        exports: [payments_service_1.PaymentService, payment_hardening_service_1.PaymentHardeningService, retry_service_1.RetryService, fraud_hardening_service_1.FraudHardeningService, idempotency_service_1.IdempotencyService],
     })
 ], PaymentServiceModule);
 //# sourceMappingURL=payments.module.js.map

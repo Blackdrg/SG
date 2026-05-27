@@ -10,14 +10,20 @@ exports.WebhookModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const stripe_webhook_entity_1 = require("../../../db/entities/stripe-webhook.entity");
+const payment_event_entity_1 = require("../payment-event.entity");
+const payment_fraud_entity_1 = require("../payment-fraud.entity");
 const webhook_service_1 = require("./webhook.service");
 const webhook_controller_1 = require("./webhook.controller");
+const notification_module_1 = require("../../notifications/notification.module");
 let WebhookModule = class WebhookModule {
 };
 exports.WebhookModule = WebhookModule;
 exports.WebhookModule = WebhookModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([stripe_webhook_entity_1.StripeWebhookEntity])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([stripe_webhook_entity_1.StripeWebhookEntity, payment_event_entity_1.PaymentEventEntity, payment_fraud_entity_1.PaymentFraudFlagEntity]),
+            notification_module_1.NotificationModule,
+        ],
         providers: [webhook_service_1.WebhookService],
         controllers: [webhook_controller_1.PaymentWebhookController],
         exports: [webhook_service_1.WebhookService],

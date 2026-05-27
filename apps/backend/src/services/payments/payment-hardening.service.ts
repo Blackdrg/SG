@@ -1,7 +1,7 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, MoreThan } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { IdempotencyEntity } from './idempotency.entity';
 import { PaymentValidationEventEntity } from './payment-validation.entity';
 import Stripe from 'stripe';
@@ -142,7 +142,7 @@ export class PaymentHardeningService {
       where: {
         userId,
         operation: 'create_payment_intent',
-        createdAt: MoreThanOrEqual(oneHourAgo)
+        createdAt: MoreThanOrEqual(oneHourAgo) as any
       }
     });
 
@@ -257,7 +257,7 @@ export class PaymentHardeningService {
       where: {
         userId,
         operation: 'create_payment_intent',
-        createdAt: MoreThanOrEqual(new Date(Date.now() - 24 * 60 * 60 * 1000))
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 24 * 60 * 60 * 1000)) as any
       }
     });
 
@@ -322,13 +322,13 @@ export class PaymentHardeningService {
         }
 
         if (card.funding === 'prepaid') {
-          await this.auditService.log({
-            action: 'suspicious_payment_method',
-            performedBy: null,
-            entityType: 'Payment',
-            entityId: paymentMethodId,
-            metadata: { cardFunding: card.funding, reason: 'Prepaid card funding type' }
-          });
+          await this.auditService.log(
+            'suspicious_payment_method',
+            null,
+            'Payment',
+            paymentMethodId,
+            { cardFunding: card.funding, reason: 'Prepaid card funding type' }
+          );
         }
       }
 

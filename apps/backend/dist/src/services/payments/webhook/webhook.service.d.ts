@@ -1,13 +1,24 @@
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { StripeWebhookEntity } from '../../../db/entities/stripe-webhook.entity';
+import { PaymentEventEntity } from '../payment-event.entity';
+import { OrderEntity } from '../../../db/entities/order.entity';
+import { PaymentFraudFlagEntity } from '../payment-fraud.entity';
+import { NotificationService } from '../../notifications/notification.service';
+import { ProductionNotificationService } from '../../notifications/production-notification.service';
 export declare class WebhookService {
     private configService;
     private readonly webhookRepo;
+    private readonly paymentEventRepo;
+    private readonly orderRepo;
+    private readonly fraudFlagRepo;
+    private notificationService;
+    private productionNotification;
     private readonly logger;
     private stripe;
-    constructor(configService: ConfigService, webhookRepo: Repository<StripeWebhookEntity>);
+    constructor(configService: ConfigService, webhookRepo: Repository<StripeWebhookEntity>, paymentEventRepo: Repository<PaymentEventEntity>, orderRepo: Repository<OrderEntity>, fraudFlagRepo: Repository<PaymentFraudFlagEntity>, notificationService: NotificationService, productionNotification: ProductionNotificationService);
     processWebhook(payload: Buffer, signature: string): Promise<any>;
+    private mapEventToPaymentEvent;
     private handleEvent;
     private handlePaymentIntentSucceeded;
     private handlePaymentIntentFailed;
@@ -15,5 +26,8 @@ export declare class WebhookService {
     private handleChargeRefundUpdated;
     private handleDisputeCreated;
     private handleDisputeClosed;
+    private handleAmountCapturableUpdated;
+    private handleChargeExpired;
+    private handleChargeSucceeded;
     getWebhookStats(): Promise<any>;
 }

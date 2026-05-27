@@ -1,13 +1,27 @@
 import { PaymentService } from './payments.service';
+import { PaymentHardeningService } from './payment-hardening.service';
+import { RetryService } from './retry.service';
+import { FraudHardeningService } from './fraud-hardening.service';
+import { IdempotencyService } from './idempotency.service';
 import { ConfigService } from '@nestjs/config';
-import { QueueService } from '../../infra/queue/queue.service';
 export declare class PaymentsController {
     private paymentService;
+    private paymentHardening;
+    private retryService;
+    private fraudHardening;
+    private idempotency;
     private configService;
-    private queueService;
-    constructor(paymentService: PaymentService, configService: ConfigService, queueService: QueueService);
-    createPaymentIntent(body: any): Promise<{
+    constructor(paymentService: PaymentService, paymentHardening: PaymentHardeningService, retryService: RetryService, fraudHardening: FraudHardeningService, idempotency: IdempotencyService, configService: ConfigService);
+    createPaymentIntent(body: any, idempotencyKey?: string): Promise<{
+        error: string;
+        reasons: string[];
+        riskScore: number;
+        clientSecret?: undefined;
+    } | {
         clientSecret: any;
+        error?: undefined;
+        reasons?: undefined;
+        riskScore?: undefined;
     }>;
-    refund(body: any): Promise<any>;
+    refund(body: any, idempotencyKey?: string): Promise<any>;
 }

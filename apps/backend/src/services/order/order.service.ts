@@ -22,14 +22,26 @@ export class OrderService {
     private readonly productionNotification: ProductionNotificationService,
   ) {}
 
-  async placeOrder(orderData: any): Promise<Order> {
-    // Validate required fields
+  async placeOrder(orderData: any, idempotencyKey?: string): Promise<Order> {
     if (!orderData.userId || !orderData.restaurantId || !orderData.grandTotal) {
       throw new BadRequestException('Missing required order data: userId, restaurantId, or grandTotal');
     }
 
     if (orderData.grandTotal <= 0) {
       throw new BadRequestException('Order total must be greater than zero');
+    }
+
+    if (idempotencyKey) {
+      const existing = await this.idempotency.validateOrCreate(
+        idempotencyKey,
+        'place_order',
+        orderData.userId,
+        { restaurantId: orderData.restaurantId, grandTotal: orderData.grandTotal }
+      );
+
+      if (existing.isDuplicate && existing.response) {
+        return existing.response;
+      }
     }
 
     const orderId = crypto.randomUUID();
@@ -56,41 +68,41 @@ export class OrderService {
     };
 
     try {
-      // Save order to database first
       const savedOrder = await this.orderRepo.save(order);
+      
+      if (idempotencyKey) {
+        await this.idempotency.complete(idempotencyKey, 'place_order', savedOrder);
+      }
+      
       return savedOrder;
     } catch (error) {
       console.error('[OrderService] Failed to place order:', error);
-      if ((error as any)?.code === '23505') { // Unique violation
+      if ((error as any)?.code === '23505') {
         throw new ConflictException('Order creation failed due to duplicate');
       }
       throw new InternalServerErrorException('Order placement failed due to internal processing error');
     }
   }
 
-  async confirmPayment(orderId: string, paymentId: string, request: any = null): Promise<Order> {
+  async confirmPayment(orderId: string, paymentId: string, request?: any): Promise<Order> {
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
     if (!order) {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // Prevent double payment confirmation
     if (order.paymentStatus === PaymentStatus.COMPLETED) {
       throw new ConflictException('Payment already confirmed for this order');
     }
 
     try {
-      // Confirm payment with Stripe
       const paymentIntent = await this.paymentService.confirmPayment(paymentId, order.userId, request);
       
-      // Update order status
       order.paymentStatus = PaymentStatus.COMPLETED;
       order.status = OrderStatus.PAYMENT_CONFIRMED;
       order.updatedAt = new Date();
       
       const savedOrder = await this.orderRepo.save(order);
 
-      // Send notification
       await this.notificationService.sendPush(
         order.userId,
         'Payment Confirmed',
@@ -102,7 +114,6 @@ export class OrderService {
     } catch (error) {
       console.error('[OrderService] Payment confirmation failed:', error);
       
-      // Update payment status to failed
       order.paymentStatus = PaymentStatus.FAILED;
       order.updatedAt = new Date();
       await this.orderRepo.save(order);
@@ -117,17 +128,14 @@ export class OrderService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // If payment already confirmed, return current state
     if (order.paymentStatus === PaymentStatus.COMPLETED) {
       return order;
     }
 
-    // If payment failed, return current state
     if (order.paymentStatus === PaymentStatus.FAILED) {
       return order;
     }
 
-    // Process delayed webhook
     return this.confirmPayment(orderId, paymentId);
   }
 
@@ -137,7 +145,6 @@ export class OrderService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // Only allow refund if order is delivered or out for delivery
     const refundEligibleStatuses = [
       OrderStatus.ON_THE_WAY,
       OrderStatus.DELIVERED,
@@ -147,28 +154,23 @@ export class OrderService {
       throw new BadRequestException(`Refund not allowed for order in ${order.status} status`);
     }
 
-    // Prevent double refund
     if (order.paymentStatus === PaymentStatus.REFUNDED) {
       throw new ConflictException('Order already refunded');
     }
 
     try {
-      // Process refund through payment service
       const refund = await this.paymentService.refundPayment(
-        order.id, // This would be the actual payment intent ID in production
+        order.id,
         order.grandTotal,
         order.userId,
         reason,
       );
 
-      // Update order status
       order.paymentStatus = PaymentStatus.REFUNDED;
-      // Keep delivery status but mark as refunded
       order.updatedAt = new Date();
       
       const savedOrder = await this.orderRepo.save(order);
       
-      // Send notification
       await this.notificationService.sendPush(
         order.userId,
         'Refund Initiated',
@@ -189,12 +191,10 @@ export class OrderService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // Verify driver assignment
     if (order.driverId !== driverId) {
       throw new BadRequestException('Driver not assigned to this order');
     }
 
-    // Only allow cancellation in certain states
     const cancellableStatuses = [
       OrderStatus.DRIVER_ASSIGNED,
       OrderStatus.PICKED_UP,
@@ -207,12 +207,11 @@ export class OrderService {
 
     try {
       order.status = OrderStatus.CANCELLED;
-      order.driverId = null; // Unassign driver
+      order.driverId = null;
       order.updatedAt = new Date();
       
       const savedOrder = await this.orderRepo.save(order);
       
-      // Send notifications
       await this.notificationService.sendPush(
         order.userId,
         'Order Cancelled by Driver',
@@ -233,7 +232,6 @@ export class OrderService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // Only allow kitchen cancellation in preparation states
     const cancellableStatuses = [
       OrderStatus.RESTAURANT_ACCEPTED,
       OrderStatus.PREPARING,
@@ -249,7 +247,6 @@ export class OrderService {
       
       const savedOrder = await this.orderRepo.save(order);
       
-      // Send notifications
       await this.notificationService.sendPush(
         order.userId,
         'Order Cancelled by Restaurant',
@@ -270,7 +267,6 @@ export class OrderService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // Prevent double dispatch by checking if driver already assigned
     if (order.driverId && order.status === OrderStatus.DRIVER_ASSIGNED) {
       throw new ConflictException('Driver already assigned to this order');
     }
@@ -284,13 +280,11 @@ export class OrderService {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
 
-    // Only allow retry for failed payments
     if (order.paymentStatus !== PaymentStatus.FAILED) {
       throw new BadRequestException('Order can only be retried for failed payments');
     }
 
     try {
-      // Reset order to placed status for retry
       order.status = OrderStatus.PLACED;
       order.paymentStatus = PaymentStatus.PENDING;
       order.updatedAt = new Date();
@@ -305,7 +299,6 @@ export class OrderService {
   }
 
   async resolveStuckPreparingState(): Promise<Order[]> {
-    // Find orders stuck in PREPARING state for more than 30 minutes
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     
     const stuckOrders = await this.orderRepo.find({
@@ -319,14 +312,12 @@ export class OrderService {
 
     for (const order of stuckOrders) {
       try {
-        // Move stuck orders back to restaurant accepted for retry
         order.status = OrderStatus.RESTAURANT_ACCEPTED;
         order.updatedAt = new Date();
         
         const savedOrder = await this.orderRepo.save(order);
         resolvedOrders.push(savedOrder);
         
-        // Send notification
         await this.notificationService.sendPush(
           order.userId,
           'Order Delayed',
@@ -335,7 +326,6 @@ export class OrderService {
         );
       } catch (error) {
         console.error('[OrderService] Failed to resolve stuck preparing state for order:', order.id, error);
-        // Continue processing other orders
       }
     }
 
@@ -343,11 +333,9 @@ export class OrderService {
   }
 
   async getOrderWithLock(orderId: string): Promise<Order> {
-    // For distributed locking in production, we would use Redis or database locks
-    // For now, we'll use a simple approach with optimistic locking via updatedAt
     const order = await this.orderRepo.findOne({ 
       where: { id: orderId },
-      lock: { mode: 'pessimistic_write' } // This would work with PostgreSQL
+      lock: { mode: 'pessimistic_write' }
     });
     
     if (!order) {

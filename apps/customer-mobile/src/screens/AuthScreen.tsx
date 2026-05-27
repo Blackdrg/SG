@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, AccessibilityInfo } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,21 +12,62 @@ const AuthScreen = () => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
   const navigation = useNavigation<any>();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: DESIGN_TOKENS.motion.page,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const validateEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!value) {
+      setEmailError('Email is required');
+    } else if (!emailRegex.test(value)) {
+      setEmailError('Please enter a valid email');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) {
+      setPasswordError('Password is required');
+    } else if (value.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+    } else {
+      setPasswordError('');
+    }
+  };
 
   const API_URL = 'http://localhost:3001';
 
   const handleSubmit = async () => {
     setError('');
-    if (!email || !password) {
-      setError('Please enter email and password');
+
+    validateEmail(email);
+    validatePassword(password);
+
+    if (!isLogin && !name) {
+      setError('Name is required');
       return;
     }
 
-    if (!isLogin && (!name || !phone)) {
-      setError('Please fill in all required fields');
+    if (!isLogin && !phone) {
+      setError('Phone number is required');
       return;
     }
+
+    if (emailError || passwordError) return;
 
     setLoading(true);
     try {
@@ -55,182 +97,248 @@ const AuthScreen = () => {
         }));
         navigation.replace('Main');
       } else {
-        setError(data.message || (isLogin ? 'Login failed' : 'Registration failed'));
+        setError(data.message || (isLogin ? 'Login failed. Please check your credentials.' : 'Registration failed. Please try again.'));
+        shakeAnimation();
       }
     } catch (err) {
-      setError('Network error. Please check your connection.');
+      setError('Network error. Please check your connection and try again.');
+      shakeAnimation();
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>SpiceGarden</Text>
-        <Text style={styles.headerSubtext}>Order food from your favourite restaurants</Text>
-      </View>
+  const shakeAnimation = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+  };
 
-      <View style={styles.formContainer}>
-        {!isLogin && (
-          <View style={styles.inputGroup}>
-            <TextInput
-              placeholder="Full Name"
-              value={name}
-              onChangeText={setName}
-              style={styles.input}
-            />
-          </View>
-        )}
-        {!isLogin && (
-          <View style={styles.inputGroup}>
-            <TextInput
-              placeholder="Phone Number"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              style={styles.input}
-            />
-          </View>
-        )}
-        <View style={styles.inputGroup}>
-          <TextInput
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            style={styles.input}
-          />
+  return (
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateX: shakeAnim }] }}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerText}>SpiceGarden</Text>
+          <Text style={styles.headerSubtext}>Order food from your favourite restaurants</Text>
         </View>
-        <View style={styles.inputGroup}>
-          <TextInput
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
+
+        <View style={styles.formContainer}>
+          {!isLogin && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                placeholder="Enter your full name"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                accessibilityLabel="Full name"
+                accessibilityHint="Enter your full name as it appears on your ID"
+              />
+            </View>
+          )}
+
+          {!isLogin && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Phone Number</Text>
+              <TextInput
+                placeholder="Enter your phone number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                style={styles.input}
+                accessibilityLabel="Phone number"
+                accessibilityHint="Enter your mobile number"
+              />
+            </View>
+          )}
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Email Address</Text>
+            <TextInput
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) validateEmail(text);
+              }}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={[styles.input, emailError ? styles.inputError : null]}
+              accessibilityLabel="Email address"
+              accessibilityHint="Enter your email for account access"
+              accessibilityState={{}}
+            />
+            {emailError && <Text style={styles.fieldError}>{emailError}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <TextInput
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) validatePassword(text);
+              }}
+              secureTextEntry
+              style={[styles.input, passwordError ? styles.inputError : null]}
+              accessibilityLabel="Password"
+              accessibilityHint={isLogin ? "Enter your password" : "Create a secure password"}
+              accessibilityState={{}}
+            />
+            {passwordError && <Text style={styles.fieldError}>{passwordError}</Text>}
+          </View>
+
+          {error && (
+            <View style={styles.errorContainer} accessibilityLiveRegion="polite">
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            onPress={handleSubmit}
+            style={[styles.button, loading ? styles.buttonLoading : null]}
+            disabled={loading}
+            accessibilityLabel={isLogin ? "Sign in" : "Create account"}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
         </View>
 
         <TouchableOpacity
-          onPress={handleSubmit}
-          style={[
-            styles.button,
-            loading ? styles.buttonLoading : null
-          ]}
+          onPress={() => {
+            setIsLogin(!isLogin);
+            setError('');
+          }}
+          style={styles.toggleButton}
+          accessibilityLabel={isLogin ? "Create new account" : "Sign in to existing account"}
+          accessibilityRole="button"
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
+          <Text style={styles.toggleButtonText}>
+            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
           </Text>
         </TouchableOpacity>
       </View>
-
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      <TouchableOpacity
-        onPress={() => {
-          setIsLogin(!isLogin);
-          setError('');
-        }}
-        style={styles.toggleButton}
-      >
-        <Text style={styles.toggleButtonText}>
-          {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
-        </Text>
-      </TouchableOpacity>
-
-      {error && (
-        <View style={styles.error}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: DESIGN_TOKENS.colors.background,
+    padding: DESIGN_TOKENS.spacing.lg,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: DESIGN_TOKENS.spacing.xl,
   },
   headerText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   headerSubtext: {
-    color: '#666',
+    color: DESIGN_TOKENS.colors.textSecondary,
     marginTop: 4,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   formContainer: {
     width: '100%',
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: DESIGN_TOKENS.spacing.md,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: DESIGN_TOKENS.spacing.xs,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderColor: DESIGN_TOKENS.colors.border,
+    borderRadius: DESIGN_TOKENS.radius.input,
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
     fontSize: 16,
-    backgroundColor: 'white',
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  inputError: {
+    borderColor: DESIGN_TOKENS.colors.danger,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.danger,
+    marginTop: 4,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  errorContainer: {
+    marginBottom: DESIGN_TOKENS.spacing.sm,
+  },
+  errorText: {
+    color: DESIGN_TOKENS.colors.danger,
+    fontSize: 14,
+    textAlign: 'center',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   button: {
     height: 50,
-    backgroundColor: '#f04e31',
+    backgroundColor: DESIGN_TOKENS.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
-    marginTop: 20,
+    borderRadius: DESIGN_TOKENS.radius.button,
+    marginTop: DESIGN_TOKENS.spacing.md,
   },
   buttonLoading: {
     opacity: 0.7,
   },
   buttonText: {
-    color: 'white',
+    color: DESIGN_TOKENS.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: DESIGN_TOKENS.spacing.lg,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#eee',
+    backgroundColor: DESIGN_TOKENS.colors.border,
   },
   dividerText: {
-    paddingHorizontal: 16,
-    color: '#999',
+    paddingHorizontal: DESIGN_TOKENS.spacing.md,
+    color: DESIGN_TOKENS.colors.textSecondary,
     fontSize: 14,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
   toggleButton: {
-    marginTop: 10,
+    alignItems: 'center',
   },
   toggleButtonText: {
-    color: '#f04e31',
+    color: DESIGN_TOKENS.colors.primary,
     fontSize: 14,
-  },
-  error: {
-    marginTop: 12,
-  },
-  errorText: {
-    color: '#c62828',
-    fontSize: 14,
-    textAlign: 'center',
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
   },
 });
 

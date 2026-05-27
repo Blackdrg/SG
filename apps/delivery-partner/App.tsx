@@ -1,23 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, Animated, Easing } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, Animated, Easing, AppState, AppStateStatus, NativeModules } from 'react-native';
 import { io, Socket } from 'socket.io-client';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import Geolocation from '@react-native-community/geolocation';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
+import BackgroundTimer from 'react-native-background-timer';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-type DeliveryStatus = 'idle' | 'assigned' | 'navigating_to_pickup' | 'at_pickup' | 'navigating_to_drop' | 'completed';
+type DeliveryStatus = 'idle' | 'assigned' | 'navigating_to_pickup' | 'at_pickup' | 'navigating_to_drop' | 'completed' | 'failed' | 'delayed';
 
 interface Order {
   id: string;
   orderNumber: string;
-  restaurant: { name: string; address: string; phone: string };
-  customer: { name: string; address: string; phone: string };
+  restaurant: { name: string; address: string; phone: string; location?: { lat: number; lng: number } };
+  customer: { name: string; address: string; phone: string; location?: { lat: number; lng: number } };
   amount: number;
   distanceKm: number;
   otp: string;
   status: DeliveryStatus;
   acceptedAt?: Date;
   pickedUpAt?: Date;
+  createdAt?: Date;
+  etaMinutes?: number;
+  surgeMultiplier?: number;
+  incentiveAmount?: number;
 }
 
 interface DailyEarnings {
@@ -25,6 +31,12 @@ interface DailyEarnings {
   pending: number;
   bonus: number;
   ordersToday: number;
+}
+
+interface ShiftInfo {
+  isActive: boolean;
+  type: string;
+  endTime: string;
 }
 
 const DRIVER_NAME = 'Raj Kumar';
@@ -36,6 +48,8 @@ const issueTypes = [
   { icon: '📵', label: 'No Response', color: DESIGN_TOKENS.colors.danger },
   { icon: '🔋', label: 'Battery Low', color: DESIGN_TOKENS.colors.warning },
   { icon: '🍽️', label: 'Food Stuck', color: DESIGN_TOKENS.colors.warning },
+  { icon: '⏰', label: 'Running Late', color: DESIGN_TOKENS.colors.warning },
+  { icon: '📍', label: 'Wrong Location', color: DESIGN_TOKENS.colors.danger },
 ];
 
 function fmtTime(d?: Date) {
@@ -54,8 +68,8 @@ function demoIncoming(): Order {
   return {
     id: `ord-${Date.now()}`,
     orderNumber: `SG-${Date.now().toString(36).toUpperCase()}`,
-    restaurant: { name: 'Burger King — Mohali', address: 'Phase 5, Mohali', phone: '+91 98765 43210' },
-    customer: { name: 'Amit Verma', address: 'Sector 71, Mohali', phone: '+91 91234 56789' },
+    restaurant: { name: 'Burger King — Mohali', address: 'Phase 5, Mohali', phone: '+91 98765 43210', location: { lat: 30.7333, lng: 76.7794 } },
+    customer: { name: 'Amit Verma', address: 'Sector 71, Mohali', phone: '+91 91234 56789', location: { lat: 30.71, lng: 76.78 } },
     amount: 68,
     distanceKm: 4.2,
     otp: DEFAULT_OTP,
@@ -68,15 +82,19 @@ export default function DriverApp() {
   const [incomingOrder, setIncomingOrder] = useState<Order | null>(null);
   const [activeDelivery, setActiveDelivery] = useState<Order | null>(null);
   const [earnings, setEarnings] = useState<DailyEarnings>({ today: 1450, pending: 350, bonus: 200, ordersToday: 8 });
+  const [shift, setShift] = useState<ShiftInfo | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [log, setLog] = useState<string[]>([]);
   const [expandedIssue, setExpandedIssue] = useState(false);
   const [activeScreen, setActiveScreen] = useState<'home' | 'earnings'>('home');
-  
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  const locationWatchId = useRef<number | null>(null);
 
   const addLog = useCallback((msg: string) => setLog((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 9)]), []);
 
@@ -87,7 +105,59 @@ export default function DriverApp() {
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
-  }, [fadeAnim]);
+
+    Geolocation.requestAuthorization();
+    Geolocation.getCurrentPosition(
+      (position) => {
+        setLocationPermission('granted');
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        setLocationPermission('denied');
+        addLog(`Location error: ${error.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  }, [fadeAnim, addLog]);
+
+  useEffect(() => {
+    if (!isOnline || locationPermission !== 'granted') {
+      if (locationWatchId.current !== null) {
+        Geolocation.clearWatch(locationWatchId.current);
+        locationWatchId.current = null;
+      }
+      return;
+    }
+
+    locationWatchId.current = Geolocation.watchPosition(
+      (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setCurrentLocation(location);
+        socket?.emit('driverLocationUpdate', { 
+          driverId: 'current',
+          location 
+        });
+      },
+      (error) => addLog(`Location watch error: ${error.message}`),
+      { 
+        enableHighAccuracy: true, 
+        distanceFilter: 10,
+        interval: 5000 
+      }
+    );
+
+    return () => {
+      if (locationWatchId.current !== null) {
+        Geolocation.clearWatch(locationWatchId.current);
+      }
+    };
+  }, [isOnline, locationPermission, socket]);
 
   useEffect(() => {
     const s: Socket = io('http://localhost:3001', {
@@ -101,8 +171,32 @@ export default function DriverApp() {
     s.on('orderAssigned', (order: Order) => {
       if (isOnline) { setIncomingOrder(order); addLog(`New order: #${order.orderNumber} (₹${order.amount})`); }
     });
+    s.on('orderRerouted', (data: { orderId: string; newDestination: any; reason: string }) => {
+      if (activeDelivery?.id === data.orderId) {
+        addLog(`Re-routed: ${data.reason}`);
+        Alert.alert('🚗 Re-routing', `New destination: ${data.reason}`);
+      }
+    });
+    s.on('shiftReminder', (data: { shiftType: string; endTime: string }) => {
+      addLog(`Shift reminder: ${data.shiftType} ends at ${data.endTime}`);
+      Alert.alert('Shift Update', `Your ${data.shiftType} shift ends at ${data.endTime}`);
+    });
+
     return () => { s.disconnect(); };
-  }, [isOnline, addLog]);
+  }, [isOnline, activeDelivery?.id, addLog]);
+
+  useEffect(() => {
+    const appStateHandler = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' && isOnline) {
+        BackgroundTimer.start();
+      } else if (nextAppState === 'active') {
+        BackgroundTimer.stopBackgroundTimer();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', appStateHandler);
+    return () => subscription.remove();
+  }, [isOnline]);
 
   useEffect(() => {
     if (!isOnline) { socket?.emit('driverOffline'); return; }
@@ -128,9 +222,13 @@ export default function DriverApp() {
     socket?.emit('orderRejected', { orderId: incomingOrder.id, reason: 'declined_by_driver' });
   }, [incomingOrder, socket, addLog]);
 
-  const navigateTo = useCallback((destination: string, addr: string) => {
-    Alert.alert('🚗 Navigation', `Opening maps to ${destination}: ${addr}.\n(In production, this opens Google Maps.)`);
-    addLog(`Navigating → ${destination}`);
+  const navigateTo = useCallback((destination: string, addr: string, location?: { lat: number; lng: number }) => {
+    if (location) {
+      Alert.alert('🚗 Navigation', `Opening maps to ${destination}: ${addr}.\n(In production, this opens Google Maps.)`);
+      addLog(`Navigating → ${destination}`);
+    } else {
+      Alert.alert('📍 Navigation', `Opening maps to ${destination}: ${addr}`);
+    }
   }, [addLog]);
 
   const confirmPickup = useCallback(() => {
@@ -157,14 +255,23 @@ export default function DriverApp() {
     if (!activeDelivery) return;
     setEarnings((prev) => ({
       ...prev,
-      today: prev.today + activeDelivery.amount,
+      today: prev.today + activeDelivery.amount + (activeDelivery.incentiveAmount || 0),
       ordersToday: prev.ordersToday + 1,
       pending: prev.pending - activeDelivery.amount,
+      bonus: prev.bonus + (activeDelivery.surgeMultiplier ? activeDelivery.amount * 0.1 : 0),
     }));
     addLog(`Delivered #${activeDelivery.orderNumber} — +₹${activeDelivery.amount}`);
-    Alert.alert('✅ Delivered!', `+₹${activeDelivery.amount} added to today's earnings`);
+    Alert.alert('✅ Delivered!', `+₹${activeDelivery.amount + (activeDelivery.incentiveAmount || 0)} added to today's earnings`);
     setActiveDelivery(null);
     setDeliveryOtp('');
+  }, [activeDelivery, addLog]);
+
+  const handleFailedDelivery = useCallback((reason: string) => {
+    if (!activeDelivery) return;
+    addLog(`Delivery failed: ${reason}`);
+    Alert.alert('❗ Delivery Failed', `Marked as ${reason}`, [
+      { text: 'OK', onPress: () => setActiveDelivery(null) }
+    ]);
   }, [activeDelivery, addLog]);
 
   const reportIssue = useCallback((label: string) => {
@@ -181,15 +288,23 @@ export default function DriverApp() {
     at_pickup: '🏪 AT PICKUP',
     navigating_to_drop: '🛵 → CUSTOMER',
     completed: '🏁 DONE',
+    failed: '❗ FAILED',
+    delayed: '⏰ DELAYED',
   };
 
   return (
-        <Animated.View style={{ flex: 1, backgroundColor: DESIGN_TOKENS.colors.background, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+    <Animated.View style={{ flex: 1, backgroundColor: DESIGN_TOKENS.colors.background, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>🛵 SpiceGarden Driver</Text>
           <Text style={styles.subtitle}>{DRIVER_NAME}</Text>
           <Text style={styles.vehicleTag}>{VEHICLE}</Text>
+          {activeDelivery && (
+            <Text style={styles.statusLabel}>{statusLabel[activeDelivery.status]}</Text>
+          )}
+          {shift && (
+            <Text style={styles.shiftTag}>📅 {shift.type} shift • Ends: {shift.endTime}</Text>
+          )}
         </View>
         <View style={styles.onlineToggle}>
           <Text style={isOnline ? styles.onlineText : styles.offlineText}>
@@ -238,12 +353,16 @@ export default function DriverApp() {
               <View style={styles.cardTitleRow}>
                 <Text style={styles.cardTitle}>#{incomingOrder.orderNumber}</Text>
                 <Text style={styles.amountBadge}>+₹{incomingOrder.amount}</Text>
+                <Text style={styles.timeInfo}>{fmtTime(incomingOrder.createdAt)} ({timeAgo(incomingOrder.createdAt)})</Text>
               </View>
 
               <DetailRow label="Pick up from:" value={`${incomingOrder.restaurant.name} (${incomingOrder.restaurant.address})`} />
               <DetailRow label="Deliver to:" value={`${incomingOrder.customer.address}`} />
               <DetailRow label="Distance:" value={`${incomingOrder.distanceKm} km`} />
-              <DetailRow label="Order ID OTP:" value={`${incomingOrder.otp}`} />
+              <DetailRow label="Order OTP:" value={`${incomingOrder.otp}`} />
+              {incomingOrder.surgeMultiplier && incomingOrder.surgeMultiplier > 1 && (
+                <DetailRow label="Surge:" value={`${incomingOrder.surgeMultiplier}x`} />
+              )}
 
               <View style={styles.actionRow}>
                 <TouchableOpacity 
@@ -297,19 +416,33 @@ export default function DriverApp() {
                   <Text style={styles.contextLabel}>🏪 PICKUP</Text>
                   <Text style={styles.contextName}>{activeDelivery.restaurant.name}</Text>
                   <Text style={styles.contextAddr}>{activeDelivery.restaurant.address}</Text>
+                  <TouchableOpacity
+                    style={styles.navInlineBtn}
+                    onPress={() => navigateTo('restaurant', activeDelivery.restaurant.address, activeDelivery.restaurant.location)}
+                    accessibilityLabel="Navigate to pickup"
+                  >
+                    <Text style={styles.navInlineText}>📍</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={styles.contextCard}>
                   <Text style={styles.contextLabel}>📍 DROP</Text>
                   <Text style={styles.contextName}>{activeDelivery.customer.name}</Text>
                   <Text style={styles.contextAddr}>{activeDelivery.customer.address}</Text>
                   <Text style={styles.contextPhone}>📞 {activeDelivery.customer.phone}</Text>
+                  <TouchableOpacity
+                    style={styles.navInlineBtn}
+                    onPress={() => navigateTo('customer', activeDelivery.customer.address, activeDelivery.customer.location)}
+                    accessibilityLabel="Navigate to customer"
+                  >
+                    <Text style={styles.navInlineText}>📍</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
               {activeDelivery.status === 'assigned' && (
                 <TouchableOpacity
                   style={styles.navBtn}
-                  onPress={() => navigateTo('restaurant', activeDelivery.restaurant.name)}
+                  onPress={() => navigateTo('restaurant', activeDelivery.restaurant.address, activeDelivery.restaurant.location)}
                   accessibilityLabel="Navigate to pickup location"
                   accessibilityRole="button"
                 >
@@ -324,7 +457,7 @@ export default function DriverApp() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.navBtn}
-                    onPress={() => navigateTo('restaurant', activeDelivery.restaurant.name)}
+                    onPress={() => navigateTo('restaurant', activeDelivery.restaurant.address, activeDelivery.restaurant.location)}
                   >
                     <Text style={styles.navBtnText}>📍 Open Navigation</Text>
                   </TouchableOpacity>
@@ -361,9 +494,10 @@ export default function DriverApp() {
 
               {activeDelivery.status === 'navigating_to_drop' && (
                 <View style={{ gap: 10 }}>
+                  <Text style={styles.etaText}>ETA: {activeDelivery.etaMinutes || 15} mins</Text>
                   <TouchableOpacity
                     style={styles.navBtn}
-                    onPress={() => navigateTo('customer', activeDelivery.customer.address)}
+                    onPress={() => navigateTo('customer', activeDelivery.customer.address, activeDelivery.customer.location)}
                   >
                     <Text style={styles.navBtnText}>📍 Navigate to Customer</Text>
                   </TouchableOpacity>
@@ -372,6 +506,12 @@ export default function DriverApp() {
                   <DetailRow label="Phone:" value={`${activeDelivery.customer.phone}`} />
                   <TouchableOpacity style={styles.completeBtn} onPress={completeDelivery}>
                     <Text style={styles.navBtnText}>🏁 Mark Delivered</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.failBtn} 
+                    onPress={() => handleFailedDelivery('customer_unavailable')}
+                  >
+                    <Text style={styles.failBtnText}>❗ Mark Failed</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -384,6 +524,9 @@ export default function DriverApp() {
               <Text style={styles.idleText}>
                 {isOnline ? 'Waiting for orders…' : 'Go online to receive orders'}
               </Text>
+              {isOnline && locationPermission === 'denied' && (
+                <Text style={styles.locationWarning}>Location permission required for delivery</Text>
+              )}
               {isOnline && (
                 <TouchableOpacity
                   style={styles.btnAccept}
@@ -465,6 +608,20 @@ export default function DriverApp() {
               <EarnRow label="Completed orders" value="42 / week" pct={88} />
             </View>
           </View>
+
+          {shift && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>📅 Shift Schedule</Text>
+              <Text style={styles.cardSubtitle}>Current shift</Text>
+              <View style={styles.shiftInfo}>
+                <Text style={styles.shiftInfoText}>Type: {shift.type}</Text>
+                <Text style={styles.shiftInfoText}>Ends: {shift.endTime}</Text>
+                <TouchableOpacity style={styles.shiftEndBtn}>
+                  <Text style={styles.shiftEndText}>End Shift Early</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
       )}
     </Animated.View>
@@ -513,6 +670,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary },
   subtitle: { color: '#888', fontSize: 13, marginTop: 2 },
   vehicleTag: { color: '#555', fontSize: 11, marginTop: 1 },
+  shiftTag: { color: DESIGN_TOKENS.colors.warning, fontSize: 11, marginTop: 4 },
+  statusLabel: { color: '#fff', fontSize: 14, marginTop: 4 },
   onlineToggle: { flexDirection: 'row', alignItems: 'center' },
   onlineText: { color: DESIGN_TOKENS.colors.success, marginRight: 8, fontWeight: 'bold', fontSize: 14 },
   offlineText: { color: DESIGN_TOKENS.colors.danger, marginRight: 8, fontWeight: 'bold', fontSize: 14 },
@@ -554,6 +713,7 @@ const styles = StyleSheet.create({
   },
   idleIcon: { fontSize: 48, marginBottom: 12 },
   idleText: { color: '#666', marginBottom: 20, fontSize: 15 },
+  locationWarning: { color: DESIGN_TOKENS.colors.danger, fontSize: 12, marginTop: 8 },
 
   progressContainer: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
@@ -568,6 +728,7 @@ const styles = StyleSheet.create({
   progressLine: { flex: 1, height: 3, backgroundColor: '#333', marginHorizontal: 4 },
   progressLineActive: { backgroundColor: DESIGN_TOKENS.colors.success },
   progressLabel: { fontSize: 10, textAlign: 'center', color: '#666', marginTop: 3, maxWidth: 50 },
+  etaText: { color: '#4caf50', fontSize: 14, textAlign: 'center', marginBottom: 8 },
 
   contextCards: { flexDirection: 'row', gap: 10, marginVertical: 12 },
   contextCard: {
@@ -577,12 +738,16 @@ const styles = StyleSheet.create({
   contextName: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 2 },
   contextAddr: { fontSize: 12, color: '#aaa' },
   contextPhone: { fontSize: 12, color: DESIGN_TOKENS.colors.success, marginTop: 4 },
+  navInlineBtn: { position: 'absolute', right: 8, top: 8 },
+  navInlineText: { fontSize: 16 },
 
   navBtn: {
     backgroundColor: '#2196f3', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8,
   },
   arriveBtn: { backgroundColor: DESIGN_TOKENS.colors.warning, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
   completeBtn: { backgroundColor: DESIGN_TOKENS.colors.success, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  failBtn: { backgroundColor: DESIGN_TOKENS.colors.danger, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  failBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
 
   otpRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginVertical: 12 },
   otpSlot: {
@@ -634,6 +799,10 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   cardSubtitle: { fontSize: 13, color: '#888', marginBottom: 12 },
+  shiftInfo: { gap: 8 },
+  shiftInfoText: { color: '#ccc', fontSize: 14 },
+  shiftEndBtn: { backgroundColor: DESIGN_TOKENS.colors.warning, padding: 8, borderRadius: 6, alignItems: 'center', marginTop: 8 },
+  shiftEndText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   amountBadge: {
     backgroundColor: '#1e3a1e', color: DESIGN_TOKENS.colors.success,
@@ -643,7 +812,9 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   btn: { flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
   btnAccept: { backgroundColor: DESIGN_TOKENS.colors.primary, flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
-  btnReject: { backgroundColor: '#444', flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
+  btnReject: { backgroundColor: DESIGN_TOKENS.colors.danger, flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
+  timeInfo: { color: '#ccc', fontSize: 12, marginTop: 4 },
+  statusLabel: { color: '#fff', fontSize: 14, marginTop: 4 },
   navBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
   btnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
 });

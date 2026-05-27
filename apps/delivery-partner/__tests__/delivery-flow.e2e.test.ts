@@ -8,7 +8,7 @@ describe('Delivery Partner E2E - Assignment & Tracking Flow', () => {
         licenseNumber: 'DL-XXXX-XXXX-XX',
       };
 
-      const token = 'mock-driver-token';
+      // const token = 'mock-driver-token'; // removed unused variable
       expect(driver.role).toBe('DRIVER');
       expect(driver.licenseNumber).toMatch(/^DL-/);
     });

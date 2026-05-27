@@ -11,9 +11,9 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "webpack --config webpack.renderer.config.js",
-    "dist": "npm run build && npx electron-builder",
-    "dist:installer": "npm run build && npx electron-builder --win --ia32",
-    "dist:portable": "npm run build && npx electron-builder --win --portable"
+    "dist": "npm run build && npx electron-builder --win --publish=never",
+    "dist:installer": "npm run build && npx electron-builder --win --ia32 --publish=never",
+    "dist:portable": "npm run build && npx electron-builder --win --portable --publish=never"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
@@ -28,7 +28,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "electron": "^32.0.0",
+    "electron": "32.3.3",
     "electron-builder": "^24.13.3",
     "typescript": "^5.0.0",
     "webpack": "^5.90.0",
@@ -45,23 +45,24 @@
     "appId": "com.spicegarden.launcher",
     "productName": "SpiceGarden Launcher",
     "directories": {
-      "output": "dist"
+      "output": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/main.js"
     },
     "win": {
-      "icon": "assets/icon.ico",
-      "category": "Utility",
-      "target": ["nsis", "portable"]
+      "target": ["nsis"]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SpiceGarden Launcher",
-      "include": "scripts/installer.nsh"
-    },
-    "portable": {
-      "icon": "assets/icon.ico"
+      "shortcutName": "SpiceGarden Launcher"
     }
   }
 }

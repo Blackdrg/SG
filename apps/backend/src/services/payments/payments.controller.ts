@@ -1,38 +1,125 @@
-import { Controller, Post, Body, Headers, Req, BadRequestException, RawBodyRequest } from '@nestjs/common';
+import { Controller, Post, Body, Headers, Req, BadRequestException, RawBodyRequest, HttpCode, HttpStatus } from '@nestjs/common';
 import { Request } from 'express';
 import { PaymentService } from './payments.service';
+import { PaymentHardeningService } from './payment-hardening.service';
+import { RetryService, RetryResult } from './retry.service';
+import { FraudHardeningService, FraudCheckResult } from './fraud-hardening.service';
+import { IdempotencyService } from './idempotency.service';
 import { ConfigService } from '@nestjs/config';
-import { QueueService } from '../../infra/queue/queue.service';
-import { QUEUE_NAMES } from '../../shared/contracts/queues';
-import { OrderStatus } from '../../shared/domain/order.interface';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(
     private paymentService: PaymentService,
+    private paymentHardening: PaymentHardeningService,
+    private retryService: RetryService,
+    private fraudHardening: FraudHardeningService,
+    private idempotency: IdempotencyService,
     private configService: ConfigService,
-    private queueService: QueueService
   ) {}
 
   @Post('create-intent')
-  async createPaymentIntent(@Body() body: any) {
-    const intent = await this.paymentService.createPaymentIntent(
-      body.amount,
-      body.currency || 'usd',
-      body.userId,
-      { orderId: body.orderId }
+  @HttpCode(HttpStatus.OK)
+  async createPaymentIntent(
+    @Body() body: any,
+    @Headers('x-idempotency-key') idempotencyKey?: string
+  ) {
+    const fraudCheck = await this.fraudHardening.checkPaymentFraud({
+      userId: body.userId,
+      amount: body.amount,
+      ipAddress: body.ipAddress,
+      userAgent: body.userAgent,
+    });
+
+    if (!fraudCheck.allowed) {
+      return {
+        error: 'Payment blocked due to fraud risk',
+        reasons: fraudCheck.reasons,
+        riskScore: fraudCheck.riskScore,
+      };
+    }
+
+    const retryResult: RetryResult<any> = await this.retryService.executeWithRetry(
+      async () => {
+        if (idempotencyKey) {
+          const existing = await this.idempotency.validateOrCreate(
+            idempotencyKey,
+            'create_payment_intent',
+            body.userId,
+            { amount: body.amount, currency: body.currency }
+          );
+
+          if (existing.isDuplicate) {
+            return existing.response;
+          }
+        }
+
+        const intent = await this.paymentService.createPaymentIntent(
+          body.amount,
+          body.currency || 'usd',
+          body.userId,
+          { orderId: body.orderId, paymentMethodId: body.paymentMethodId }
+        );
+
+        if (idempotencyKey) {
+          await this.idempotency.complete(idempotencyKey, 'create_payment_intent', intent);
+        }
+
+        return intent;
+      },
+      'create_payment_intent',
+      { userId: body.userId, orderId: body.orderId }
     );
-    return { clientSecret: intent.client_secret };
+
+    if (!retryResult.success) {
+      throw new BadRequestException(retryResult.error?.message);
+    }
+
+    return { clientSecret: retryResult.result?.client_secret };
   }
 
   @Post('refund')
-  async refund(@Body() body: any) {
-    const refund = await this.paymentService.refundPayment(
-      body.paymentIntentId,
-      body.amount,
-      body.userId,
-      body.reason
+  @HttpCode(HttpStatus.OK)
+  async refund(
+    @Body() body: any,
+    @Headers('x-idempotency-key') idempotencyKey?: string
+  ) {
+    const retryResult = await this.retryService.executeWithRetry(
+      async () => {
+        if (idempotencyKey) {
+          const existing = await this.idempotency.validateOrCreate(
+            idempotencyKey,
+            'refund_payment',
+            body.userId,
+            { paymentIntentId: body.paymentIntentId, amount: body.amount }
+          );
+
+          if (existing.isDuplicate) {
+            return existing.response;
+          }
+        }
+
+        const refund = await this.paymentService.refundPayment(
+          body.paymentIntentId,
+          body.amount,
+          body.userId,
+          body.reason
+        );
+
+        if (idempotencyKey) {
+          await this.idempotency.complete(idempotencyKey, 'refund_payment', refund);
+        }
+
+        return refund;
+      },
+      'refund_payment',
+      { userId: body.userId, paymentId: body.paymentIntentId }
     );
-    return refund;
+
+    if (!retryResult.success) {
+      throw new BadRequestException(retryResult.error?.message);
+    }
+
+    return retryResult.result;
   }
 }

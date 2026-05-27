@@ -161,30 +161,30 @@ Run `npm install` in the root directory and each app folder.
 
 ## Production Build
 
-### Windows (Build Machine Required)
-Run on Windows with Docker Desktop installed:
+### Windows (Run as Administrator for code signing)
 ```powershell
 cd apps\launcher
 npm install
 npm run build
-npm run dist   # Creates .exe in dist/
+npm run dist
 ```
 
-### Alternative: Build from ZIP
-If electron-builder fails in workspace context:
+**Output:**
+- `build/win-unpacked/SpiceGarden Launcher.exe` - Unpackaged executable
+- `build/SpiceGarden Launcher Setup 1.0.0.exe` - NSIS installer
+- `build/SpiceGarden Launcher 1.0.0.exe` - Portable version
 
-1. Download the full project as ZIP
-2. Extract to standalone folder (not in monorepo)
-3. Run `npm install --ignore-scripts` 
-4. Install electron-builder globally: `npm install -g electron-builder`
-5. Then run `npx electron-builder --win`
+### Windows Build Requirements
+- Run **PowerShell as Administrator** (required for code signing)
+- Windows 10/11 with Docker Desktop
+- Node.js 18+
 
-### Cross-platform Limitations
-electron-builder requires Windows for NSIS/portable targets. On non-Windows, it can only build for the current platform.
+### Non-Windows Alternative
+Use wine or a Windows VM. The unpacked executable (`win-unpacked/`) runs without installation.
 
 ## Build Status
 
-✅ **Successfully built!** All TypeScript compiled and Webpack bundled:
-- `dist/main/*.js` - Compiled Electron main process
-- `dist/renderer/index.html` - Rendered UI entry point
-- `dist/renderer/renderer.js` - Bundled React application
+✅ **Successfully compiled!** All TypeScript + Webpack:
+- `dist/main/*.js` - 8 compiled Electron modules
+- `dist/renderer/renderer.js` - 228KB React bundle
+- `dist/renderer/index.html` - UI entry point

@@ -5,6 +5,9 @@ import { Repository, MoreThan, LessThan } from 'typeorm';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { PaymentService } from '../../services/payments/payments.service';
 import { NotificationService } from '../../services/notifications/notification.service';
+import { RetryService } from '../../services/payments/retry.service';
+import { IdempotencyService } from '../../services/payments/idempotency.service';
+import { ProductionNotificationService } from '../../services/notifications/production-notification.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -14,6 +17,9 @@ export class OrderService {
     private readonly orderRepo: Repository<OrderEntity>,
     private readonly paymentService: PaymentService,
     private readonly notificationService: NotificationService,
+    private readonly retryService: RetryService,
+    private readonly idempotency: IdempotencyService,
+    private readonly productionNotification: ProductionNotificationService,
   ) {}
 
   async placeOrder(orderData: any): Promise<Order> {

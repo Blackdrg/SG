@@ -9,6 +9,7 @@ import { PaymentFraudFlagEntity } from '../payment-fraud.entity';
 import Stripe from 'stripe';
 import { NotificationService } from '../../notifications/notification.service';
 import { ProductionNotificationService } from '../../notifications/production-notification.service';
+import { LedgerService } from '../../../modules/ledger/ledger.service';
 
 @Injectable()
 export class WebhookService {
@@ -27,6 +28,7 @@ export class WebhookService {
     private readonly fraudFlagRepo: Repository<PaymentFraudFlagEntity>,
     private notificationService: NotificationService,
     private productionNotification: ProductionNotificationService,
+    private ledgerService: LedgerService,
   ) {
     this.stripe = new Stripe(
       this.configService.get<string>('STRIPE_SECRET_KEY') || 'sk_test_placeholder',
@@ -164,6 +166,23 @@ export class WebhookService {
       }
     );
 
+    // Record ledger entry for successful payment
+    try {
+      await this.ledgerService.createTransaction(
+        paymentIntent.id, // transactionId
+        'cash', // debitAccount
+        'revenue', // creditAccount
+        paymentIntent.amount / 100, // amount
+        paymentIntent.currency, // currency
+        'payment', // type
+        paymentIntent.id, // referenceId
+        `Payment succeeded for order ${paymentIntent.metadata?.orderId || 'unknown'}` // description
+      );
+    } catch (ledgerError) {
+      this.logger.error('Failed to create ledger entry for payment success:', ledgerError);
+      // We don't throw here because the payment succeeded
+    }
+
     this.logger.log(`PaymentIntent ${paymentIntent.id} succeeded`);
     return { received: true, paymentConfirmed: true };
   }
@@ -211,6 +230,22 @@ export class WebhookService {
       }
     );
 
+    // Record ledger entry for refund
+    try {
+      await this.ledgerService.createTransaction(
+        charge.id, // transactionId
+        'refund', // debitAccount (increase liability)
+        'cash', // creditAccount (decrease asset)
+        (charge.amount_refunded || 0) / 100, // amount
+        charge.currency, // currency
+        'refund', // type
+        charge.id, // referenceId
+        `Refund processed for charge ${charge.id}` // description
+      );
+    } catch (ledgerError) {
+      this.logger.error('Failed to create ledger entry for refund:', ledgerError);
+    }
+
     this.logger.log(`Charge ${charge.id} refunded for ${charge.amount_refunded}`);
     return { received: true, refundProcessed: true };
   }
@@ -247,6 +282,24 @@ export class WebhookService {
 
   private async handleChargeSucceeded(event: Stripe.Event): Promise<any> {
     const charge = event.data.object as Stripe.Charge;
+    
+    // Record ledger entry for successful charge
+    try {
+      await this.ledgerService.createTransaction(
+        charge.id, // transactionId
+        'cash', // debitAccount
+        'revenue', // creditAccount
+        charge.amount / 100, // amount
+        charge.currency, // currency
+        'payment', // type
+        charge.id, // referenceId
+        `Payment succeeded for charge ${charge.id}` // description
+      );
+    } catch (ledgerError) {
+      this.logger.error('Failed to create ledger entry for charge success:', ledgerError);
+      // We don't throw here because the payment succeeded
+    }
+
     this.logger.log(`Charge succeeded: ${charge.id}`);
     return { received: true, chargeSucceeded: true };
   }

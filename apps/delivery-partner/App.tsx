@@ -453,7 +453,7 @@ export default function DriverApp() {
               {activeDelivery.status === 'navigating_to_pickup' && (
                 <>
                   <TouchableOpacity style={styles.arriveBtn} onPress={confirmPickup}>
-                    <Text style={styles.navBtnText}>🏪 I'm at Restaurant</Text>
+                    <Text style={styles.navBtnText}>🏪 I&#39;m at Restaurant</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.navBtn}
@@ -583,13 +583,13 @@ export default function DriverApp() {
         </ScrollView>
       )}
 
-      {activeScreen === 'earnings' && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.earnBigCard}>
-            <Text style={styles.earnLabel}>Today's Earnings</Text>
-            <Text style={styles.earnAmount}>₹{earnings.today}</Text>
-            <Text style={styles.earnSub}>{earnings.ordersToday} deliveries completed</Text>
-          </View>
+           {activeScreen === 'earnings' && (
+             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+               <View style={styles.earnBigCard}>
+                 <Text style={styles.earnLabel}>Today&#39;s Earnings</Text>
+                 <Text style={styles.earnAmount}>₹{earnings.today}</Text>
+                 <Text style={styles.earnSub}>{earnings.ordersToday} deliveries completed</Text>
+               </View>
 
           <View style={styles.earnGrid}>
             <StatCard label="Pending" value={`₹${earnings.pending}`} sub="yet to credit" />

@@ -1,44 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, Card, DESIGN_TOKENS } from '@spicegarden/ui';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from '@spicegarden/ui';
 import { io, Socket } from 'socket.io-client';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-type OrderStatus = 'new' | 'accepted' | 'preparing' | 'ready' | 'delayed' | 'completed';
-type ServiceType = 'dine_in' | 'takeaway' | 'delivery';
-
-interface OrderItem {
-  id: string;
-  name: string;
-  qty: number;
-  modifiers?: string[]; // e.g. ['Extra Cheese', 'No Onion']
-  note?: string;
-}
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  diner: string;
-  table?: string;
-  serviceType: ServiceType;
-  items: OrderItem[];
-  createdAt: Date;
-  status: OrderStatus;
-  prepStartedAt?: Date;
-  estPrepMins: number;
-  notifiedStaffs?: string[]; // kitchen staff ack
-}
-
-interface InventoryItem {
-  id: string;
-  name: string;
-  inStock: number;
-  threshold: number;
-}
-
-const ESTIMATED_PREP_TIMES: Record<string, number> = {
-  Burger: 8, Pizza: 15, Fries: 5, Drink: 2, Dessert: 4, Other: 10,
-};
 
 // ── Pre-seeded demo data ────────────────────────────────────────────────────
 
@@ -86,22 +50,20 @@ function demoOrder(id: string, overrides: Partial<Order> = {}): Order {
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function KitchenDashboard() {
-  const [orders, setOrders] = useState<Order[]>(() =>
-    [
-      demoOrder('a1', { status: 'preparing', prepStartedAt: new Date(+now() - 17 * 60000), estPrepMins: 14 }),
-      demoOrder('b2', { status: 'accepted', estPrepMins: 10 }),
-      demoOrder('c3', { status: 'ready', estPrepMins: 8 }),
-      demoOrder('d4', { status: 'new', estPrepMins: 12 }),
-    ]
-  );
-  const [batchMode, setBatchMode] = useState(false);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'kitchen' | 'inventory'>('kitchen');
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [activeSounds, setActiveSounds] = useState<string[]>([]);
-  const [lastAction, setLastAction] = useState<string>('');
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+   const [orders, setOrders] = useState<Order[]>(() =>
+     [
+       demoOrder('a1', { status: 'preparing', prepStartedAt: new Date(+now() - 17 * 60000), estPrepMins: 14 }),
+       demoOrder('b2', { status: 'accepted', estPrepMins: 10 }),
+       demoOrder('c3', { status: 'ready', estPrepMins: 8 }),
+       demoOrder('d4', { status: 'new', estPrepMins: 12 }),
+     ]
+   );
+   const [batchMode, setBatchMode] = useState(false);
+   const [inventory, setInventory] = useState<InventoryItem[]>(seedInventory);
+   const [activeTab, setActiveTab] = useState<'kitchen' | 'inventory'>('kitchen');
+   const [audioEnabled, setAudioEnabled] = useState(true);
+   const [activeSounds, setActiveSounds] = useState<string[]>([]);
+   const [lastAction, setLastAction] = useState<string>('');
 
   // ── Sound / new-order alert ───────────────────────────────────────────────
 
@@ -117,35 +79,33 @@ export default function KitchenDashboard() {
     setActiveSounds((prev) => prev.filter((x) => x !== id));
   }
 
-  // ── Socket connection ─────────────────────────────────────────────────────
+   // ── Socket connection ─────────────────────────────────────────────────────
 
-  useEffect(() => {
-    const branchId = 'branch-abc-123';
-    const socket: Socket = io('http://localhost:3001', {
-      path: '/socket.io/',
-      transports: ['websocket', 'polling'],
-    });
+   useEffect(() => {
+     const socket: Socket = io('http://localhost:3001', {
+       path: '/socket.io/',
+       transports: ['websocket', 'polling'],
+     });
 
-    socket.on('connect', () => console.log('[KDS] connected:', socket.id));
-    socket.on('disconnect', () => console.log('[KDS] disconnected'));
-    socket.on('newOrder', (order: Order) => {
-      setOrders((prev) => [{ ...order, createdAt: new Date(order.createdAt || Date.now()) }, ...prev]);
-      setLastAction(`New order #${order.orderNumber} received`);
-      playNewOrderSound();
-    });
-    socket.on('inventoryAlert', (item: InventoryItem) => {
-      setInventory((prev) => {
-        const found = prev.find((i) => i.id === item.id);
-        if (found) found.inStock = Math.max(0, found.inStock - 1);
-        return [...prev];
-      });
-    });
+     socket.on('connect', () => console.log('[KDS] connected:', socket.id));
+     socket.on('disconnect', () => console.log('[KDS] disconnected'));
+     socket.on('newOrder', (order: Order) => {
+       setOrders((prev) => [{ ...order, createdAt: new Date(order.createdAt || Date.now()) }, ...prev]);
+       setLastAction(`New order #${order.orderNumber} received`);
+       playNewOrderSound();
+     });
+     socket.on('inventoryAlert', (item: InventoryItem) => {
+       setInventory((prev) => {
+         const found = prev.find((i) => i.id === item.id);
+         if (found) found.inStock = Math.max(0, found.inStock - 1);
+         return [...prev];
+       });
+     });
 
-    // Seed inventory on mount too
-    setInventory(seedInventory);
+     return () => { socket.disconnect(); };
+   }, [playNewOrderSound]);
 
-    return () => { socket.disconnect(); };
-  }, [playNewOrderSound]);
+   // Seed inventory on mount too
 
   // ── Status transitions ─────────────────────────────────────────────────────
 
@@ -433,22 +393,22 @@ export default function KitchenDashboard() {
         position: 'fixed', bottom: 0, left: 0, right: 0, height: 52, backgroundColor: '#16162a',
         borderTop: '1px solid #333', display: 'flex', justifyContent: 'space-around', alignItems: 'center',
       }}>
-        {[
-          { key: 'kitchen', label: 'Kitchen', emoji: '🔥' },
-          { key: 'inventory', label: 'Inventory', emoji: '📦' },
-        ].map((t) => (
-          <div
-            key={t.key}
-            onClick={() => setActiveTab(t.key as any)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
-              color: activeTab === t.key ? '#f04e31' : '#666', fontSize: '10px',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>{t.emoji}</span>
-            <span>{t.label}</span>
-          </div>
-        ))}
+           {[
+             { key: 'kitchen', label: 'Kitchen', emoji: '🔥' },
+             { key: 'inventory', label: 'Inventory', emoji: '📦' },
+           ].map((t) => (
+             <div
+               key={t.key}
+               onClick={() => setActiveTab(t.key)}
+               style={{
+                 display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+                 color: activeTab === t.key ? '#f04e31' : '#666', fontSize: '10px',
+               }}
+             >
+               <span style={{ fontSize: '20px' }}>{t.emoji}</span>
+               <span>{t.label}</span>
+             </div>
+           ))}
       </nav>
 
       {/* ── Pulse keyframes injected via style tag ── */}

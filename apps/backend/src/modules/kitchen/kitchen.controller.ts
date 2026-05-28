@@ -116,6 +116,14 @@ export class KitchenController {
     return this.kitchenService.recordFoodRejectionRate(branchId, rejectionRate, period);
   }
 
+  @Post('sla/food-rejection/calculate/:branchId')
+  async calculateFoodRejectionRate(
+    @Param('branchId') branchId: string,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
+  ) {
+    return this.kitchenService.calculateAndRecordFoodRejectionRate(branchId, period);
+  }
+
   @Post('sla/throughput/:branchId')
   async recordKitchenThroughput(
     @Param('branchId') branchId: string,
@@ -123,6 +131,21 @@ export class KitchenController {
     @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
   ) {
     return this.kitchenService.recordKitchenThroughput(branchId, ordersPerHour, period);
+  }
+
+  @Post('sla/throughput/calculate/:branchId')
+  async calculateKitchenThroughput(
+    @Param('branchId') branchId: string,
+    @Query('period') period: 'hourly' | 'daily' | 'weekly' = 'hourly'
+  ) {
+    return this.kitchenService.calculateAndRecordKitchenThroughput(branchId, period);
+  }
+
+  @Post('sla/record-all/:branchId')
+  async recordAllKitchenSLAs(
+    @Param('branchId') branchId: string
+  ) {
+    return this.kitchenService.recordAllKitchenSLAs(branchId);
   }
 
   @Get('sla/branch/:branchId')

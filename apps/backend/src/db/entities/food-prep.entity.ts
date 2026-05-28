@@ -22,8 +22,14 @@ export class FoodPrepEntity {
   @Column({ nullable: true })
   completedAt: Date; // When preparation completed
 
-   @Column('decimal', { precision: 5, scale: 2, nullable: true })
-   actualPrepTimeMinutes: number; // Actual time taken
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  actualPrepTimeMinutes: number; // Actual time taken
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  estimatedPrepTimeMinutes: number; // Estimated time based on recipe/history
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  delayMinutes: number; // How much prep was delayed (negative if early)
 
   @Column('simple-json', { nullable: true })
   qualityCheck: { // Quality check results
@@ -36,6 +42,9 @@ export class FoodPrepEntity {
 
   @Column('simple-json', { nullable: true })
   issues: string[]; // Any issues encountered during prep
+
+  @Column('simple-json', { nullable: true })
+  delayReasons: string[]; // Reasons for any delays
 
   @ManyToOne(() => RestaurantBranchEntity)
   branch: RestaurantBranchEntity;

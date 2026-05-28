@@ -7,10 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run -ws dev",
-    "build": "npm run -ws build",
-    "lint": "npm run -ws lint",
-    "format": "npm run -ws format"
+    "dev": "npm run --workspaces dev",
+    "build": "npm run --workspaces build",
+    "lint": "npm run --workspaces lint",
+    "format": "npm run --workspaces format"
   }
 }
-

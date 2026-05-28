@@ -1,7 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Stripe from 'stripe';
+import { Stripe } from 'stripe';
 import { AuditService } from '../../audit/audit.service';
+import { LedgerService } from '../../../modules/ledger/ledger.service';
 
 @Injectable()
 export class PaymentService {
@@ -10,7 +11,8 @@ export class PaymentService {
 
   constructor(
     private configService: ConfigService,
-    private auditService: AuditService
+    private auditService: AuditService,
+    private ledgerService: LedgerService,
   ) {
     this.stripe = new Stripe(
       this.configService.get<string>('STRIPE_SECRET_KEY') || 'sk_test_placeholder',
@@ -174,21 +176,37 @@ export class PaymentService {
       // Retrieve payment intent from Stripe
       const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentId);
       
-      if (paymentIntent.status === 'succeeded') {
-        // Log successful payment
-        await this.auditService.logPaymentEvent(
-          'payment_confirmed',
-          userId,
-          paymentIntent.amount / 100,
-          paymentIntent.currency,
-          'stripe',
-          paymentId,
-          true,
-          request
-        );
+    if (paymentIntent.status === 'succeeded') {
+      await this.auditService.logPaymentEvent(
+        'payment_confirmed',
+        userId,
+        paymentIntent.amount / 100,
+        paymentIntent.currency,
+        'stripe',
+        paymentId,
+        true,
+        request
+      );
 
-        return paymentIntent;
-      } else {
+      // Record ledger entry for successful payment
+      try {
+        await this.ledgerService.createTransaction(
+          paymentIntent.id, // transactionId
+          'cash', // debitAccount
+          'revenue', // creditAccount
+          paymentIntent.amount / 100, // amount
+          paymentIntent.currency, // currency
+          'payment', // type
+          paymentIntent.id, // referenceId
+          `Payment succeeded for order ${paymentIntent.metadata?.orderId || 'unknown'}` // description
+        );
+      } catch (ledgerError) {
+        this.logger.error('Failed to create ledger entry for payment success:', ledgerError);
+        // We don't throw here because the payment succeeded
+      }
+
+      return paymentIntent;
+    } else {
         // Log failed payment
         await this.auditService.logPaymentEvent(
           'payment_failed',
@@ -243,7 +261,6 @@ export class PaymentService {
         reason: reason as any
       });
 
-      // Log refund
       await this.auditService.logPaymentEvent(
         'payment_refunded',
         userId,
@@ -255,6 +272,22 @@ export class PaymentService {
         request,
         `Reason: ${reason}`
       );
+
+      // Record ledger entry for refund
+      try {
+        await this.ledgerService.createTransaction(
+          refund.id, // transactionId
+          'refund', // debitAccount (increase liability)
+          'cash', // creditAccount (decrease asset)
+          refund.amount / 100, // amount
+          paymentIntent.currency, // currency
+          'refund', // type
+          refund.id, // referenceId
+          `Refund processed for payment ${paymentId}, reason: ${reason}` // description
+        );
+      } catch (ledgerError) {
+        this.logger.error('Failed to create ledger entry for refund:', ledgerError);
+      }
 
       return refund;
     } catch (error) {

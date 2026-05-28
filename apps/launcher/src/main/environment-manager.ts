@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { StoreManager } from './store-manager';
 import * as crypto from 'crypto';
+import * as child_process from 'child_process';
 
 interface Prerequisites {
   dockerInstalled: boolean;
@@ -66,21 +67,21 @@ export class EnvironmentManager {
     return checks;
   }
 
-  private checkDockerInstalled(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const proc = require('child_process').spawn('docker', ['--version'], { shell: true });
-      proc.on('close', (code: number) => resolve(code === 0));
-      proc.on('error', () => resolve(false));
-    });
-  }
+   private checkDockerInstalled(): Promise<boolean> {
+     return new Promise((resolve) => {
+       const proc = child_process.spawn('docker', ['--version'], { shell: true });
+       proc.on('close', (code: number) => resolve(code === 0));
+       proc.on('error', () => resolve(false));
+     });
+   }
 
-  private checkDockerRunning(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const proc = require('child_process').spawn('docker', ['info'], { shell: true });
-      proc.on('close', (code: number) => resolve(code === 0));
-      proc.on('error', () => resolve(false));
-    });
-  }
+   private checkDockerRunning(): Promise<boolean> {
+     return new Promise((resolve) => {
+       const proc = child_process.spawn('docker', ['info'], { shell: true });
+       proc.on('close', (code: number) => resolve(code === 0));
+       proc.on('error', () => resolve(false));
+     });
+   }
 
   private checkNodeVersion(): boolean {
     const major = parseInt(process.versions.node.split('.')[0]);
@@ -97,17 +98,17 @@ export class EnvironmentManager {
     return results;
   }
 
-  private isPortAvailable(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      const proc = require('child_process').spawn('netstat', ['-an'], { shell: true });
-      let output = '';
-      proc.stdout.on('data', (data: Buffer) => (output += data.toString()));
-      proc.on('close', () => {
-        resolve(!output.includes(`:${port}`));
-      });
-      proc.on('error', () => resolve(true));
-    });
-  }
+   private isPortAvailable(port: number): Promise<boolean> {
+     return new Promise((resolve) => {
+       const proc = child_process.spawn('netstat', ['-an'], { shell: true });
+       let output = '';
+       proc.stdout.on('data', (data: Buffer) => (output += data.toString()));
+       proc.on('close', () => {
+         resolve(!output.includes(`:${port}`));
+       });
+       proc.on('error', () => resolve(true));
+     });
+   }
 
   checkAndGenerateEnv(): void {
     const envPath = path.join(process.cwd(), '.env');
@@ -116,23 +117,24 @@ export class EnvironmentManager {
     }
   }
 
-  async generateEnv(): Promise<{ success: boolean; path: string }> {
-    const secrets = this.storeManager.getSecrets();
-    if (!secrets) {
-      this.generateSecrets();
-    }
+   async generateEnv(): Promise<{ success: boolean; path: string }> {
+     let secrets = this.storeManager.getSecrets();
+     if (!secrets) {
+       this.generateSecrets();
+       secrets = this.storeManager.getSecrets();
+     }
 
-    const envContent = this.buildEnvContent(secrets || this.storeManager.getSecrets()!);
-    const envPath = path.join(process.cwd(), '.env');
-    fs.writeFileSync(envPath, envContent);
+     const envContent = this.buildEnvContent(secrets);
+     const envPath = path.join(process.cwd(), '.env');
+     fs.writeFileSync(envPath, envContent);
 
-    const secretsPath = path.join(process.cwd(), 'secrets');
-    if (!fs.existsSync(secretsPath)) {
-      fs.mkdirSync(secretsPath, { recursive: true });
-    }
+     const secretsPath = path.join(process.cwd(), 'secrets');
+     if (!fs.existsSync(secretsPath)) {
+       fs.mkdirSync(secretsPath, { recursive: true });
+     }
 
-    return { success: true, path: envPath };
-  }
+     return { success: true, path: envPath };
+   }
 
   private generateSecrets(): void {
     const secretsDir = path.join(process.cwd(), 'secrets');
@@ -160,7 +162,7 @@ export class EnvironmentManager {
     this.storeManager.saveSecrets(secrets);
   }
 
-  private buildEnvContent(secrets: any): string {
+   private buildEnvContent(secrets: Record<string, string>): string {
     return `# SpiceGarden Environment Configuration - Auto Generated
 # Generated on ${new Date().toISOString()}
 

@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
 import { OrderStatus, PaymentStatus } from '../../shared/domain/order.interface';
+import { OrderItemEntity } from './order-item.entity';
+import { GSTDetailEntity } from './gst-detail.entity';
 
 @Entity('orders')
 export class OrderEntity {
@@ -7,7 +9,7 @@ export class OrderEntity {
   id!: string;
 
   @OneToMany('OrderItemEntity', (item: any) => item.order)
-  items!: any[];
+  items!: OrderItemEntity[];
 
   @Column()
   userId!: string;
@@ -34,7 +36,7 @@ export class OrderEntity {
   subtotal!: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  tax!: number;
+  tax!: number; // Total tax amount (for backward compatibility)
 
   @Column('decimal', { precision: 10, scale: 2 })
   deliveryFee!: number;
@@ -53,6 +55,9 @@ export class OrderEntity {
 
   @Column()
   deliveryAddressId!: string;
+
+  @OneToOne(() => GSTDetailEntity, gstDetail => gstDetail.order)
+  gstDetail?: GSTDetailEntity;
 
   @CreateDateColumn()
   createdAt!: Date;

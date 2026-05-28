@@ -34,6 +34,18 @@ export class BatchEntity {
   @Column({ nullable: true })
   expiresAt: Date; // When batch expires (for food safety)
 
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  estimatedPrepTimeMinutes: number; // Estimated time to prepare this batch
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  actualPrepTimeMinutes: number; // Actual time taken to prepare
+
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  delayMinutes: number; // Delay in batch preparation
+
+  @Column('simple-json', { nullable: true })
+  delayReasons: string[]; // Reasons for delays
+
   @ManyToOne(() => RestaurantBranchEntity)
   branch: RestaurantBranchEntity;
 

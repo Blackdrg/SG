@@ -14,8 +14,11 @@ import { IdempotencyEntity } from './idempotency.entity';
 import { PaymentValidationEventEntity } from './payment-validation.entity';
 import { PaymentFraudFlagEntity } from './payment-fraud.entity';
 import { PaymentEventEntity } from './payment-event.entity';
+import { LedgerEntryEntity } from '../../db/entities/ledger-entry.entity';
 import { WebhookModule } from './webhook/webhook.module';
 import { AuditModule } from '../../audit/audit.module';
+import { LedgerModule } from '../../../modules/ledger/ledger.module';
+import { GSTModule } from '../../services/gst/gst.module';
 
 @Module({
   imports: [
@@ -28,9 +31,12 @@ import { AuditModule } from '../../audit/audit.module';
       PaymentValidationEventEntity,
       PaymentFraudFlagEntity,
       PaymentEventEntity,
+      LedgerEntryEntity,
     ]),
     WebhookModule,
-    AuditModule
+    AuditModule,
+    LedgerModule,
+    GSTModule
   ],
   providers: [PaymentService, PaymentHardeningService, RetryService, FraudHardeningService, IdempotencyService],
   controllers: [PaymentsController],

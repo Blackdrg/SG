@@ -1,7 +1,6 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-// @ts-ignore - electron-store types may vary
 import Store from 'electron-store';
 
 interface Secrets {
@@ -18,8 +17,11 @@ interface Secrets {
 }
 
 export class StoreManager {
-  private store: any;
-  private secretsPath: string;
+   private store: {
+     store: Record<string, unknown>;
+     set: (config: Record<string, unknown>) => void;
+   };
+   private secretsPath: string;
 
   constructor() {
     this.store = new Store({

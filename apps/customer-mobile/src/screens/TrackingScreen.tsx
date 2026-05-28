@@ -68,12 +68,12 @@ const TrackingScreen = () => {
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: DESIGN_TOKENS.motion.page,
-            easing: Easing.out(Easing.back(0.3),
-            useNativeDriver: true,
-          }),
+           Animated.timing(slideAnim, {
+             toValue: 0,
+             duration: DESIGN_TOKENS.motion.page,
+             easing: Easing.out(Easing.back(0.3)),
+             useNativeDriver: true,
+           }),
         ]).start();
       } catch (e) {
         setError('Failed to load tracking data. Please check your connection.');
@@ -112,17 +112,17 @@ const TrackingScreen = () => {
     }
   }, [trackingData?.status, pulseAnim]);
 
-  const handleCallDriver = useCallback(() => {
-    if (!trackingData) return;
-    Alert.alert(
-      'Call Driver',
-      `Call ${trackingData.driverName} at ${trackingData.driverPhone}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Call', onPress: () => {} }
-      ]
-    );
-  }, [trackingData]);
+   const handleCallDriver = useCallback(() => {
+     if (!trackingData) return;
+     Alert.alert(
+       'Call Driver',
+       `Call ${trackingData.driverName} at ${trackingData.driverPhone}?`,
+       [
+         { text: 'Cancel', style: 'cancel' },
+         { text: 'Call', onPress: undefined }
+       ]
+     );
+   }, [trackingData]);
 
   const handleSupport = useCallback(() => {
     Alert.alert(

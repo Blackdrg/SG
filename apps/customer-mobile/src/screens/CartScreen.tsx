@@ -51,27 +51,27 @@ const CartScreen = () => {
     loadCart();
   }, [fadeAnim]);
 
-  const removeFromCart = (itemId: string) => {
-    Alert.alert(
-      'Remove from cart',
-      'Are you sure you want to remove this item?',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => {} },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: () => {
-            setCartItems(prev => {
-              const newCart = prev.filter(item => item.id !== itemId);
-              AsyncStorage.setItem('sg_cart', JSON.stringify(newCart)).catch(console.error);
-              return newCart;
-            });
-          }
-        }
-      ],
-      { cancelable: true }
-    );
-  };
+   const removeFromCart = (itemId: string) => {
+     Alert.alert(
+       'Remove from cart',
+       'Are you sure you want to remove this item?',
+       [
+         { text: 'Cancel', style: 'cancel', onPress: undefined },
+         { 
+           text: 'Remove', 
+           style: 'destructive',
+           onPress: () => {
+             setCartItems(prev => {
+               const newCart = prev.filter(item => item.id !== itemId);
+               AsyncStorage.setItem('sg_cart', JSON.stringify(newCart)).catch(console.error);
+               return newCart;
+             });
+           }
+         }
+       ],
+       { cancelable: true }
+     );
+   };
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -191,12 +191,11 @@ const CartScreen = () => {
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={styles.cartItem}>
-                  <Image 
-                    source={{ uri: item.image }} 
-                    style={styles.cartItemImage}
-                    accessibilityLabel={item.name}
-                    onError={() => {}}
-                  />
+                   <Image 
+                     source={{ uri: item.image }} 
+                     style={styles.cartItemImage}
+                     accessibilityLabel={item.name}
+                   />
                   <View style={styles.cartItemInfo}>
                     <Text style={styles.cartItemName}>{item.name}</Text>
                     <Text style={styles.cartItemDescription} numberOfLines={2}>

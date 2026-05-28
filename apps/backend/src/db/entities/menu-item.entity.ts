@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { MenuCategoryEntity } from './menu-category.entity';
+import { HSNSACEntity } from './hsn-sac.entity';
 
 @Entity('menu_items')
 export class MenuItemEntity {
@@ -29,6 +30,12 @@ export class MenuItemEntity {
 
   @ManyToOne('MenuCategoryEntity', (category: any) => category.items)
   category!: any;
+
+  @Column({ nullable: true })
+  hsnSacId?: string; // Reference to HSN/SAC code
+
+  @ManyToOne(() => HSNSACEntity, { nullable: true })
+  hsnSac?: HSNSACEntity;
 
   @CreateDateColumn()
   createdAt!: Date;

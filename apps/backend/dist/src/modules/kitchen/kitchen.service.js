@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var KitchenService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KitchenService = void 0;
 const common_1 = require("@nestjs/common");
@@ -23,8 +24,13 @@ const food_prep_entity_1 = require("../../db/entities/food-prep.entity");
 const kitchen_sla_entity_1 = require("../../db/entities/kitchen-sla.entity");
 const supplier_entity_1 = require("../../db/entities/supplier.entity");
 const restaurant_branch_entity_1 = require("../../db/entities/restaurant-branch.entity");
-let KitchenService = class KitchenService {
-    constructor(inventoryRepo, recipeRepo, batchRepo, foodPrepRepo, slaRepo, supplierRepo, branchRepo, dataSource) {
+const inventory_alert_entity_1 = require("../../db/entities/inventory-alert.entity");
+const sla_alert_entity_1 = require("../../db/entities/sla-alert.entity");
+const menu_item_availability_entity_1 = require("../../db/entities/menu-item-availability.entity");
+const order_entity_1 = require("../../db/entities/order.entity");
+const order_item_entity_1 = require("../../db/entities/order-item.entity");
+let KitchenService = KitchenService_1 = class KitchenService {
+    constructor(inventoryRepo, recipeRepo, batchRepo, foodPrepRepo, slaRepo, supplierRepo, branchRepo, inventoryAlertRepo, slaAlertRepo, menuItemAvailabilityRepo, orderRepo, orderItemRepo, dataSource) {
         this.inventoryRepo = inventoryRepo;
         this.recipeRepo = recipeRepo;
         this.batchRepo = batchRepo;
@@ -32,11 +38,125 @@ let KitchenService = class KitchenService {
         this.slaRepo = slaRepo;
         this.supplierRepo = supplierRepo;
         this.branchRepo = branchRepo;
+        this.inventoryAlertRepo = inventoryAlertRepo;
+        this.slaAlertRepo = slaAlertRepo;
+        this.menuItemAvailabilityRepo = menuItemAvailabilityRepo;
+        this.orderRepo = orderRepo;
+        this.orderItemRepo = orderItemRepo;
         this.dataSource = dataSource;
+        this.logger = new common_1.Logger(KitchenService_1.name);
+    }
+    async checkAndCreateInventoryAlert(itemId) {
+        try {
+            const item = await this.inventoryRepo.findOne({
+                where: { id: itemId },
+                relations: ['branch']
+            });
+            if (!item)
+                return;
+            if (item.currentStock === 0) {
+                await this.createInventoryAlert(item.id, 'out_of_stock', item.currentStock, item.lowStockThreshold);
+            }
+            else if (item.currentStock <= item.lowStockThreshold) {
+                await this.createInventoryAlert(item.id, 'low_stock', item.currentStock, item.lowStockThreshold);
+            }
+            else {
+                await this.resolveInventoryAlerts(item.id, ['low_stock', 'out_of_stock']);
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error checking inventory alerts for item ${itemId}`, error);
+        }
+    }
+    async createInventoryAlert(itemId, alertType, currentLevel, thresholdLevel) {
+        try {
+            const item = await this.inventoryRepo.findOne({
+                where: { id: itemId },
+                relations: ['branch']
+            });
+            if (!item || !item.branch)
+                return;
+            const existingAlert = await this.inventoryAlertRepo.findOne({
+                where: {
+                    inventoryItem: { id: itemId },
+                    alertType,
+                    isResolved: false
+                }
+            });
+            if (!existingAlert) {
+                const alert = this.inventoryAlertRepo.create({
+                    inventoryItem: item,
+                    branch: item.branch,
+                    alertType,
+                    currentLevel,
+                    thresholdLevel
+                });
+                await this.inventoryAlertRepo.save(alert);
+                this.logger.log(`Created ${alertType} alert for item ${item.name}`);
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error creating inventory alert`, error);
+        }
+    }
+    async resolveInventoryAlerts(itemId, alertTypes) {
+        try {
+            await this.inventoryAlertRepo.update({
+                inventoryItem: { id: itemId },
+                alertType: (0, typeorm_2.In)(alertTypes),
+                isResolved: false
+            }, {
+                isResolved: true,
+                resolvedAt: new Date()
+            });
+        }
+        catch (error) {
+            this.logger.error(`Error resolving inventory alerts for item ${itemId}`, error);
+        }
+    }
+    async checkAndCreateWastageAlert(itemId, wastedQuantity, reason) {
+        try {
+            const item = await this.inventoryRepo.findOne({
+                where: { id: itemId },
+                relations: ['branch']
+            });
+            if (!item)
+                return;
+            const totalUsage = item.currentStock + item.wastage;
+            const wastagePercentage = totalUsage > 0 ? (item.wastage / totalUsage) * 100 : 0;
+            if (wastagePercentage > 10) {
+                const existingAlert = await this.inventoryAlertRepo.findOne({
+                    where: {
+                        inventoryItem: { id: itemId },
+                        alertType: 'wastage_high',
+                        isResolved: false
+                    }
+                });
+                if (!existingAlert) {
+                    const alert = this.inventoryAlertRepo.create({
+                        inventoryItem: item,
+                        branch: item.branch,
+                        alertType: 'wastage_high',
+                        currentLevel: wastagePercentage,
+                        thresholdLevel: 10
+                    });
+                    await this.inventoryAlertRepo.save(alert);
+                    this.logger.log(`Created wastage alert for item ${item.name}: ${wastagePercentage.toFixed(1)}% wastage`);
+                }
+            }
+            else {
+                await this.resolveInventoryAlerts(itemId, ['wastage_high']);
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error checking wastage alerts for item ${itemId}`, error);
+        }
     }
     async createInventoryItem(data) {
         const item = this.inventoryRepo.create(data);
-        return this.inventoryRepo.save(item);
+        const savedItem = await this.inventoryRepo.save(item);
+        await this.checkAndCreateInventoryAlert(savedItem.id);
+        return savedItem;
     }
     async updateInventoryStock(itemId, quantityChange) {
         const item = await this.inventoryRepo.findOne({ where: { id: itemId } });
@@ -47,7 +167,9 @@ let KitchenService = class KitchenService {
         if (item.unitCost !== null && item.unitCost !== undefined) {
             item.totalCost = item.currentStock * item.unitCost;
         }
-        return this.inventoryRepo.save(item);
+        const savedItem = await this.inventoryRepo.save(item);
+        await this.checkAndCreateInventoryAlert(itemId);
+        return savedItem;
     }
     async recordWastage(itemId, wastedQuantity, reason) {
         const item = await this.inventoryRepo.findOne({ where: { id: itemId } });
@@ -62,7 +184,10 @@ let KitchenService = class KitchenService {
         if (item.unitCost !== null && item.unitCost !== undefined) {
             item.totalCost = item.currentStock * item.unitCost;
         }
-        return this.inventoryRepo.save(item);
+        const savedItem = await this.inventoryRepo.save(item);
+        await this.checkAndCreateWastageAlert(itemId, wastedQuantity, reason);
+        await this.checkAndCreateInventoryAlert(itemId);
+        return savedItem;
     }
     async getLowStockItems(branchId) {
         return this.inventoryRepo.find({
@@ -99,11 +224,19 @@ let KitchenService = class KitchenService {
         if (status === 'ready' || status === 'used' || status === 'discarded') {
             batch.completedAt = new Date();
         }
-        return this.batchRepo.save(batch);
+        const savedBatch = await this.batchRepo.save(batch);
+        if ((status === 'ready' || status === 'used' || status === 'discarded') && batch.startedAt) {
+            await this.calculateAndRecordBatchTiming(batchId);
+        }
+        return savedBatch;
     }
     async logFoodPrep(data) {
         const foodPrep = this.foodPrepRepo.create(data);
-        return this.foodPrepRepo.save(foodPrep);
+        const savedFoodPrep = await this.foodPrepRepo.save(foodPrep);
+        if (data.status === 'completed' && data.startedAt) {
+            await this.calculateAndRecordFoodPrepTiming(savedFoodPrep.id);
+        }
+        return savedFoodPrep;
     }
     async updateFoodPrepQuality(prepId, qualityData) {
         const foodPrep = await this.foodPrepRepo.findOne({ where: { id: prepId } });
@@ -114,7 +247,86 @@ let KitchenService = class KitchenService {
             ...(foodPrep.qualityCheck || { taste: 0, temperature: 0, appearance: 0, passed: false }),
             ...qualityData
         };
-        return this.foodPrepRepo.save(foodPrep);
+        const savedFoodPrep = await this.foodPrepRepo.save(foodPrep);
+        if (foodPrep.status === 'completed' && foodPrep.startedAt && !foodPrep.actualPrepTimeMinutes) {
+            await this.calculateAndRecordFoodPrepTiming(prepId);
+        }
+        return savedFoodPrep;
+    }
+    async calculateAndRecordFoodPrepTiming(prepId) {
+        try {
+            const foodPrep = await this.foodPrepRepo.findOne({
+                where: { id: prepId },
+                relations: ['batch', 'batch.recipe', 'branch']
+            });
+            if (!foodPrep || !foodPrep.startedAt)
+                return;
+            const completedAt = foodPrep.completedAt || new Date();
+            const actualTimeMs = completedAt.getTime() - foodPrep.startedAt.getTime();
+            const actualTimeMinutes = Math.max(0, actualTimeMs / 60000);
+            let estimatedTimeMinutes = 30;
+            if (foodPrep.batch?.recipe?.prepTimeMinutes) {
+                estimatedTimeMinutes = foodPrep.batch.recipe.prepTimeMinutes;
+            }
+            else if (foodPrep.batch?.recipe?.cookTimeMinutes) {
+                estimatedTimeMinutes = foodPrep.batch.recipe.cookTimeMinutes;
+            }
+            const delayMinutes = actualTimeMinutes - estimatedTimeMinutes;
+            const delayReasons = [];
+            if (delayMinutes > 10) {
+                delayReasons.push('Preparation took longer than expected');
+            }
+            if (delayMinutes < -5) {
+                delayReasons.push('Prepared faster than expected');
+            }
+            foodPrep.actualPrepTimeMinutes = actualTimeMinutes;
+            foodPrep.estimatedPrepTimeMinutes = estimatedTimeMinutes;
+            foodPrep.delayMinutes = delayMinutes;
+            foodPrep.delayReasons = delayReasons;
+            await this.foodPrepRepo.save(foodPrep);
+            await this.recordPrepTimeSLA(foodPrep.branch.id, actualTimeMinutes, estimatedTimeMinutes);
+            this.logger.log(`Calculated timing for food prep ${prepId}: ${actualTimeMinutes.toFixed(1)}m actual vs ${estimatedTimeMinutes.toFixed(1)}m estimated`);
+        }
+        catch (error) {
+            this.logger.error(`Error calculating food prep timing for ${prepId}`, error);
+        }
+    }
+    async recordPrepTimeSLA(branchId, actualTime, targetTime) {
+        try {
+            const branch = await this.branchRepo.findOne({ where: { id: branchId } });
+            if (!branch)
+                return;
+            const isBreached = actualTime > targetTime;
+            const breachSeverity = isBreached
+                ? (actualTime > targetTime * 1.5 ? 'high' : actualTime > targetTime * 1.2 ? 'medium' : 'low')
+                : null;
+            const recentAlert = await this.slaAlertRepo.findOne({
+                where: {
+                    branch: { id: branchId },
+                    slaType: 'prep_time',
+                    createdAt: (0, typeorm_2.MoreThan)(new Date(Date.now() - 60 * 60 * 1000))
+                },
+                order: { createdAt: 'DESC' }
+            });
+            if (isBreached && !recentAlert) {
+                const alert = this.slaAlertRepo.create({
+                    branch,
+                    slaType: 'prep_time',
+                    targetValue: targetTime,
+                    actualValue: actualTime,
+                    isBreached: true,
+                    breachSeverity: breachSeverity
+                });
+                await this.slaAlertRepo.save(alert);
+                this.logger.log(`Created prep time SLA alert for branch ${branchId}: ${actualTime.toFixed(1)}m vs ${targetTime.toFixed(1)}m target`);
+            }
+            else if (!isBreached && recentAlert) {
+                await this.slaAlertRepo.update({ id: recentAlert.id }, { isBreached: false, isNotified: true });
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error recording prep time SLA for branch ${branchId}`, error);
+        }
     }
     async recordKitchenSLA(data) {
         const sla = this.slaRepo.create(data);
@@ -159,6 +371,64 @@ let KitchenService = class KitchenService {
             measuredAt: new Date()
         });
     }
+    async calculateAndRecordFoodRejectionRate(branchId, period = 'hourly') {
+        try {
+            const branch = await this.branchRepo.findOne({ where: { id: branchId } });
+            if (!branch)
+                throw new Error(`Branch not found: ${branchId}`);
+            const now = new Date();
+            let startDate;
+            switch (period) {
+                case 'hourly':
+                    startDate = new Date(now.getTime() - 60 * 60 * 1000);
+                    break;
+                case 'daily':
+                    startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                    break;
+                case 'weekly':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    startDate = new Date(now.getTime() - 60 * 60 * 1000);
+            }
+            const foodPrepRecords = await this.foodPrepRepo.find({
+                where: {
+                    branch: { id: branchId },
+                    status: (0, typeorm_2.In)(['completed', 'failed']),
+                    completedAt: (0, typeorm_2.Between)(startDate, now)
+                }
+            });
+            if (foodPrepRecords.length === 0) {
+                return this.recordKitchenSLA({
+                    branch,
+                    metricName: 'food_rejection_rate',
+                    value: 0,
+                    unit: 'percentage',
+                    targetValue: 2,
+                    targetUnit: 'percentage',
+                    measurementPeriod: period,
+                    measuredAt: now
+                });
+            }
+            const failedCount = foodPrepRecords.filter(record => record.status === 'failed').length;
+            const totalCount = foodPrepRecords.length;
+            const rejectionRate = (totalCount > 0) ? (failedCount / totalCount) * 100 : 0;
+            return this.recordKitchenSLA({
+                branch,
+                metricName: 'food_rejection_rate',
+                value: rejectionRate,
+                unit: 'percentage',
+                targetValue: 2,
+                targetUnit: 'percentage',
+                measurementPeriod: period,
+                measuredAt: now
+            });
+        }
+        catch (error) {
+            this.logger.error(`Error calculating food rejection rate for branch ${branchId}`, error);
+            throw error;
+        }
+    }
     async recordKitchenThroughput(branchId, ordersPerHour, period = 'hourly') {
         const branch = await this.branchRepo.findOne({ where: { id: branchId } });
         return this.recordKitchenSLA({
@@ -171,6 +441,165 @@ let KitchenService = class KitchenService {
             measurementPeriod: period,
             measuredAt: new Date()
         });
+    }
+    async calculateAndRecordKitchenThroughput(branchId, period = 'hourly') {
+        try {
+            const branch = await this.branchRepo.findOne({ where: { id: branchId } });
+            if (!branch)
+                throw new Error(`Branch not found: ${branchId}`);
+            const now = new Date();
+            let startDate;
+            switch (period) {
+                case 'hourly':
+                    startDate = new Date(now.getTime() - 60 * 60 * 1000);
+                    break;
+                case 'daily':
+                    startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                    break;
+                case 'weekly':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    startDate = new Date(now.getTime() - 60 * 60 * 1000);
+            }
+            const completedOrders = await this.orderRepo.count({
+                where: {
+                    restaurantId: branch.id,
+                    status: (0, typeorm_2.In)(['delivered', 'completed']),
+                    updatedAt: (0, typeorm_2.Between)(startDate, now)
+                }
+            });
+            const hoursInPeriod = {
+                hourly: 1,
+                daily: 24,
+                weekly: 24 * 7
+            }[period];
+            const ordersPerHour = completedOrders / hoursInPeriod;
+            return this.recordKitchenSLA({
+                branch,
+                metricName: 'kitchen_throughput',
+                value: ordersPerHour,
+                unit: 'orders_per_hour',
+                targetValue: 50,
+                targetUnit: 'orders_per_hour',
+                measurementPeriod: period,
+                measuredAt: now
+            });
+        }
+        catch (error) {
+            this.logger.error(`Error calculating kitchen throughput for branch ${branchId}`, error);
+            throw error;
+        }
+    }
+    async calculateAndRecordAvgPrepTime(branchId, period = 'hourly') {
+        try {
+            const branch = await this.branchRepo.findOne({ where: { id: branchId } });
+            if (!branch)
+                throw new Error(`Branch not found: ${branchId}`);
+            const now = new Date();
+            let startDate;
+            switch (period) {
+                case 'hourly':
+                    startDate = new Date(now.getTime() - 60 * 60 * 1000);
+                    break;
+                case 'daily':
+                    startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                    break;
+                case 'weekly':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    startDate = new Date(now.getTime() - 60 * 60 * 1000);
+            }
+            const foodPrepRecords = await this.foodPrepRepo.find({
+                where: {
+                    branch: { id: branchId },
+                    status: 'completed',
+                    actualPrepTimeMinutes: (0, typeorm_2.Not)((0, typeorm_2.IsNull)()),
+                    completedAt: (0, typeorm_2.Between)(startDate, now)
+                }
+            });
+            if (foodPrepRecords.length === 0) {
+                return this.recordKitchenSLA({
+                    branch,
+                    metricName: 'avg_prep_time',
+                    value: 0,
+                    unit: 'minutes',
+                    targetValue: 30,
+                    targetUnit: 'minutes',
+                    measurementPeriod: period,
+                    measuredAt: now
+                });
+            }
+            const totalPrepTime = foodPrepRecords.reduce((sum, record) => sum + (record.actualPrepTimeMinutes || 0), 0);
+            const avgPrepTime = totalPrepTime / foodPrepRecords.length;
+            return this.recordKitchenSLA({
+                branch,
+                metricName: 'avg_prep_time',
+                value: avgPrepTime,
+                unit: 'minutes',
+                targetValue: 30,
+                targetUnit: 'minutes',
+                measurementPeriod: period,
+                measuredAt: now
+            });
+        }
+        catch (error) {
+            this.logger.error(`Error calculating average prep time for branch ${branchId}`, error);
+            throw error;
+        }
+    }
+    async recordPrepDelaySLA(branchId, actualDelay, targetDelay) {
+        try {
+            const branch = await this.branchRepo.findOne({ where: { id: branchId } });
+            if (!branch)
+                return;
+            const isBreached = actualDelay > targetDelay;
+            const breachSeverity = isBreached
+                ? (actualDelay > targetDelay + 15 ? 'high' : actualDelay > targetDelay + 5 ? 'medium' : 'low')
+                : null;
+            const recentAlert = await this.slaAlertRepo.findOne({
+                where: {
+                    branch: { id: branchId },
+                    slaType: 'prep_delay',
+                    createdAt: (0, typeorm_2.MoreThan)(new Date(Date.now() - 60 * 60 * 1000))
+                },
+                order: { createdAt: 'DESC' }
+            });
+            if (isBreached && !recentAlert) {
+                const alert = this.slaAlertRepo.create({
+                    branch,
+                    slaType: 'prep_delay',
+                    targetValue: targetDelay,
+                    actualValue: actualDelay,
+                    isBreached: true,
+                    breachSeverity: breachSeverity
+                });
+                await this.slaAlertRepo.save(alert);
+                this.logger.log(`Created prep delay SLA alert for branch ${branchId}: ${actualDelay.toFixed(1)}m delay vs ${targetDelay.toFixed(1)}m target`);
+            }
+            else if (!isBreached && recentAlert) {
+                await this.slaAlertRepo.update({ id: recentAlert.id }, { isBreached: false, isNotified: true });
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error recording prep delay SLA for branch ${branchId}`, error);
+        }
+    }
+    async recordAllKitchenSLAs(branchId) {
+        try {
+            this.logger.log(`Recording all kitchen SLAs for branch ${branchId}`);
+            await Promise.all([
+                this.calculateAndRecordAvgPrepTime(branchId, 'hourly'),
+                this.calculateAndRecordFoodRejectionRate(branchId, 'hourly'),
+                this.calculateAndRecordKitchenThroughput(branchId, 'hourly')
+            ]);
+            this.logger.log(`Completed recording all kitchen SLAs for branch ${branchId}`);
+        }
+        catch (error) {
+            this.logger.error(`Error recording all kitchen SLAs for branch ${branchId}`, error);
+            throw error;
+        }
     }
     async getKitchenSLABranch(branchId, metricName, limit = 100) {
         const where = { branch: { id: branchId } };
@@ -285,7 +714,7 @@ let KitchenService = class KitchenService {
     }
 };
 exports.KitchenService = KitchenService;
-exports.KitchenService = KitchenService = __decorate([
+exports.KitchenService = KitchenService = KitchenService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(inventory_item_entity_1.InventoryItemEntity)),
     __param(1, (0, typeorm_1.InjectRepository)(recipe_entity_1.RecipeEntity)),
@@ -294,7 +723,17 @@ exports.KitchenService = KitchenService = __decorate([
     __param(4, (0, typeorm_1.InjectRepository)(kitchen_sla_entity_1.KitchenSLAEntity)),
     __param(5, (0, typeorm_1.InjectRepository)(supplier_entity_1.SupplierEntity)),
     __param(6, (0, typeorm_1.InjectRepository)(restaurant_branch_entity_1.RestaurantBranchEntity)),
+    __param(7, (0, typeorm_1.InjectRepository)(inventory_alert_entity_1.InventoryAlertEntity)),
+    __param(8, (0, typeorm_1.InjectRepository)(sla_alert_entity_1.SLAAlertEntity)),
+    __param(9, (0, typeorm_1.InjectRepository)(menu_item_availability_entity_1.MenuItemAvailabilityEntity)),
+    __param(10, (0, typeorm_1.InjectRepository)(order_entity_1.OrderEntity)),
+    __param(11, (0, typeorm_1.InjectRepository)(order_item_entity_1.OrderItemEntity)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

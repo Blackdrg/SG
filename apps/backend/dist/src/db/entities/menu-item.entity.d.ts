@@ -1,3 +1,4 @@
+import { HSNSACEntity } from './hsn-sac.entity';
 export declare class MenuItemEntity {
     id: string;
     name: string;
@@ -8,6 +9,8 @@ export declare class MenuItemEntity {
     spiceLevel: number;
     status: string;
     category: any;
+    hsnSacId?: string;
+    hsnSac?: HSNSACEntity;
     createdAt: Date;
     updatedAt: Date;
 }

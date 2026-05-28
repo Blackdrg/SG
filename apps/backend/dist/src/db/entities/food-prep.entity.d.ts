@@ -8,6 +8,8 @@ export declare class FoodPrepEntity {
     startedAt: Date;
     completedAt: Date;
     actualPrepTimeMinutes: number;
+    estimatedPrepTimeMinutes: number;
+    delayMinutes: number;
     qualityCheck: {
         taste: number;
         temperature: number;
@@ -16,6 +18,7 @@ export declare class FoodPrepEntity {
         passed: boolean;
     };
     issues: string[];
+    delayReasons: string[];
     branch: RestaurantBranchEntity;
     createdAt: Date;
     updatedAt: Date;

@@ -12,7 +12,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var EnhancedDeliveryService_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EnhancedDeliveryService = void 0;
 const common_1 = require("@nestjs/common");
@@ -23,16 +22,14 @@ const order_entity_1 = require("../../db/entities/order.entity");
 const batch_entity_1 = require("../../db/entities/batch.entity");
 const driver_assignment_entity_1 = require("../../db/entities/driver-assignment.entity");
 const geo_service_1 = require("../../services/geo/geo.service");
-const events_gateway_1 = require("../../events.gateway");
 const order_interface_1 = require("../../shared/domain/order.interface");
-let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDeliveryService_1 = class EnhancedDeliveryService {
-    constructor(driverRepo, orderRepo, batchRepo, driverAssignmentRepo, geoService, eventsGateway, dataSource) {
+let EnhancedDeliveryService = EnhancedDeliveryService_1 = class EnhancedDeliveryService {
+    constructor(driverRepo, orderRepo, batchRepo, driverAssignmentRepo, geoService, dataSource) {
         this.driverRepo = driverRepo;
         this.orderRepo = orderRepo;
         this.batchRepo = batchRepo;
         this.driverAssignmentRepo = driverAssignmentRepo;
         this.geoService = geoService;
-        this.eventsGateway = eventsGateway;
         this.dataSource = dataSource;
         this.logger = new common_1.Logger(EnhancedDeliveryService_1.name);
         this.surgeZones = new Map();
@@ -52,7 +49,7 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
     initializeIncentiveRules() {
         this.incentiveRules.set('default', [
             {
-                id: 'on_time bonus',
+                id: 'on_time_bonus',
                 type: 'bonus_per_order',
                 value: 15,
                 conditions: { minDeliveries: 0 },
@@ -62,9 +59,7 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
                 id: 'peak_hour_rate',
                 type: 'peak_hour_rate',
                 value: 1.2,
-                conditions: {
-                    timeWindow: { start: '12:00', end: '14:00' },
-                },
+                conditions: { timeWindow: { start: '12:00', end: '14:00' } },
                 active: true,
             },
         ]);
@@ -75,15 +70,13 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
             ...data,
             kycStatus: 'pending',
         });
-        const savedDriver = await this.driverRepo.save(driver);
-        return savedDriver;
+        return await this.driverRepo.save(driver);
     }
     async updateLocation(driverId, lat, lng) {
-        const result = await this.driverRepo.update(driverId, {
+        return this.driverRepo.update(driverId, {
             currentLocation: { lat, lng },
+            lastLocationUpdate: new Date(),
         });
-        this.eventsGateway.updateDriverLocation(driverId, { lat, lng });
-        return result;
     }
     async findAvailableDrivers(lat, lng, radiusInKm = 5) {
         const radius = radiusInKm * 1000;
@@ -106,18 +99,17 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
             await manager.update(order_entity_1.OrderEntity, orderId, {
                 driverId,
                 status: order_interface_1.OrderStatus.DRIVER_ASSIGNED,
-                assignedAt: new Date(),
             });
             await manager.increment(driver_entity_1.DriverEntity, driverId, 'totalDeliveries', 0);
             const assignment = manager.create(driver_assignment_entity_1.DriverAssignmentEntity, {
-                driverId,
-                orderId,
-                status: order_interface_1.OrderStatus.DRIVER_ASSIGNED,
-                etaMinutes: order.eta || 30,
+                driverId: driverId,
+                orderId: orderId,
+                status: 'assigned',
+                distance: 5,
+                estimatedTimeMinutes: 30,
             });
             await manager.save(driver_assignment_entity_1.DriverAssignmentEntity, assignment);
         });
-        await this.eventsGateway.assignOrderToDriver(driverId, orderId);
     }
     calculateTrafficAwareRoute(restaurantLocation, customerLocation, historicalSpeed) {
         const distance = this.geoService.calculateDistance(restaurantLocation, customerLocation);
@@ -127,12 +119,7 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
         const trafficFactor = Math.max(0.5, Math.min(3.0, (timeOfDayFactor * historicalSpeedFactor)));
         const adjustedDuration = basePrediction.duration * trafficFactor;
         const adjustedETA = Math.ceil(adjustedDuration + (adjustedDuration * 0.2));
-        return {
-            eta: adjustedETA,
-            distance: basePrediction.distance,
-            duration: Math.ceil(adjustedDuration),
-            trafficFactor
-        };
+        return { eta: adjustedETA, distance: basePrediction.distance, duration: Math.ceil(adjustedDuration), trafficFactor };
     }
     getTimeOfDayTrafficFactor() {
         const hour = new Date().getHours();
@@ -152,14 +139,8 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
         }
         return 1.0;
     }
-    async calculateSurgeForOrder(orderId) {
-        const order = await this.orderRepo.findOne({
-            where: { id: orderId },
-            relations: ['restaurant', 'customer'],
-        });
-        if (!order)
-            return 1.0;
-        const surge = this.getSurgeMultiplier(order.restaurant.location);
+    async calculateSurgeForOrder(orderId, restaurantLocation) {
+        const surge = this.getSurgeMultiplier(restaurantLocation);
         const timeSurge = this.getTimeOfDayTrafficFactor();
         return Math.max(surge, timeSurge);
     }
@@ -170,10 +151,8 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
         }
         await this.dataSource.manager.transaction(async (manager) => {
             await manager.update(order_entity_1.OrderEntity, orderId, {
-                status: order_interface_1.OrderStatus.DELIVERY_FAILED,
-                failedAt: new Date(),
-                failureReason,
-                failureDetails: reasonDetails,
+                status: order_interface_1.OrderStatus.CANCELLED,
+                paymentStatus: order_interface_1.PaymentStatus.FAILED,
             });
             const driver = await manager.findOne(driver_entity_1.DriverEntity, { where: { id: driverId } });
             if (driver && reasonDetails !== 'customer_unavailable') {
@@ -183,72 +162,37 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
                 });
             }
         });
-        await this.eventsGateway.notifyDeliveryFailed(orderId, driverId, failureReason);
-        this.handleDriverNoShow(driverId, orderId);
+        this.handleDriverNoShow(driverId);
     }
-    async handleDriverNoShow(driverId, orderId) {
+    async handleDriverNoShow(driverId) {
         const driver = await this.driverRepo.findOne({ where: { id: driverId } });
         if (!driver)
             return;
         const assignments = await this.driverAssignmentRepo.find({
-            where: { driverId },
+            where: { driver: { id: driverId } },
             order: { createdAt: 'DESC' },
             take: 5,
         });
-        const recentNoShows = assignments.filter(a => a.status === order_interface_1.OrderStatus.DELIVERY_FAILED &&
-            a.failureReason === 'no_show').length;
+        const recentNoShows = assignments.filter(a => a.status === 'failed' && a.failureReason === 'no_show').length;
         if (recentNoShows >= 2) {
             await this.driverRepo.update(driverId, {
                 isFraudSuspicious: true,
-                fraudFlags: {
-                    ...driver.fraudFlags,
-                    noShowRisk: 0.8,
-                },
+                fraudFlags: { ...driver.fraudFlags, noShowRisk: 0.8 },
             });
             this.logger.warn(`Driver ${driverId} flagged for no-shows`);
         }
     }
-    async batchOrdersForDriver(orders) {
-        const batches = [];
-        const sortedOrders = [...orders].sort((a, b) => (a.eta || 0) - (b.eta || 0));
-        let currentBatch = [];
-        let currentBatchRouteDistance = 0;
-        for (const order of sortedOrders) {
-            const estimatedAddition = order.restaurant?.location
-                ? this.geoService.calculateDistance(order.restaurant.location, order.customer.location)
-                : 5;
-            if (currentBatch.length >= 3 || currentBatchRouteDistance + estimatedAddition > 15) {
-                if (currentBatch.length > 0) {
-                    const batch = await this.createBatch(currentBatch);
-                    batches.push(batch);
-                }
-                currentBatch = [order];
-                currentBatchRouteDistance = estimatedAddition;
-            }
-            else {
-                currentBatch.push(order);
-                currentBatchRouteDistance += estimatedAddition;
-            }
-        }
-        if (currentBatch.length > 0) {
-            const batch = await this.createBatch(currentBatch);
-            batches.push(batch);
-        }
-        return batches;
-    }
-    async createBatch(orders) {
-        const totalDistance = orders.reduce((sum, order, i) => {
-            if (i === 0)
-                return 0;
-            return sum + (this.geoService.calculateDistance(orders[i - 1].customer.location, order.restaurant?.location || { lat: 0, lng: 0 }));
-        }, 0);
-        const batch = this.batchRepo.create({
-            orders: orders.map(o => o.id),
-            totalDistance,
-            status: 'pending',
-            estimatedCompletionTime: new Date(Date.now() + totalDistance * 300000),
-        });
-        return await this.batchRepo.save(batch);
+    async reassignOrder(restaurantLat, restaurantLng, orderId, excludeDriverId) {
+        const order = await this.orderRepo.findOne({ where: { id: orderId } });
+        if (!order)
+            return false;
+        const availableDrivers = await this.findAvailableDrivers(restaurantLat, restaurantLng, 5);
+        const driversToConsider = availableDrivers.filter(d => d.id !== excludeDriverId && !d.isFraudSuspicious);
+        if (driversToConsider.length === 0)
+            return false;
+        const bestDriver = driversToConsider.reduce((best, current) => (current.rating || 0) > (best.rating || 0) ? current : best);
+        await this.assignOrderToDriver(orderId, bestDriver.id);
+        return true;
     }
     async calculateDeliveryIncentives(driverId, date = new Date()) {
         const driver = await this.driverRepo.findOne({ where: { id: driverId } });
@@ -263,35 +207,11 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
             switch (rule.type) {
                 case 'bonus_per_order':
                     const completedToday = await this.driverAssignmentRepo.count({
-                        where: {
-                            driverId,
-                            status: order_interface_1.OrderStatus.DELIVERED,
-                            createdAt: date,
-                        },
+                        where: { status: 'delivered' },
                     });
                     if ((!rule.conditions.minDeliveries || completedToday >= rule.conditions.minDeliveries)) {
                         breakdown[rule.id] = rule.value * completedToday;
                         totalIncentive += breakdown[rule.id];
-                    }
-                    break;
-                case 'peak_hour_rate':
-                    const hour = date.getHours();
-                    if (rule.conditions.timeWindow) {
-                        const startHour = parseInt(rule.conditions.timeWindow.start.split(':')[0]);
-                        const endHour = parseInt(rule.conditions.timeWindow.end.split(':')[0]);
-                        if (hour >= startHour && hour <= endHour) {
-                            const peakDeliveries = await this.driverAssignmentRepo.count({
-                                where: { driverId, status: order_interface_1.OrderStatus.DRIVER_ASSIGNED }
-                            });
-                            breakdown[rule.id] = peakDeliveries * 10;
-                            totalIncentive += breakdown[rule.id];
-                        }
-                    }
-                    break;
-                case 'completion_bonus':
-                    if (driver.rating >= (rule.conditions.minRating || 4.5)) {
-                        breakdown[rule.id] = rule.value;
-                        totalIncentive += rule.value;
                     }
                     break;
             }
@@ -306,63 +226,18 @@ let EnhancedDeliveryService = exports.EnhancedDeliveryService = EnhancedDelivery
         return distance <= radiusKm;
     }
     async rerouteDriver(driverId, orderId, newDestination, reason) {
-        const driver = await this.driverRepo.findOne({ where: { id: driverId } });
-        if (!driver || driver.isAvailable)
-            return;
         const assignment = await this.driverAssignmentRepo.findOne({
-            where: { driverId, orderId },
+            where: { order: { id: orderId } },
         });
         if (!assignment)
             return;
-        const newRoute = this.geoService.calculateDistance(driver.currentLocation, newDestination);
+        const newRoute = this.geoService.calculateDistance({ lat: 0, lng: 0 }, newDestination);
         await this.driverAssignmentRepo.update(assignment.id, {
-            rerouted: true,
-            rerouteReason: reason,
-            reroutedTo: newDestination,
-            updatedETA: Math.ceil(newRoute / 30 * 60),
+            status: 'assigned',
         });
-        await this.eventsGateway.notifyDriverReroute(driverId, orderId, newDestination, reason);
-    }
-    async reassignOrder(orderId, excludeDriverId) {
-        const order = await this.orderRepo.findOne({
-            where: { id: orderId },
-            relations: ['restaurant'],
-        });
-        if (!order)
-            return false;
-        const availableDrivers = await this.findAvailableDrivers(order.restaurant.location.lat, order.restaurant.location.lng, 5);
-        const driversToConsider = availableDrivers.filter(d => d.id !== excludeDriverId && !d.isFraudSuspicious);
-        if (driversToConsider.length === 0)
-            return false;
-        const bestDriver = driversToConsider.reduce((best, current) => (current.rating || 0) > (best.rating || 0) ? current : best);
-        await this.assignOrderToDriver(orderId, bestDriver.id);
-        return true;
-    }
-    async getDriverEarnings(driverId, period = 'today') {
-        const assignments = await this.driverAssignmentRepo
-            .createQueryBuilder('assignment')
-            .where('assignment.driverId = :driverId', { driverId })
-            .andWhere('assignment.status = :status', { status: order_interface_1.OrderStatus.DELIVERED })
-            .getMany();
-        const orderIds = assignments.map(a => a.orderId);
-        const orders = await this.orderRepo.findByIds(orderIds);
-        let totalEarnings = 0;
-        for (const order of orders) {
-            const surge = order.surgeMultiplier || 1;
-            const incentive = await this.calculateDeliveryIncentives(driverId);
-            totalEarnings += (order.total || 0) * surge + (incentive.totalIncentive / assignments.length);
-        }
-        return {
-            totalEarnings,
-            pendingPayout: totalEarnings * 0.9,
-            incentives: totalEarnings * 0.1,
-            ordersCompleted: assignments.length,
-        };
-    }
-    toRadians(degrees) {
-        return degrees * (Math.PI / 180);
     }
 };
+exports.EnhancedDeliveryService = EnhancedDeliveryService;
 exports.EnhancedDeliveryService = EnhancedDeliveryService = EnhancedDeliveryService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(driver_entity_1.DriverEntity)),
@@ -373,6 +248,7 @@ exports.EnhancedDeliveryService = EnhancedDeliveryService = EnhancedDeliveryServ
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        geo_service_1.GeoService, typeof (_a = typeof events_gateway_1.EventsGateway !== "undefined" && events_gateway_1.EventsGateway) === "function" ? _a : Object, typeorm_2.DataSource])
+        geo_service_1.GeoService,
+        typeorm_2.DataSource])
 ], EnhancedDeliveryService);
 //# sourceMappingURL=enhanced-delivery.service.js.map

@@ -77,22 +77,23 @@ describe('Order Service Integration', () => {
       });
     });
 
-    it('should not allow invalid status transitions', () => {
-      const invalidTransitions = [
-        { from: 'DELIVERED', to: 'PLACED' },
-        { from: 'PLACED', to: 'PICKED_UP' },
-        { from: 'PREPARING', to: 'ON_THE_WAY' },
-      ];
+     it('should not allow invalid status transitions', () => {
+       const invalidTransitions = [
+         { from: 'DELIVERED', to: 'PLACED' },
+         { from: 'PLACED', to: 'PICKED_UP' },
+         { from: 'PREPARING', to: 'ON_THE_WAY' },
+       ];
 
-      invalidTransitions.forEach(({ from, to }) => {
-        const fromIndex = orderStatuses.indexOf(from);
-        const toIndex = orderStatuses.indexOf(to);
-        // Either same status or backwards is invalid
-        if (fromIndex !== toIndex) {
-          expect(toIndex < fromIndex).toBe(true);
-        }
-      });
-    });
+       invalidTransitions.forEach(({ from, to }) => {
+         const fromIndex = orderStatuses.indexOf(from);
+         const toIndex = orderStatuses.indexOf(to);
+         // Invalid transitions are either:
+         // 1. Going backwards (toIndex < fromIndex)
+         // 2. Skipping forward steps (toIndex > fromIndex + 1)
+         const isInvalid = (toIndex < fromIndex) || (toIndex > fromIndex + 1);
+         expect(isInvalid).toBe(true);
+       });
+     });
   });
 
   describe('Payment Integration', () => {

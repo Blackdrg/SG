@@ -11,6 +11,10 @@ export declare class BatchEntity {
     startedAt: Date;
     completedAt: Date;
     expiresAt: Date;
+    estimatedPrepTimeMinutes: number;
+    actualPrepTimeMinutes: number;
+    delayMinutes: number;
+    delayReasons: string[];
     branch: RestaurantBranchEntity;
     createdAt: Date;
     updatedAt: Date;

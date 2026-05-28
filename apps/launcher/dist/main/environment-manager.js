@@ -37,6 +37,7 @@ exports.EnvironmentManager = void 0;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const crypto = __importStar(require("crypto"));
+const child_process = __importStar(require("child_process"));
 class EnvironmentManager {
     storeManager;
     ports = [
@@ -81,14 +82,14 @@ class EnvironmentManager {
     }
     checkDockerInstalled() {
         return new Promise((resolve) => {
-            const proc = require('child_process').spawn('docker', ['--version'], { shell: true });
+            const proc = child_process.spawn('docker', ['--version'], { shell: true });
             proc.on('close', (code) => resolve(code === 0));
             proc.on('error', () => resolve(false));
         });
     }
     checkDockerRunning() {
         return new Promise((resolve) => {
-            const proc = require('child_process').spawn('docker', ['info'], { shell: true });
+            const proc = child_process.spawn('docker', ['info'], { shell: true });
             proc.on('close', (code) => resolve(code === 0));
             proc.on('error', () => resolve(false));
         });
@@ -106,7 +107,7 @@ class EnvironmentManager {
     }
     isPortAvailable(port) {
         return new Promise((resolve) => {
-            const proc = require('child_process').spawn('netstat', ['-an'], { shell: true });
+            const proc = child_process.spawn('netstat', ['-an'], { shell: true });
             let output = '';
             proc.stdout.on('data', (data) => (output += data.toString()));
             proc.on('close', () => {
@@ -122,11 +123,12 @@ class EnvironmentManager {
         }
     }
     async generateEnv() {
-        const secrets = this.storeManager.getSecrets();
+        let secrets = this.storeManager.getSecrets();
         if (!secrets) {
             this.generateSecrets();
+            secrets = this.storeManager.getSecrets();
         }
-        const envContent = this.buildEnvContent(secrets || this.storeManager.getSecrets());
+        const envContent = this.buildEnvContent(secrets);
         const envPath = path.join(process.cwd(), '.env');
         fs.writeFileSync(envPath, envContent);
         const secretsPath = path.join(process.cwd(), 'secrets');

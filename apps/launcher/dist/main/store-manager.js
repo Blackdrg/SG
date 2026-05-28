@@ -40,7 +40,6 @@ exports.StoreManager = void 0;
 const electron_1 = require("electron");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-// @ts-ignore - electron-store types may vary
 const electron_store_1 = __importDefault(require("electron-store"));
 class StoreManager {
     store;

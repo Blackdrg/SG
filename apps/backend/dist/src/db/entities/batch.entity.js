@@ -57,6 +57,22 @@ __decorate([
     __metadata("design:type", Date)
 ], BatchEntity.prototype, "expiresAt", void 0);
 __decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], BatchEntity.prototype, "estimatedPrepTimeMinutes", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], BatchEntity.prototype, "actualPrepTimeMinutes", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], BatchEntity.prototype, "delayMinutes", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Array)
+], BatchEntity.prototype, "delayReasons", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => restaurant_branch_entity_1.RestaurantBranchEntity),
     __metadata("design:type", restaurant_branch_entity_1.RestaurantBranchEntity)
 ], BatchEntity.prototype, "branch", void 0);

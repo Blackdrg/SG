@@ -64,8 +64,17 @@ let KitchenController = class KitchenController {
     async recordFoodRejectionRate(branchId, rejectionRate, period = 'hourly') {
         return this.kitchenService.recordFoodRejectionRate(branchId, rejectionRate, period);
     }
+    async calculateFoodRejectionRate(branchId, period = 'hourly') {
+        return this.kitchenService.calculateAndRecordFoodRejectionRate(branchId, period);
+    }
     async recordKitchenThroughput(branchId, ordersPerHour, period = 'hourly') {
         return this.kitchenService.recordKitchenThroughput(branchId, ordersPerHour, period);
+    }
+    async calculateKitchenThroughput(branchId, period = 'hourly') {
+        return this.kitchenService.calculateAndRecordKitchenThroughput(branchId, period);
+    }
+    async recordAllKitchenSLAs(branchId) {
+        return this.kitchenService.recordAllKitchenSLAs(branchId);
     }
     async getKitchenSLABranch(branchId, metricName, limit = 100) {
         return this.kitchenService.getKitchenSLABranch(branchId, metricName, limit);
@@ -204,6 +213,14 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], KitchenController.prototype, "recordFoodRejectionRate", null);
 __decorate([
+    (0, common_1.Post)('sla/food-rejection/calculate/:branchId'),
+    __param(0, (0, common_1.Param)('branchId')),
+    __param(1, (0, common_1.Query)('period')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], KitchenController.prototype, "calculateFoodRejectionRate", null);
+__decorate([
     (0, common_1.Post)('sla/throughput/:branchId'),
     __param(0, (0, common_1.Param)('branchId')),
     __param(1, (0, common_1.Body)('ordersPerHour')),
@@ -212,6 +229,21 @@ __decorate([
     __metadata("design:paramtypes", [String, Number, String]),
     __metadata("design:returntype", Promise)
 ], KitchenController.prototype, "recordKitchenThroughput", null);
+__decorate([
+    (0, common_1.Post)('sla/throughput/calculate/:branchId'),
+    __param(0, (0, common_1.Param)('branchId')),
+    __param(1, (0, common_1.Query)('period')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], KitchenController.prototype, "calculateKitchenThroughput", null);
+__decorate([
+    (0, common_1.Post)('sla/record-all/:branchId'),
+    __param(0, (0, common_1.Param)('branchId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], KitchenController.prototype, "recordAllKitchenSLAs", null);
 __decorate([
     (0, common_1.Get)('sla/branch/:branchId'),
     __param(0, (0, common_1.Param)('branchId')),

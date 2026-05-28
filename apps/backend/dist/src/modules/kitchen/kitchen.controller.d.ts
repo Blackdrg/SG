@@ -26,7 +26,10 @@ export declare class KitchenController {
     recordAvgPrepTime(branchId: string, prepTimeMinutes: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
     recordLatePrepPercentage(branchId: string, latePercentage: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
     recordFoodRejectionRate(branchId: string, rejectionRate: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    calculateFoodRejectionRate(branchId: string, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
     recordKitchenThroughput(branchId: string, ordersPerHour: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    calculateKitchenThroughput(branchId: string, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;
+    recordAllKitchenSLAs(branchId: string): Promise<void>;
     getKitchenSLABranch(branchId: string, metricName?: string, limit?: number): Promise<KitchenSLAEntity[]>;
     getKitchenSLASummary(branchId: string, period?: 'hourly' | 'daily' | 'weekly'): Promise<Record<string, any>>;
     createSupplier(data: Partial<SupplierEntity>): Promise<SupplierEntity>;

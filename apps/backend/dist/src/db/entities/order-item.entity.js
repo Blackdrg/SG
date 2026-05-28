@@ -11,6 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderItemEntity = void 0;
 const typeorm_1 = require("typeorm");
+const order_entity_1 = require("./order.entity");
+const menu_item_entity_1 = require("./menu-item.entity");
+const hsn_sac_entity_1 = require("./hsn-sac.entity");
 let OrderItemEntity = class OrderItemEntity {
 };
 exports.OrderItemEntity = OrderItemEntity;
@@ -24,7 +27,7 @@ __decorate([
 ], OrderItemEntity.prototype, "orderId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)('OrderEntity'),
-    __metadata("design:type", Object)
+    __metadata("design:type", order_entity_1.OrderEntity)
 ], OrderItemEntity.prototype, "order", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
@@ -32,8 +35,16 @@ __decorate([
 ], OrderItemEntity.prototype, "menuItemId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)('MenuItemEntity'),
-    __metadata("design:type", Object)
+    __metadata("design:type", menu_item_entity_1.MenuItemEntity)
 ], OrderItemEntity.prototype, "menuItem", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], OrderItemEntity.prototype, "hsnSacId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => hsn_sac_entity_1.HSNSACEntity, { nullable: true }),
+    __metadata("design:type", hsn_sac_entity_1.HSNSACEntity)
+], OrderItemEntity.prototype, "hsnSac", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
@@ -41,7 +52,11 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
     __metadata("design:type", Number)
-], OrderItemEntity.prototype, "price", void 0);
+], OrderItemEntity.prototype, "unitPrice", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "totalPrice", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
@@ -54,6 +69,38 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)
 ], OrderItemEntity.prototype, "addons", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "cgstRate", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "sgstRate", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "igstRate", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "cgstAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "sgstAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "igstAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "totalTax", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
+    __metadata("design:type", Number)
+], OrderItemEntity.prototype, "totalAmount", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

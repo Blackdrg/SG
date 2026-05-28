@@ -15,20 +15,15 @@ const order_entity_1 = require("../../db/entities/order.entity");
 const batch_entity_1 = require("../../db/entities/batch.entity");
 const driver_assignment_entity_1 = require("../../db/entities/driver-assignment.entity");
 const geo_service_1 = require("../../services/geo/geo.service");
-const events_gateway_1 = require("../../events.gateway");
-let EnhancedDeliveryServiceModule = exports.EnhancedDeliveryServiceModule = class EnhancedDeliveryServiceModule {
+let EnhancedDeliveryServiceModule = class EnhancedDeliveryServiceModule {
 };
+exports.EnhancedDeliveryServiceModule = EnhancedDeliveryServiceModule;
 exports.EnhancedDeliveryServiceModule = EnhancedDeliveryServiceModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([
-                driver_entity_1.DriverEntity,
-                order_entity_1.OrderEntity,
-                batch_entity_1.BatchEntity,
-                driver_assignment_entity_1.DriverAssignmentEntity,
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([driver_entity_1.DriverEntity, order_entity_1.OrderEntity, batch_entity_1.BatchEntity, driver_assignment_entity_1.DriverAssignmentEntity]),
         ],
-        providers: [enhanced_delivery_service_1.EnhancedDeliveryService, geo_service_1.GeoService, events_gateway_1.EventsGateway],
+        providers: [enhanced_delivery_service_1.EnhancedDeliveryService, geo_service_1.GeoService],
         exports: [enhanced_delivery_service_1.EnhancedDeliveryService],
     })
 ], EnhancedDeliveryServiceModule);

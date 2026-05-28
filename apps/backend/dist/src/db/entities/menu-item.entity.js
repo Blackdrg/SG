@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MenuItemEntity = void 0;
 const typeorm_1 = require("typeorm");
+const hsn_sac_entity_1 = require("./hsn-sac.entity");
 let MenuItemEntity = class MenuItemEntity {
 };
 exports.MenuItemEntity = MenuItemEntity;
@@ -50,6 +51,14 @@ __decorate([
     (0, typeorm_1.ManyToOne)('MenuCategoryEntity', (category) => category.items),
     __metadata("design:type", Object)
 ], MenuItemEntity.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], MenuItemEntity.prototype, "hsnSacId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => hsn_sac_entity_1.HSNSACEntity, { nullable: true }),
+    __metadata("design:type", hsn_sac_entity_1.HSNSACEntity)
+], MenuItemEntity.prototype, "hsnSac", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

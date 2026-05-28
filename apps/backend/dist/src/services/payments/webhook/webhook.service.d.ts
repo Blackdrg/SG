@@ -6,6 +6,7 @@ import { OrderEntity } from '../../../db/entities/order.entity';
 import { PaymentFraudFlagEntity } from '../payment-fraud.entity';
 import { NotificationService } from '../../notifications/notification.service';
 import { ProductionNotificationService } from '../../notifications/production-notification.service';
+import { LedgerService } from '../../../modules/ledger/ledger.service';
 export declare class WebhookService {
     private configService;
     private readonly webhookRepo;
@@ -14,9 +15,10 @@ export declare class WebhookService {
     private readonly fraudFlagRepo;
     private notificationService;
     private productionNotification;
+    private ledgerService;
     private readonly logger;
     private stripe;
-    constructor(configService: ConfigService, webhookRepo: Repository<StripeWebhookEntity>, paymentEventRepo: Repository<PaymentEventEntity>, orderRepo: Repository<OrderEntity>, fraudFlagRepo: Repository<PaymentFraudFlagEntity>, notificationService: NotificationService, productionNotification: ProductionNotificationService);
+    constructor(configService: ConfigService, webhookRepo: Repository<StripeWebhookEntity>, paymentEventRepo: Repository<PaymentEventEntity>, orderRepo: Repository<OrderEntity>, fraudFlagRepo: Repository<PaymentFraudFlagEntity>, notificationService: NotificationService, productionNotification: ProductionNotificationService, ledgerService: LedgerService);
     processWebhook(payload: Buffer, signature: string): Promise<any>;
     private mapEventToPaymentEvent;
     private handleEvent;

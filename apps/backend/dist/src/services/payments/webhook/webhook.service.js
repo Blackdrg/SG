@@ -25,8 +25,9 @@ const payment_fraud_entity_1 = require("../payment-fraud.entity");
 const stripe_1 = require("stripe");
 const notification_service_1 = require("../../notifications/notification.service");
 const production_notification_service_1 = require("../../notifications/production-notification.service");
+const ledger_service_1 = require("../../../modules/ledger/ledger.service");
 let WebhookService = WebhookService_1 = class WebhookService {
-    constructor(configService, webhookRepo, paymentEventRepo, orderRepo, fraudFlagRepo, notificationService, productionNotification) {
+    constructor(configService, webhookRepo, paymentEventRepo, orderRepo, fraudFlagRepo, notificationService, productionNotification, ledgerService) {
         this.configService = configService;
         this.webhookRepo = webhookRepo;
         this.paymentEventRepo = paymentEventRepo;
@@ -34,6 +35,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
         this.fraudFlagRepo = fraudFlagRepo;
         this.notificationService = notificationService;
         this.productionNotification = productionNotification;
+        this.ledgerService = ledgerService;
         this.logger = new common_1.Logger(WebhookService_1.name);
         this.stripe = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY') || 'sk_test_placeholder', {
             apiVersion: '2024-04-10',
@@ -146,6 +148,12 @@ let WebhookService = WebhookService_1 = class WebhookService {
             amount: paymentIntent.amount / 100,
             message: `Payment succeeded for ${paymentIntent.amount / 100}`,
         });
+        try {
+            await this.ledgerService.createTransaction(paymentIntent.id, 'cash', 'revenue', paymentIntent.amount / 100, paymentIntent.currency, 'payment', paymentIntent.id, `Payment succeeded for order ${paymentIntent.metadata?.orderId || 'unknown'}`);
+        }
+        catch (ledgerError) {
+            this.logger.error('Failed to create ledger entry for payment success:', ledgerError);
+        }
         this.logger.log(`PaymentIntent ${paymentIntent.id} succeeded`);
         return { received: true, paymentConfirmed: true };
     }
@@ -177,6 +185,12 @@ let WebhookService = WebhookService_1 = class WebhookService {
             amount: (charge.amount_refunded || 0) / 100,
             message: `Refund completed for ${(charge.amount_refunded || 0) / 100}`,
         });
+        try {
+            await this.ledgerService.createTransaction(charge.id, 'refund', 'cash', (charge.amount_refunded || 0) / 100, charge.currency, 'refund', charge.id, `Refund processed for charge ${charge.id}`);
+        }
+        catch (ledgerError) {
+            this.logger.error('Failed to create ledger entry for refund:', ledgerError);
+        }
         this.logger.log(`Charge ${charge.id} refunded for ${charge.amount_refunded}`);
         return { received: true, refundProcessed: true };
     }
@@ -207,6 +221,12 @@ let WebhookService = WebhookService_1 = class WebhookService {
     }
     async handleChargeSucceeded(event) {
         const charge = event.data.object;
+        try {
+            await this.ledgerService.createTransaction(charge.id, 'cash', 'revenue', charge.amount / 100, charge.currency, 'payment', charge.id, `Payment succeeded for charge ${charge.id}`);
+        }
+        catch (ledgerError) {
+            this.logger.error('Failed to create ledger entry for charge success:', ledgerError);
+        }
         this.logger.log(`Charge succeeded: ${charge.id}`);
         return { received: true, chargeSucceeded: true };
     }
@@ -250,6 +270,7 @@ exports.WebhookService = WebhookService = WebhookService_1 = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         notification_service_1.NotificationService,
-        production_notification_service_1.ProductionNotificationService])
+        production_notification_service_1.ProductionNotificationService,
+        ledger_service_1.LedgerService])
 ], WebhookService);
 //# sourceMappingURL=webhook.service.js.map

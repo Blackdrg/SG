@@ -23,8 +23,11 @@ const idempotency_entity_1 = require("./idempotency.entity");
 const payment_validation_entity_1 = require("./payment-validation.entity");
 const payment_fraud_entity_1 = require("./payment-fraud.entity");
 const payment_event_entity_1 = require("./payment-event.entity");
+const ledger_entry_entity_1 = require("../../db/entities/ledger-entry.entity");
 const webhook_module_1 = require("./webhook/webhook.module");
 const audit_module_1 = require("../../audit/audit.module");
+const ledger_module_1 = require("../../../modules/ledger/ledger.module");
+const gst_module_1 = require("../../services/gst/gst.module");
 let PaymentServiceModule = class PaymentServiceModule {
 };
 exports.PaymentServiceModule = PaymentServiceModule;
@@ -40,9 +43,12 @@ exports.PaymentServiceModule = PaymentServiceModule = __decorate([
                 payment_validation_entity_1.PaymentValidationEventEntity,
                 payment_fraud_entity_1.PaymentFraudFlagEntity,
                 payment_event_entity_1.PaymentEventEntity,
+                ledger_entry_entity_1.LedgerEntryEntity,
             ]),
             webhook_module_1.WebhookModule,
-            audit_module_1.AuditModule
+            audit_module_1.AuditModule,
+            ledger_module_1.LedgerModule,
+            gst_module_1.GSTModule
         ],
         providers: [payments_service_1.PaymentService, payment_hardening_service_1.PaymentHardeningService, retry_service_1.RetryService, fraud_hardening_service_1.FraudHardeningService, idempotency_service_1.IdempotencyService],
         controllers: [payments_controller_1.PaymentsController],

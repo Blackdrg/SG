@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderEntity = void 0;
 const typeorm_1 = require("typeorm");
 const order_interface_1 = require("../../shared/domain/order.interface");
+const gst_detail_entity_1 = require("./gst-detail.entity");
 let OrderEntity = class OrderEntity {
 };
 exports.OrderEntity = OrderEntity;
@@ -83,6 +84,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], OrderEntity.prototype, "deliveryAddressId", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => gst_detail_entity_1.GSTDetailEntity, gstDetail => gstDetail.order),
+    __metadata("design:type", gst_detail_entity_1.GSTDetailEntity)
+], OrderEntity.prototype, "gstDetail", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

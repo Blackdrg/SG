@@ -15,27 +15,27 @@ describe('Payment Service Integration', () => {
       expect(paymentIntent.currency).toBe('usd');
     });
 
-    it('should handle successful payment', () => {
-      const paymentIntent = { id: 'pi-123', status: 'succeeded' };
-      const orderStatus = 'PENDING';
+     it('should handle successful payment', () => {
+       const paymentIntent = { id: 'pi-123', status: 'succeeded' };
+       let orderStatus = 'PENDING';
 
-      if (paymentIntent.status === 'succeeded') {
-        orderStatus = 'PAYMENT_CONFIRMED';
-      }
+       if (paymentIntent.status === 'succeeded') {
+         orderStatus = 'PAYMENT_CONFIRMED';
+       }
 
-      expect(orderStatus).toBe('PAYMENT_CONFIRMED');
-    });
+       expect(orderStatus).toBe('PAYMENT_CONFIRMED');
+     });
 
-    it('should handle payment failure gracefully', () => {
-      const paymentIntent = { id: 'pi-123', status: 'requires_payment_method', lastPaymentError: 'card_declined' };
-      const orderStatus = 'PENDING';
+     it('should handle payment failure gracefully', () => {
+       const paymentIntent = { id: 'pi-123', status: 'requires_payment_method', lastPaymentError: 'card_declined' };
+       let orderStatus = 'PENDING';
 
-      if (paymentIntent.status !== 'succeeded') {
-        orderStatus = 'PAYMENT_FAILED';
-      }
+       if (paymentIntent.status !== 'succeeded') {
+         orderStatus = 'PAYMENT_FAILED';
+       }
 
-      expect(orderStatus).toBe('PAYMENT_FAILED');
-    });
+       expect(orderStatus).toBe('PAYMENT_FAILED');
+     });
 
     it('should process refund for completed orders', () => {
       const order = { status: 'DELIVERED', paymentStatus: 'COMPLETED', refundStatus: null };

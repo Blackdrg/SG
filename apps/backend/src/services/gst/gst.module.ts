@@ -7,8 +7,8 @@ import { OrderItemEntity } from '../db/entities/order-item.entity';
 import { GSTDetailEntity } from '../db/entities/gst-detail.entity';
 import { HSNSACEntity } from '../db/entities/hsn-sac.entity';
 import { RestaurantGSTEntity } from '../db/entities/restaurant-gst.entity';
-import { MenuItemEntity } = from '../db/entities/menu-item.entity';
-import { RestaurantEntity } = from '../db/entities/restaurant.entity;
+import { MenuItemEntity } from '../db/entities/menu-item.entity';
+import { RestaurantEntity } from '../db/entities/restaurant.entity';
 
 @Module({
   imports: [

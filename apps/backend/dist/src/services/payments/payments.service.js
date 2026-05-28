@@ -9,18 +9,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var PaymentService_1;
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const stripe_1 = require("stripe");
 const audit_service_1 = require("../../audit/audit.service");
+const ledger_service_1 = require("../../../modules/ledger/ledger.service");
 let PaymentService = PaymentService_1 = class PaymentService {
-    constructor(configService, auditService) {
+    constructor(configService, auditService, ledgerService) {
         this.configService = configService;
         this.auditService = auditService;
+        this.ledgerService = ledgerService;
         this.logger = new common_1.Logger(PaymentService_1.name);
-        this.stripe = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY') || 'sk_test_placeholder', {
+        this.stripe = new stripe_1.Stripe(this.configService.get('STRIPE_SECRET_KEY') || 'sk_test_placeholder', {
             apiVersion: '2024-04-10',
         });
     }
@@ -80,6 +83,12 @@ let PaymentService = PaymentService_1 = class PaymentService {
             const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentId);
             if (paymentIntent.status === 'succeeded') {
                 await this.auditService.logPaymentEvent('payment_confirmed', userId, paymentIntent.amount / 100, paymentIntent.currency, 'stripe', paymentId, true, request);
+                try {
+                    await this.ledgerService.createTransaction(paymentIntent.id, 'cash', 'revenue', paymentIntent.amount / 100, paymentIntent.currency, 'payment', paymentIntent.id, `Payment succeeded for order ${paymentIntent.metadata?.orderId || 'unknown'}`);
+                }
+                catch (ledgerError) {
+                    this.logger.error('Failed to create ledger entry for payment success:', ledgerError);
+                }
                 return paymentIntent;
             }
             else {
@@ -109,6 +118,12 @@ let PaymentService = PaymentService_1 = class PaymentService {
                 reason: reason
             });
             await this.auditService.logPaymentEvent('payment_refunded', userId, refund.amount / 100, paymentIntent.currency, 'stripe', paymentId, true, request, `Reason: ${reason}`);
+            try {
+                await this.ledgerService.createTransaction(refund.id, 'refund', 'cash', refund.amount / 100, paymentIntent.currency, 'refund', refund.id, `Refund processed for payment ${paymentId}, reason: ${reason}`);
+            }
+            catch (ledgerError) {
+                this.logger.error('Failed to create ledger entry for refund:', ledgerError);
+            }
             return refund;
         }
         catch (error) {
@@ -122,6 +137,6 @@ exports.PaymentService = PaymentService;
 exports.PaymentService = PaymentService = PaymentService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService,
-        audit_service_1.AuditService])
+        audit_service_1.AuditService, typeof (_a = typeof ledger_service_1.LedgerService !== "undefined" && ledger_service_1.LedgerService) === "function" ? _a : Object])
 ], PaymentService);
 //# sourceMappingURL=payments.service.js.map

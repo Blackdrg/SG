@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, Animated, Easing, AppState, AppStateStatus, NativeModules } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, Dimensions, Animated, Easing, AppState, AppStateStatus } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 import Geolocation from '@react-native-community/geolocation';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
@@ -87,10 +87,9 @@ export default function DriverApp() {
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [log, setLog] = useState<string[]>([]);
-  const [expandedIssue, setExpandedIssue] = useState(false);
-  const [activeScreen, setActiveScreen] = useState<'home' | 'earnings'>('home');
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+   const [expandedIssue, setExpandedIssue] = useState(false);
+   const [activeScreen, setActiveScreen] = useState<'home' | 'earnings'>('home');
+   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -107,14 +106,10 @@ export default function DriverApp() {
     }).start();
 
     Geolocation.requestAuthorization();
-    Geolocation.getCurrentPosition(
-      (position) => {
-        setLocationPermission('granted');
-        setCurrentLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
+     Geolocation.getCurrentPosition(
+       () => {
+         setLocationPermission('granted');
+       },
       (error) => {
         setLocationPermission('denied');
         addLog(`Location error: ${error.message}`);
@@ -133,17 +128,16 @@ export default function DriverApp() {
     }
 
     locationWatchId.current = Geolocation.watchPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        setCurrentLocation(location);
-        socket?.emit('driverLocationUpdate', { 
-          driverId: 'current',
-          location 
-        });
-      },
+       (position) => {
+         const location = {
+           lat: position.coords.latitude,
+           lng: position.coords.longitude,
+         };
+         socket?.emit('driverLocationUpdate', { 
+           driverId: 'current',
+           location 
+         });
+       },
       (error) => addLog(`Location watch error: ${error.message}`),
       { 
         enableHighAccuracy: true, 
@@ -157,7 +151,7 @@ export default function DriverApp() {
         Geolocation.clearWatch(locationWatchId.current);
       }
     };
-  }, [isOnline, locationPermission, socket]);
+   }, [isOnline, locationPermission, socket, addLog]);
 
   useEffect(() => {
     const s: Socket = io('http://localhost:3001', {
@@ -171,7 +165,7 @@ export default function DriverApp() {
     s.on('orderAssigned', (order: Order) => {
       if (isOnline) { setIncomingOrder(order); addLog(`New order: #${order.orderNumber} (₹${order.amount})`); }
     });
-    s.on('orderRerouted', (data: { orderId: string; newDestination: any; reason: string }) => {
+    s.on('orderRerouted', (data: { orderId: string; reason: string }) => {
       if (activeDelivery?.id === data.orderId) {
         addLog(`Re-routed: ${data.reason}`);
         Alert.alert('🚗 Re-routing', `New destination: ${data.reason}`);
@@ -180,6 +174,7 @@ export default function DriverApp() {
     s.on('shiftReminder', (data: { shiftType: string; endTime: string }) => {
       addLog(`Shift reminder: ${data.shiftType} ends at ${data.endTime}`);
       Alert.alert('Shift Update', `Your ${data.shiftType} shift ends at ${data.endTime}`);
+      setShift({ type: data.shiftType, endTime: data.endTime });
     });
 
     return () => { s.disconnect(); };

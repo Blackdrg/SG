@@ -6,5 +6,8 @@
   "types": "index.ts",
   "scripts": {
     "lint": "echo \"lint placeholder\""
+  },
+  "dependencies": {
+    "lucide-react": "^1.17.0"
   }
 }

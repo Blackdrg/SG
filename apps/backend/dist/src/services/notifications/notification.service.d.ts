@@ -59,4 +59,45 @@ export declare class NotificationService {
         reason?: undefined;
     }>;
     notifyOrderUpdate(userId: string, orderId: string, status: string, phone?: string): Promise<void>;
+    sendOTP(phone: string, otp: string): Promise<{
+        success: boolean;
+        reason: string;
+        sid?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        sid: any;
+        reason?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        error: string;
+        reason?: undefined;
+        sid?: undefined;
+    }>;
+    sendAPNs(userId: string, title: string, body: string, data?: any): Promise<{
+        success: boolean;
+        reason: string;
+        sent?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        sent: number;
+        reason?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        error: string;
+        reason?: undefined;
+        sent?: undefined;
+    }>;
+    notifyDeliveryLifecycle(orderId: string, event: 'driver_assigned' | 'picked_up' | 'nearby' | 'delivered', userId: string, driverInfo?: any): Promise<void>;
+    notifyRestaurant(orderId: string, alertType: 'new_order' | 'order_cancelled' | 'order_delayed', restaurantId: string): Promise<{
+        success: boolean;
+        alertType: "new_order" | "order_cancelled" | "order_delayed";
+    }>;
+    notifyDriver(driverId: string, orderId: string, event: 'assigned' | 'reassigned'): Promise<{
+        success: boolean;
+        event: "assigned" | "reassigned";
+    }>;
 }

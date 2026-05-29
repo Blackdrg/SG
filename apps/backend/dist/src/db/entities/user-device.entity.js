@@ -35,6 +35,10 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
+], UserDeviceEntity.prototype, "apnsToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], UserDeviceEntity.prototype, "deviceName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),

@@ -1,6 +1,6 @@
 import { ChefHat } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const KitchenIcon = ({ 
   size = 24, 
@@ -22,4 +22,5 @@ export const KitchenIcon = ({
     />
   );
 };
-export { KitchenIcon as ChefHat };
+
+export { KitchenIcon };

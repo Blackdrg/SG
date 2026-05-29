@@ -1,6 +1,6 @@
 import { BarChart3, Users, ShieldAlert } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const DashboardIcon = ({ 
   size = 24, 

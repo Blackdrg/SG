@@ -1,6 +1,6 @@
 import { Star } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const RatingIcon = ({ 
   size = 24, 
@@ -23,4 +23,6 @@ export const RatingIcon = ({
     />
   );
 };
-export { RatingIcon as Star };
+
+
+export { RatingIcon };

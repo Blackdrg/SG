@@ -43,4 +43,6 @@ export declare class PaymentHardeningService {
         error?: string;
     }>;
     validateWebhookSignature(payload: Buffer, signature: string): Promise<boolean>;
+    handleChargeback(paymentIntentId: string, dispute: any): Promise<any>;
+    createPaymentRetry(paymentIntentId: string, retryAttempt: number): Promise<any>;
 }

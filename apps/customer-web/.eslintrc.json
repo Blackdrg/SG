@@ -14,5 +14,8 @@
     "react": {
       "version": "detect"
     }
+  },
+  "rules": {
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }]
   }
 }

@@ -262,6 +262,44 @@ let PaymentHardeningService = PaymentHardeningService_1 = class PaymentHardening
             return false;
         }
     }
+    async handleChargeback(paymentIntentId, dispute) {
+        await this.auditService.logPaymentEvent('chargeback_received', dispute.customer || 'unknown', dispute.amount ? dispute.amount / 100 : 0, dispute.currency || 'usd', 'stripe', paymentIntentId, false, undefined, `Chargeback reason: ${dispute.reason}`);
+        if (dispute.status === 'won') {
+            return { status: 'won', reason: dispute.reason };
+        }
+        const refund = await this.stripe.refunds.create({
+            payment_intent: paymentIntentId,
+            reason: 'duplicate',
+        }).catch(() => null);
+        return {
+            status: dispute.status,
+            reason: dispute.reason,
+            autoRefundCreated: !!refund,
+            refundId: refund?.id,
+        };
+    }
+    async createPaymentRetry(paymentIntentId, retryAttempt) {
+        const existingIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+        if (!existingIntent) {
+            throw new common_1.BadRequestException('Payment intent not found');
+        }
+        const maxRetries = this.configService.get('PAYMENT_MAX_RETRIES', 3);
+        if (retryAttempt > maxRetries) {
+            throw new common_1.BadRequestException('Max retry attempts exceeded');
+        }
+        const retryIntent = await this.stripe.paymentIntents.create({
+            amount: existingIntent.amount,
+            currency: existingIntent.currency,
+            metadata: {
+                ...existingIntent.metadata,
+                original_intent: paymentIntentId,
+                retry_attempt: retryAttempt.toString(),
+                retry_reason: 'failed_payment_retry',
+            },
+        });
+        await this.auditService.logPaymentEvent('payment_retry_created', existingIntent.metadata?.userId || 'unknown', existingIntent.amount / 100, existingIntent.currency, 'stripe', retryIntent.id, true, undefined, `Retry attempt ${retryAttempt} for intent ${paymentIntentId}`);
+        return retryIntent;
+    }
 };
 exports.PaymentHardeningService = PaymentHardeningService;
 exports.PaymentHardeningService = PaymentHardeningService = PaymentHardeningService_1 = __decorate([

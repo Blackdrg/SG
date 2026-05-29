@@ -16,6 +16,7 @@ export const DESIGN_TOKENS = {
     premium: '#D4AF37',
     border: '#E5E7EB',
     dangerDark: '#c62828',
+    neutral: '#9CA3AF',
   },
   icon: {
     primary: 'var(--color-primary)',

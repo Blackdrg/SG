@@ -192,14 +192,14 @@ export default function KitchenDashboard() {
 
   return (
     <div style={{ backgroundColor: '#1a1a2e', color: 'white', minHeight: '100vh', paddingBottom: 80 }}>
-      {/* ── Header ────────────────────────────────────────────────────────── */}
+{/* ── Header ────────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 16px', backgroundColor: '#16162a',
         borderBottom: '1px solid #333',
       }}>
         <h1 style={{ margin: 0, fontSize: '18px' }}>&#x1F525; KITCHEN DISPLAY</h1>
-<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
             onClick={() => !audioEnabled ? setAudioEnabled(true) : squashSound('toggle')}
             title={audioEnabled ? 'Mute alerts' : 'Unmute alerts'}
@@ -575,7 +575,7 @@ function OrderCard({ order, onAccept, onStartPrep, onReady, onDelay, onServed, o
 function statusColor(s: OrderStatus): string {
   const colors: Record<OrderStatus, string> = {
     new: '#f04e31', accepted: '#ff9800', preparing: '#2196f3',
-    ready: '#4caf50', delayed: '#ff4444', completed: '#444',
+    ready: '#4caf50', delayed: '#ff4444', completed: '#444', pickedup: '#ff9800', delivered: '#4caf50',
   };
   return colors[s];
 }

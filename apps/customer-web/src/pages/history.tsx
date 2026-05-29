@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../redux/store';
 import { ordersApi } from '@spicegarden/shared/api';
-import { cartSlice } from '../redux/slices/cartSlice';
+import { addToCart, clearCart } from '../redux/slices/cartSlice';
 
 const HistoryPage = () => {
   const router = useRouter();
@@ -71,7 +71,8 @@ const HistoryPage = () => {
 
   const handleReorder = async (orderId: string) => {
     try {
-      const order = await ordersApi.get(orderId, user?.token || '');
+      const response = await ordersApi.get(orderId, user?.token || '');
+      const order = response.data;
       // Add items to cart
       const cartItems = order.items?.map((item: any) => ({
         id: item.menuItemId || item.id,
@@ -82,9 +83,9 @@ const HistoryPage = () => {
       
       if (cartItems.length > 0) {
         // Clear current cart and add reorder items
-        dispatch(cartSlice.actions.clearCart());
-        cartItems.forEach((item: any) => {
-          dispatch(cartSlice.actions.addToCart({ 
+        dispatch(clearCart());
+        cartItems.forEach((item: CartItem) => {
+          dispatch(addToCart({ 
             item, 
             restaurantId: order.restaurantId || 'rest-001' 
           }));

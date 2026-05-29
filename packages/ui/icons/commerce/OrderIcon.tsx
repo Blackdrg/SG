@@ -1,6 +1,6 @@
 import { Package } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const OrderIcon = ({ 
   size = 24, 
@@ -22,4 +22,6 @@ export const OrderIcon = ({
     />
   );
 };
-export { OrderIcon as Package };
+
+
+export { OrderIcon, OrderIcon as Package };

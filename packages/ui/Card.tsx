@@ -6,26 +6,33 @@ interface CardProps {
   title?: string;
   variant?: 'default' | 'elevated' | 'list';
   style?: React.CSSProperties;
+  isElevated?: boolean;
 }
 
-export const Card = ({ children, title, variant = 'default', style }: CardProps) => {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'elevated':
-        return {
-          boxShadow: DESIGN_TOKENS.shadows.large,
-          transform: 'translateY(0)',
-        };
-      case 'list':
-        return {
-          boxShadow: DESIGN_TOKENS.shadows.small,
-        };
-      default:
-        return {
-          boxShadow: DESIGN_TOKENS.shadows.small,
-        };
-    }
-  };
+export const Card = ({ children, title, variant = 'default', style, isElevated }: CardProps) => {
+   const getVariantStyles = () => {
+     if (isElevated) {
+       return {
+         boxShadow: DESIGN_TOKENS.shadows.large,
+         transform: 'translateY(0)',
+       };
+     }
+     switch (variant) {
+       case 'elevated':
+         return {
+           boxShadow: DESIGN_TOKENS.shadows.large,
+           transform: 'translateY(0)',
+         };
+       case 'list':
+         return {
+           boxShadow: DESIGN_TOKENS.shadows.small,
+         };
+       default:
+         return {
+           boxShadow: DESIGN_TOKENS.shadows.small,
+         };
+     }
+   };
 
   return (
     <div style={{

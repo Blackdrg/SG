@@ -92,6 +92,9 @@ export class SupportTicketEntity {
   @Column({ nullable: true })
   satisfactionRating!: number;
 
+  @Column({ default: false })
+  escalated!: boolean;
+
   @CreateDateColumn()
   createdAt!: Date;
 

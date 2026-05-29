@@ -6,8 +6,8 @@ interface QueuedRequest<T> {
   id: string;
   endpoint: string;
   options: any;
-  resolve: (value: T | PromiseLike<T>) => void;
-  reject: (reason?: any) => void;
+  resolve: (_value: T | PromiseLike<T>) => void;
+  reject: (_reason?: any) => void;
 }
 
 export const useOfflineQueue = () => {

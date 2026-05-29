@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const SearchIcon = (props: IconProps) => {
   const color = props.color || DESIGN_TOKENS.colors.primary;
@@ -9,4 +9,4 @@ export const SearchIcon = (props: IconProps) => {
   
   return <Search size={size} color={color} strokeWidth={strokeWidth} {...props} />;
 };
-export { SearchIcon as Search };
+export { SearchIcon as Search, SearchIcon };

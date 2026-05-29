@@ -17,6 +17,9 @@ export class UserDeviceEntity {
   fcmToken: string;
 
   @Column({ nullable: true })
+  apnsToken: string;
+
+  @Column({ nullable: true })
   deviceName: string;
 
   @Column({ nullable: true })

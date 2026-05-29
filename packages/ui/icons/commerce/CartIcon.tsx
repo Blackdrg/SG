@@ -1,6 +1,6 @@
 import { ShoppingCart } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const CartIcon = ({ 
   size = 24, 
@@ -22,4 +22,6 @@ export const CartIcon = ({
     />
   );
 };
-export { CartIcon as ShoppingCart };
+
+
+export { CartIcon, CartIcon as ShoppingCart };

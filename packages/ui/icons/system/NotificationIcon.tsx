@@ -1,6 +1,6 @@
 import { Bell } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const NotificationIcon = ({ 
   size = 24, 
@@ -22,4 +22,5 @@ export const NotificationIcon = ({
     />
   );
 };
-export { NotificationIcon as Bell };
+
+export { NotificationIcon };

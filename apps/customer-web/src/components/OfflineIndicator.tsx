@@ -9,8 +9,9 @@ const OfflineIndicator = () => {
     return null;
   }
 
-  const timeOffline = lastOnline ? 
-    Math.floor((new Date().getTime() - lastOnline.getTime()) / 1000) : 0;
+  const timeOffline = lastOnline?.getTime() 
+    ? Math.floor((new Date().getTime() - lastOnline.getTime()) / 1000) 
+    : 0;
 
   const minutes = Math.floor(timeOffline / 60);
   const seconds = timeOffline % 60;

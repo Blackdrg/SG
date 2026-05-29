@@ -1,17 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Animated, Easing } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Animated, Easing, TouchableOpacityProps } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
+
+export interface Restaurant {
+  id: string;
+  name: string;
+  description: string;
+  rating: number;
+  deliveryTime: string;
+  distance: string;
+  image: string;
+}
+
+export interface User {
+  email: string;
+  name?: string;
+  phone?: string;
+}
 
 const HomeScreen = () => {
-  const navigation = useNavigation<any>();
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
+   const navigation = useNavigation();
+   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [refreshing, setRefreshing] = useState(false);
+   const [user, setUser] = useState<User | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -91,19 +105,18 @@ const HomeScreen = () => {
     loadRestaurants();
   }, [fadeAnim, slideAnim]);
 
-  const handleRestaurantPress = (restaurantId: string) => {
+const handleRestaurantPress = (restaurantId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate('Restaurant', { restaurantId });
   };
 
   const handleSearchPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('Search');
   };
 
-  const handleCartPress = () => {
-    navigation.navigate('Cart');
-  };
-
   const handleProfilePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('Profile');
   };
 
@@ -176,18 +189,18 @@ const HomeScreen = () => {
           <Text style={styles.searchText}>Search restaurants, dishes…</Text>
         </TouchableOpacity>
 
-        <View style={styles.categories}>
-          {['Burgers', 'Pizza', 'Sandwiches', 'Salads'].map((cat, index) => (
-            <TouchableOpacity 
-              key={cat}
-              style={[styles.categoryButton]}
-              accessibilityLabel={`Browse ${cat} category`}
-              accessibilityRole="button"
-            >
-              <Text style={styles.categoryText}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+         <View style={styles.categories}>
+           {['Burgers', 'Pizza', 'Sandwiches', 'Salads'].map((cat) => (
+             <TouchableOpacity 
+               key={cat}
+               style={[styles.categoryButton]}
+               accessibilityLabel={`Browse ${cat} category`}
+               accessibilityRole="button"
+             >
+               <Text style={styles.categoryText}>{cat}</Text>
+             </TouchableOpacity>
+           ))}
+         </View>
 
         <View style={styles.restaurantsContainer}>
           <FlatList
@@ -234,29 +247,29 @@ const HomeScreen = () => {
         accessibilityLabel="Main navigation"
         accessibilityRole="tablist"
       >
-        {[
-          { key: 'home', label: 'Home', icon: '🏠', path: 'Home' },
-          { key: 'search', label: 'Search', icon: '🔍', path: 'Search' },
-          { key: 'cart', label: 'Cart', icon: '🛒', path: 'Cart' },
-          { key: 'profile', label: 'Profile', icon: '👤', path: 'Profile' },
-        ].map((tab) => (
-          <TouchableOpacity 
-            key={tab.key}
-            onPress={() => tab.key !== 'home' && navigation.navigate(tab.path as any)}
-            style={styles.navItem}
-            accessibilityLabel={tab.label}
-            accessibilityRole="tab"
-          >
-            <Text style={styles.navIcon}>{tab.icon}</Text>
-            <Text style={styles.navText}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+       {[
+         { key: 'home', label: 'Home', icon: '🏠', path: 'Home' },
+         { key: 'search', label: 'Search', icon: '🔍', path: 'Search' },
+         { key: 'cart', label: 'Cart', icon: '🛒', path: 'Cart' },
+         { key: 'profile', label: 'Profile', icon: '👤', path: 'Profile' },
+       ].map((tab) => (
+         <TouchableOpacity 
+           key={tab.key}
+           onPress={() => tab.key !== 'home' && navigation.navigate(tab.path)}
+           style={styles.navItem}
+           accessibilityLabel={tab.label}
+           accessibilityRole="tab"
+         >
+           <Text style={styles.navIcon}>{tab.icon}</Text>
+           <Text style={styles.navText}>{tab.label}</Text>
+         </TouchableOpacity>
+       ))}
       </View>
     </View>
   );
 };
 
-const AnimatedTouchableOpacity = ({ children, delay = 0, ...props }: any) => {
+const AnimatedTouchableOpacity = ({ children, delay = 0, ...props }: TouchableOpacityProps) => {
   const animValue = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {

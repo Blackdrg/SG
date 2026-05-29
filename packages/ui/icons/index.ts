@@ -1,9 +1,6 @@
 // Central Icon Exports - Single source of truth for all icons
 // Never import directly from lucide-react - use these semantic exports
 
-// Import types
-import { LucideIcon } from './types';
-
 // Navigation Icons
 export { HomeIcon, Home } from './navigation/HomeIcon';
 export { ProfileIcon, User } from './navigation/ProfileIcon';
@@ -66,16 +63,15 @@ export { Battery } from 'lucide-react';
 export { PhoneOff } from 'lucide-react';
 export { Utensils } from 'lucide-react';
 export { Ban } from 'lucide-react';
-export { Chili } from 'lucide-react';
-export { AArrowDown as Banknote } from 'lucide-react';
+export { Banknote } from 'lucide-react';
 export { Smartphone } from 'lucide-react';
 
 // Semantic re-exports
-export { CartIcon as Cart };
-export { OrderIcon as Order };
-export { DeliveryIcon as Delivery };
-export { KitchenIcon as Kitchen };
-export { NotificationIcon as Notification };
-export { PaymentIcon as Payment };
-export { LocationIcon as Location };
-export { RatingIcon as Rating };
+export { CartIcon as Cart, CartIcon };
+export { OrderIcon as Order, OrderIcon };
+export { DeliveryIcon as Delivery, DeliveryIcon };
+export { KitchenIcon as Kitchen, KitchenIcon };
+export { NotificationIcon as Notification, NotificationIcon };
+export { PaymentIcon as Payment, PaymentIcon };
+export { LocationIcon as Location, LocationIcon };
+export { RatingIcon as Rating, RatingIcon };

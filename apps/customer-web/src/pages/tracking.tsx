@@ -30,14 +30,15 @@ const TrackingPage = () => {
     }
   }, [router.query]);
 
-  useEffect(() => {
-    if (orderId) {
-      const loadOrderDetails = async () => {
-        try {
-          setLoading(true);
-          const order = await ordersApi.get(orderId, user?.token || localStorage.getItem('sg_token') || '');
-          setOrderDetails(order);
-          setOrderStatus(order.status || 'preparing');
+useEffect(() => {
+     if (orderId) {
+       const loadOrderDetails = async () => {
+         try {
+           setLoading(true);
+           const response = await ordersApi.get(orderId, user?.token || localStorage.getItem('sg_token') || '');
+           const order = response.data;
+           setOrderDetails(order);
+           setOrderStatus(order.status || 'preparing');
           // Update estimated time based on order status
           switch (order.status) {
             case 'preparing':

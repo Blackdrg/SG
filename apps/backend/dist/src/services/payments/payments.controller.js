@@ -29,12 +29,12 @@ let PaymentsController = class PaymentsController {
         this.idempotency = idempotency;
         this.configService = configService;
     }
-    async createPaymentIntent(body, idempotencyKey) {
+    async createPaymentIntent(body, req, idempotencyKey) {
         const fraudCheck = await this.fraudHardening.checkPaymentFraud({
             userId: body.userId,
             amount: body.amount,
-            ipAddress: body.ipAddress,
-            userAgent: body.userAgent,
+            ipAddress: req.ip || req.connection.remoteAddress || '0.0.0.0',
+            userAgent: req.get('User-Agent') || 'Unknown',
         });
         if (!fraudCheck.allowed) {
             return {
@@ -86,9 +86,10 @@ __decorate([
     (0, common_1.Post)('create-intent'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Headers)('x-idempotency-key')),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Headers)('x-idempotency-key')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, Object, String]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "createPaymentIntent", null);
 __decorate([

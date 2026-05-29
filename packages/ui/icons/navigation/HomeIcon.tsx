@@ -1,6 +1,6 @@
 import { Home } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const HomeIcon = ({ 
   size = 24, 
@@ -23,4 +23,5 @@ export const HomeIcon = ({
   );
 };
 
-export { HomeIcon as Home };
+
+export { HomeIcon };

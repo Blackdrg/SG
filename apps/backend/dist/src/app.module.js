@@ -21,6 +21,7 @@ const payments_module_1 = require("./services/payments/payments.module");
 const restaurant_module_1 = require("./services/restaurant/restaurant.module");
 const search_module_1 = require("./services/search/search.module");
 const delivery_module_1 = require("./services/delivery/delivery.module");
+const driver_ops_module_1 = require("./services/delivery/driver-ops.module");
 const admin_module_1 = require("./services/admin/admin.module");
 const notification_module_1 = require("./services/notifications/notification.module");
 const kitchen_module_1 = require("./modules/kitchen/kitchen.module");
@@ -30,6 +31,8 @@ const compliance_module_1 = require("./compliance/compliance.module");
 const audit_module_1 = require("./audit/audit.module");
 const wallet_module_1 = require("./services/wallet/wallet.module");
 const gst_module_1 = require("./services/gst/gst.module");
+const finance_module_1 = require("./services/finance/finance.module");
+const support_module_1 = require("./services/support/support.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -50,6 +53,7 @@ exports.AppModule = AppModule = __decorate([
             restaurant_module_1.RestaurantServiceModule,
             search_module_1.SearchServiceModule,
             delivery_module_1.DeliveryServiceModule,
+            driver_ops_module_1.DriverOpsModule,
             admin_module_1.AdminServiceModule,
             notification_module_1.NotificationModule,
             kitchen_module_1.KitchenModule,
@@ -58,7 +62,9 @@ exports.AppModule = AppModule = __decorate([
             compliance_module_1.ComplianceModule,
             audit_module_1.AuditModule,
             wallet_module_1.WalletModule,
-            gst_module_1.GSTModule
+            gst_module_1.GSTModule,
+            finance_module_1.FinanceModule,
+            support_module_1.SupportModule
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

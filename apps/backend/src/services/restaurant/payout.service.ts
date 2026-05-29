@@ -34,7 +34,7 @@ export class PayoutService {
     const orders = await this.orderRepo.find({
       where: {
         restaurantId: restaurantId as any,
-        status: In([OrderStatus.DELIVERED]),
+        status: OrderStatus.DELIVERED,
         createdAt: Between(periodStart, periodEnd),
       },
       relations: ['gstDetail'],
@@ -59,7 +59,7 @@ export class PayoutService {
       }
     }
 
-    const gstAmount = orders.reduce((sum, o) => sum + Number(o.gst || 0), 0);
+    const gstAmount = orders.reduce((sum, o) => sum + Number(o.gstDetail?.totalGstAmount || 0), 0);
 
     const netPayout = grossSales - platformCommission - gstAmount;
 
@@ -94,7 +94,7 @@ export class PayoutService {
   async getPayoutHistory(restaurantId: string, limit: number = 10): Promise<PayoutReportEntity[]> {
     return this.payoutRepo.find({
       where: { restaurantId: restaurantId as any },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'DESC' } as any,
       take: limit,
     });
   }
@@ -123,7 +123,7 @@ export class PayoutService {
     return this.payoutRepo.find({
       where,
       relations: ['restaurant'],
-      order: { createdAt: 'ASC' },
+      order: { createdAt: 'ASC' } as any,
     });
   }
 
@@ -147,8 +147,4 @@ export class PayoutService {
       paidPayouts: payouts.filter(p => p.status === PayoutStatus.PAID).length,
     };
   }
-}
-
-function In(values: any[]): any {
-  return values;
 }

@@ -2,8 +2,8 @@ import React, { createContext, useContext } from 'react';
 import { useNetworkStatus } from '@spicegarden/ui';
 
 const NetworkStatusContext = createContext({
-  isOnline: true,
-  lastOnline: null,
+   isOnline: true,
+   lastOnline: null as Date | null,
 });
 
 export const NetworkStatusProvider = ({ children }: { children: React.ReactNode }) => {

@@ -1,3 +1,4 @@
+import { Request } from 'express';
 import { PaymentService } from './payments.service';
 import { PaymentHardeningService } from './payment-hardening.service';
 import { RetryService } from './retry.service';
@@ -12,7 +13,7 @@ export declare class PaymentsController {
     private idempotency;
     private configService;
     constructor(paymentService: PaymentService, paymentHardening: PaymentHardeningService, retryService: RetryService, fraudHardening: FraudHardeningService, idempotency: IdempotencyService, configService: ConfigService);
-    createPaymentIntent(body: any, idempotencyKey?: string): Promise<{
+    createPaymentIntent(body: any, req: Request, idempotencyKey?: string): Promise<{
         error: string;
         reasons: string[];
         riskScore: number;

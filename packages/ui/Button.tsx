@@ -4,7 +4,7 @@ import { DESIGN_TOKENS, MOTION_EASING } from './tokens';
 interface ButtonProps {
   label: string;
   onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive' | 'loading';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive' | 'loading' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   disabled?: boolean;
@@ -27,6 +27,7 @@ export const Button = ({
       case 'primary': return DESIGN_TOKENS.colors.primary;
       case 'secondary': return DESIGN_TOKENS.colors.surface;
       case 'ghost': return 'transparent';
+      case 'outline': return 'transparent';
       case 'destructive': return DESIGN_TOKENS.colors.danger;
       case 'loading': return DESIGN_TOKENS.colors.textSecondary;
       default: return DESIGN_TOKENS.colors.primary;
@@ -37,7 +38,17 @@ export const Button = ({
     if (variant === 'primary' || variant === 'destructive' || variant === 'loading') {
       return DESIGN_TOKENS.colors.textInverse;
     }
+    if (variant === 'outline') {
+      return DESIGN_TOKENS.colors.primary;
+    }
     return DESIGN_TOKENS.colors.textPrimary;
+  };
+
+  const getBorder = () => {
+    if (variant === 'outline' || variant === 'ghost') {
+      return `1px solid ${DESIGN_TOKENS.colors.border}`;
+    }
+    return 'none';
   };
 
   const getSizeStyles = () => {
@@ -59,7 +70,7 @@ export const Button = ({
       style={{
         backgroundColor: getBgColor(),
         color: getTextColor(),
-        border: variant === 'ghost' ? `1px solid ${DESIGN_TOKENS.colors.border}` : 'none',
+        border: getBorder(),
         borderRadius: `${DESIGN_TOKENS.radius.button}px`,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
         transition: `all ${DESIGN_TOKENS.motion.micro}ms ${MOTION_EASING.easeOutSoft}`,

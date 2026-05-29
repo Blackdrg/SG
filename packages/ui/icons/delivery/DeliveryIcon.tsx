@@ -1,6 +1,6 @@
 import { Bike } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const DeliveryIcon = ({ 
   size = 24, 
@@ -22,4 +22,6 @@ export const DeliveryIcon = ({
     />
   );
 };
-export { DeliveryIcon as Bike };
+
+
+export { DeliveryIcon, DeliveryIcon as Bike };

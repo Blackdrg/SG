@@ -1,6 +1,6 @@
 import { CreditCard } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const PaymentIcon = ({ 
   size = 24, 
@@ -22,4 +22,6 @@ export const PaymentIcon = ({
     />
   );
 };
-export { PaymentIcon as CreditCard };
+
+
+export { PaymentIcon };

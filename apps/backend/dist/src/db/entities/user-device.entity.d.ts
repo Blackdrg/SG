@@ -4,6 +4,7 @@ export declare class UserDeviceEntity {
     userId: string;
     user: UserEntity;
     fcmToken: string;
+    apnsToken: string;
     deviceName: string;
     deviceType: string;
     userAgent: string;

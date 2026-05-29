@@ -1,6 +1,6 @@
 import { MapPin } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const LocationIcon = ({ 
   size = 24, 
@@ -22,4 +22,6 @@ export const LocationIcon = ({
     />
   );
 };
-export { LocationIcon as MapPin };
+
+
+export { LocationIcon as MapPin, LocationIcon };

@@ -29,7 +29,7 @@ const WalletPage = () => {
       <Card title="Wallet Balance" isElevated>
         <div style={{
           textAlign: 'center', padding: `${DESIGN_TOKENS.spacing.lg}px 0`,
-          backgroundColor: '#f0f8ff', borderRadius: DESIGN_TOKENS.radius.lg,
+          backgroundColor: '#f0f8ff', borderRadius: DESIGN_TOKENS.radius.md,
         }}>
           <h1 style={{ margin: '0 0 8px 0', fontSize: '2.5rem', color: DESIGN_TOKENS.colors.primary }}>&#8377;{balance}</h1>
           <p style={{ margin: 0, color: '#666' }}>Available balance</p>

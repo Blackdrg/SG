@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
@@ -352,5 +352,72 @@ export class PaymentHardeningService {
     } catch (error) {
       return false;
     }
+  }
+
+  async handleChargeback(paymentIntentId: string, dispute: any): Promise<any> {
+    await this.auditService.logPaymentEvent(
+      'chargeback_received',
+      dispute.customer || 'unknown',
+      dispute.amount ? dispute.amount / 100 : 0,
+      dispute.currency || 'usd',
+      'stripe',
+      paymentIntentId,
+      false,
+      undefined,
+      `Chargeback reason: ${dispute.reason}`,
+    );
+
+    if (dispute.status === 'won') {
+      return { status: 'won', reason: dispute.reason };
+    }
+
+    const refund = await this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      reason: 'duplicate',
+    }).catch(() => null);
+
+    return {
+      status: dispute.status,
+      reason: dispute.reason,
+      autoRefundCreated: !!refund,
+      refundId: refund?.id,
+    };
+  }
+
+  async createPaymentRetry(paymentIntentId: string, retryAttempt: number): Promise<any> {
+    const existingIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+    if (!existingIntent) {
+      throw new BadRequestException('Payment intent not found');
+    }
+
+    const maxRetries = this.configService.get<number>('PAYMENT_MAX_RETRIES', 3);
+    if (retryAttempt > maxRetries) {
+      throw new BadRequestException('Max retry attempts exceeded');
+    }
+
+    const retryIntent = await this.stripe.paymentIntents.create({
+      amount: existingIntent.amount,
+      currency: existingIntent.currency,
+      metadata: {
+        ...existingIntent.metadata,
+        original_intent: paymentIntentId,
+        retry_attempt: retryAttempt.toString(),
+        retry_reason: 'failed_payment_retry',
+      },
+    });
+
+    await this.auditService.logPaymentEvent(
+      'payment_retry_created',
+      existingIntent.metadata?.userId || 'unknown',
+      existingIntent.amount / 100,
+      existingIntent.currency,
+      'stripe',
+      retryIntent.id,
+      true,
+      undefined,
+      `Retry attempt ${retryAttempt} for intent ${paymentIntentId}`,
+    );
+
+    return retryIntent;
   }
 }

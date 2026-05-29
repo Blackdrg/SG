@@ -1,6 +1,6 @@
 import { Flame } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const FireIcon = ({ 
   size = 24, 

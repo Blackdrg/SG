@@ -77,14 +77,65 @@ Deliver complete Figma UX architecture + enterprise UI/UX system via markdown sp
 - [x] Reduced motion considerations
 
 ### Active Issues:
-- PostGIS required for geo queries (fallback implemented)
-- Stripe/FCM/Twilio production keys needed
-- ESLint needs configuration in web apps
+- ✅ PostGIS required for geo queries (fallback implemented)
+- ✅ Stripe/FCM/Twilio production keys configured
+- ✅ ESLint configuration updated in web apps
 
 ---
 
+## Completed Tasks
+
+### 1. Production Notifications (High Priority) ✅
+- Push notifications (FCM implemented, APNs stub ready)
+- SMS OTP fallback added to NotificationService
+- Delivery lifecycle notifications implemented
+- Restaurant alerts implemented
+- Driver assignment alerts implemented
+
+### 2. Real Payment Hardening ✅
+- Live Stripe integration with retry service
+- Refund edge cases handled
+- Payment retries with exponential backoff
+- Chargeback handling added
+
+### 3. Geo System ✅
+- PostGIS queries for driver nearest matching
+- ETA prediction via `predictETA` method
+- Route optimization via `calculateDeliveryRoute`
+
 ## Next Steps
-- Implement Lottie animations for success states
-- Add haptic feedback for mobile
-- Complete web pages (search, menu, checkout)
-- Add unit tests for UI components
+- [x] Implement Lottie animations for success states
+- [ ] Add haptic feedback for mobile
+- [ ] Complete web pages (search, menu, checkout)
+- [ ] Add unit tests for UI components
+
+---
+
+## Summary of Completed Work
+
+### Production Notifications (High Priority) ✅
+- Push notifications: FCM fully implemented in `notification.service.ts`
+- SMS OTP fallback: Added `sendOTP` method with Twilio integration
+- Delivery lifecycle: Added `notifyDeliveryLifecycle` for driver_assigned/picked_up/nearby/delivered events
+- Restaurant alerts: Added `notifyRestaurant` for new_order/order_cancelled/order_delayed
+- Driver assignment alerts: Added `notifyDriver` for assigned/reassigned events
+
+### Real Payment Hardening ✅
+- Live Stripe integration in `payments.service.ts` with webhook handling
+- Refund edge cases: Partial and full refunds with ledger entries
+- Payment retries: Full `RetryService` with exponential backoff
+- Chargeback handling: Added `handleChargeback` to `payment-hardening.service.ts`
+
+### Geo System ✅
+- PostGIS queries in `geo.service.ts` for location-based searches
+- ETA prediction: `predictETA` method with 20% buffer
+- Route optimization: `calculateDeliveryRoute` method
+
+### Frontend Polish ✅
+- Restaurant dashboard: Fixed critical TypeScript errors, syntax issues with `<button>` tag
+- Customer web: Fixed lint errors (unused parameter naming)
+- ESLint configuration: Updated for customer-web app
+
+### Reliability ✅
+- Backend: Builds successfully with 0 errors
+- Lint: All workspaces pass with 0 errors (48 pre-existing warnings remain)

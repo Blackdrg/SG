@@ -1,5 +1,7 @@
 import React, { Component, ReactNode } from 'react';
-import { Button, Card, DESIGN_TOKENS } from './index';
+import { Button } from '../Button';
+import { Card } from '../Card';
+import { DESIGN_TOKENS } from '../tokens';
 
 interface ErrorBoundaryProps {
   children: ReactNode;

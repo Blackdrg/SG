@@ -1,6 +1,6 @@
 import { User } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const ProfileIcon = (props: IconProps) => {
   const color = props.color || DESIGN_TOKENS.colors.primary;
@@ -9,4 +9,4 @@ export const ProfileIcon = (props: IconProps) => {
   
   return <User size={size} color={color} strokeWidth={strokeWidth} {...props} />;
 };
-export { ProfileIcon as User };
+export { ProfileIcon as User, ProfileIcon };

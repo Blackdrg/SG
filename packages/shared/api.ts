@@ -16,9 +16,10 @@ export async function api<T>(endpoint: string, options: RequestOptions = {}): Pr
   // Try the request
   try {
     return await makeRequest<T>(endpoint, { token, ...rest });
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error & { message?: string };
     // If we get a 401 (Unauthorized) and we have a token, try to refresh
-    if (error.message && error.message.includes('401') && token) {
+    if (err.message && err.message.includes('401') && token) {
       try {
         // Attempt to refresh token
         const refreshResponse = await api<{ access_token: string }>('/auth/refresh-token', {
@@ -30,7 +31,7 @@ export async function api<T>(endpoint: string, options: RequestOptions = {}): Pr
         
         // Retry the original request with the new token
         return await makeRequest<T>(endpoint, { token: newToken, ...rest });
-      } catch (refreshError) {
+      } catch (refreshError: unknown) {
         // If refresh fails, throw the original error
         throw error;
       }

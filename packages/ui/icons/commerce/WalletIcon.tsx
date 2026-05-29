@@ -1,6 +1,6 @@
 import { Wallet } from 'lucide-react';
 import { IconProps } from '../types';
-import { DESIGN_TOKENS } from '../tokens';
+import { DESIGN_TOKENS } from '../../tokens';
 
 export const WalletIcon = ({ 
   size = 24, 

@@ -120,7 +120,7 @@ const OrderDetailsPage = () => {
     <div style={{ padding: DESIGN_TOKENS.spacing.md, minHeight: '100vh', backgroundColor: DESIGN_TOKENS.colors.neutral }}>
       <Button label="← Back" onClick={() => router.push('/history')} variant="secondary" style={{ marginBottom: DESIGN_TOKENS.spacing.lg }} />
 
-      <h2 style={{ marginBottom: DESIGN_TOKENS.spacing.lg }}>Order #{{order.id}}</h2>
+       <h2 style={{ marginBottom: DESIGN_TOKENS.spacing.lg }}>Order #{order.id}</h2>
 
       {order.restaurant && (
         <Card title="Restaurant">
@@ -247,12 +247,12 @@ const OrderDetailsPage = () => {
         </div>
       )}
 
-      {order.status === 'delivered' && (
-        <div style={{ marginTop: DESIGN_TOKENS.spacing.lg, textAlign: 'center' }}>
-          <Button label="Reorder" onClick={() => {/* TODO: Implement reorder functionality */}} variant="secondary" style={{ marginRight: DESIGN_TOKENS.spacing.md }} />
-          {/* <Button label="Leave Review" onClick={() => {/* TODO: Implement review system */}} /> */}
-        </div>
-      )}
+        {order.status === 'delivered' && (
+          <div style={{ marginTop: DESIGN_TOKENS.spacing.lg, textAlign: 'center' }}>
+            <Button label="Reorder" onClick={() => {/* TODO: Implement reorder functionality */}} variant="secondary" style={{ marginRight: DESIGN_TOKENS.spacing.md }} />
+            <Button label="Leave Review" onClick={() => {/* TODO: Implement leave review functionality */}} />
+          </div>
+        )}
     </div>
   );
 };

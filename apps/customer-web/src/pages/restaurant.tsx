@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Card, DESIGN_TOKENS } from '@spicegarden/ui';
+import { Button, DESIGN_TOKENS } from '@spicegarden/ui';
 import { useRouter } from 'next/router';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../redux/slices/cartSlice';
@@ -7,6 +7,7 @@ import { addToCart } from '../redux/slices/cartSlice';
 const RestaurantPage = () => {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('burgers');
+  const dispatch = useDispatch();
 
   const categories = [
     { id: 'burgers', name: 'Burgers', count: 12 },

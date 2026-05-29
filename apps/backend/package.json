@@ -43,6 +43,10 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.0",
+    "helmet": "^7.1.0",
+    "mongo-sanitize": "^1.1.0",
+    "hpp": "^0.2.3",
+    "express-rate-limit": "^7.1.5",
     "prom-client": "^15.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -52,11 +56,16 @@
     "stripe": "^15.0.0",
     "typeorm": "^0.3.17"
   },
-  "devDependencies": {
+   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
+    "@types/helmet": "^4.0.0",
+    "@types/express-mongo-sanitize": "^2.1.0",
+    "@types/hpp": "^0.2.2",
+    "@types/express-rate-limit": "^6.0.0",
+    "@types/express": "^4.17.17",
     "ansis": "^4.3.0",
     "jest": "^29.5.0",
     "k6": "^0.0.0",

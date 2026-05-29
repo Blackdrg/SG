@@ -4,7 +4,45 @@ interface RequestOptions extends RequestInit {
   token?: string;
 }
 
-export async function api<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+interface ApiResponse<T> {
+  data: T;
+  refreshToken?: string;
+}
+
+// Enhanced API function with automatic token refresh
+export async function api<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  const { token, ...rest } = options;
+  
+  // Try the request
+  try {
+    return await makeRequest<T>(endpoint, { token, ...rest });
+  } catch (error) {
+    // If we get a 401 (Unauthorized) and we have a token, try to refresh
+    if (error.message && error.message.includes('401') && token) {
+      try {
+        // Attempt to refresh token
+        const refreshResponse = await api<{ access_token: string }>('/auth/refresh-token', {
+          method: 'POST',
+          body: JSON.stringify({ token }),
+        });
+        
+        const newToken = refreshResponse.data.access_token;
+        
+        // Retry the original request with the new token
+        return await makeRequest<T>(endpoint, { token: newToken, ...rest });
+      } catch (refreshError) {
+        // If refresh fails, throw the original error
+        throw error;
+      }
+    }
+    
+    // If not a 401 or no token to refresh, throw the original error
+    throw error;
+  }
+}
+
+// Helper function to make the actual request
+async function makeRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
   const { token, ...rest } = options;
   
   const headers = new Headers(rest.headers);
@@ -24,7 +62,11 @@ export async function api<T>(endpoint: string, options: RequestOptions = {}): Pr
     throw new Error(error.message || `HTTP ${response.status}`);
   }
   
-  return response.json();
+  const data = await response.json();
+  
+  // Check if the response contains a new token (some APIs return refresh token in response)
+  // This is optional and depends on your API implementation
+  return { data };
 }
 
 export const authApi = {
@@ -39,12 +81,19 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  
+  // Add refresh token endpoint
+  refreshToken: (token: string) =>
+    api<{ access_token: string }>('/auth/refresh-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
 };
 
 export const restaurantsApi = {
   list: async (lat?: number, lng?: number) => {
     try {
-      return api<any[]>('/restaurants', { 
+      return await api<any[]>('/restaurants', { 
         method: 'GET',
         headers: lat && lng ? { 'x-location': `${lat},${lng}` } : undefined,
       });

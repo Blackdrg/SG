@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, DESIGN_TOKENS } from '@spicegarden/ui';
+import { Button, Card, DESIGN_TOKENS, SkeletonCard } from '@spicegarden/ui';
 import { useRouter } from 'next/router';
-import { restaurantsApi } from '@spicegarden/shared/api';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
 
 interface Restaurant {
   id: string;
@@ -13,39 +13,64 @@ interface Restaurant {
 }
 
 const SearchPage = () => {
-  const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(false);
+   const router = useRouter();
+   const [query, setQuery] = useState('');
+   const [activeFilter, setActiveFilter] = useState('all');
+   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState<string | null>(null);
+   const { enqueueRequest, isOnline, retryFailedRequests } = useOfflineQueue();
 
-  useEffect(() => {
-    const searchRestaurants = async () => {
-      setLoading(true);
-      try {
-        const data = query.trim() 
-          ? await restaurantsApi.search(query) 
-          : await restaurantsApi.list();
-        setRestaurants(data);
-      } catch (error) {
-        console.error('Search failed:', error);
-        setRestaurants([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+   useEffect(() => {
+     const searchRestaurants = async () => {
+       setLoading(true);
+       setError(null);
+       try {
+         // Use offline queue for API requests
+         const data = await enqueueRequest<Restaurant[]>(query.trim() 
+           ? `/restaurants/search?q=${encodeURIComponent(query)}` 
+           : '/restaurants', {
+           method: 'GET',
+           headers: {} // Add any needed headers here
+         });
+         setRestaurants(data);
+       } catch (error) {
+         console.error('Search failed:', error);
+         setError('Failed to search restaurants. Please check your connection.');
+         setRestaurants([]);
+       } finally {
+         setLoading(false);
+       }
+     };
 
-    const debounceTimer = setTimeout(searchRestaurants, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [query]);
+     const debounceTimer = setTimeout(searchRestaurants, 300);
+     return () => clearTimeout(debounceTimer);
+   }, [query, enqueueRequest]);
 
   const filters = ['all', 'popular', 'offers', 'nearby', 'rated 4+'];
 
   return (
-    <div style={{ padding: DESIGN_TOKENS.spacing.md, paddingBottom: 80 }}>
-      <h2 style={{ marginBottom: DESIGN_TOKENS.spacing.lg }}>Search</h2>
+      <div style={{ padding: DESIGN_TOKENS.spacing.md, paddingBottom: 80 }}>
+        <h2 style={{ marginBottom: DESIGN_TOKENS.spacing.lg }}>Search</h2>
 
-      <div style={{ marginBottom: DESIGN_TOKENS.spacing.lg }}>
+        {!isOnline && (
+          <div style={{
+            backgroundColor: '#fff3e0',
+            color: '#f57c00',
+            padding: `${DESIGN_TOKENS.spacing.xs}px ${DESIGN_TOKENS.spacing.md}px`,
+            borderRadius: DESIGN_TOKENS.radius.md,
+            marginBottom: DESIGN_TOKENS.spacing.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: DESIGN_TOKENS.spacing.xs,
+            fontSize: '14px'
+          }}>
+            <span>📵</span>
+            <span>You're offline. Requests will be queued and sent when back online.</span>
+          </div>
+        )}
+
+        <div style={{ marginBottom: DESIGN_TOKENS.spacing.lg }}>
         <input
           type="text"
           placeholder="Search restaurants, dishes..."
@@ -66,27 +91,59 @@ const SearchPage = () => {
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
-        {loading ? (
-          <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>
-        ) : restaurants.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#666' }}>No restaurants found</p>
-        ) : (
-          restaurants.map((r) => (
-            <Card key={r.id} title={r.name}>
-              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px 0' }}>
-                {r.description} &middot; {r.deliveryTime} min &middot; {r.address}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary }}>
-                  ⭐ {r.rating}
+      {error ? (
+        <div style={{ textAlign: 'center', padding: DESIGN_TOKENS.spacing.lg }}>
+          <p style={{ color: DESIGN_TOKENS.colors.danger }}>{error}</p>
+          {!isOnline && (
+            <p style={{ color: DESIGN_TOKENS.colors.textSecondary, fontSize: '14px', marginTop: DESIGN_TOKENS.spacing.xs }}>
+              You appear to be offline. Your request has been queued and will be sent when you're back online.
+            </p>
+          )}
+          <Button 
+            label="Retry" 
+            onClick={() => {
+              retryFailedRequests();
+            }}
+            variant="outline"
+          />
+        </div>
+      ) : restaurants.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: DESIGN_TOKENS.spacing.lg }}>
+          <p style={{ fontSize: '20px', marginBottom: DESIGN_TOKENS.spacing.md }}>🔍</p>
+          <p style={{ color: DESIGN_TOKENS.colors.textSecondary, marginBottom: DESIGN_TOKENS.spacing.sm }}>No restaurants found</p>
+          <p style={{ color: DESIGN_TOKENS.colors.textSecondary, fontSize: '14px' }}>
+            Try changing your search criteria or check your spelling.
+          </p>
+          <Button 
+            label="Try Again" 
+            onClick={() => {
+              setLoading(true);
+              setTimeout(() => setLoading(false), 1000);
+            }}
+            variant="outline"
+          />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
+          {loading ? (
+            <SkeletonCard count={3} />
+          ) : (
+            restaurants.map((r) => (
+              <Card key={r.id} title={r.name}>
+                <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px 0' }}>
+                  {r.description} &middot; {r.deliveryTime} min &middot; {r.address}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary }}>
+                    ⭐ {r.rating}
+                  </div>
+                  <Button label="View Menu" onClick={() => router.push(`/restaurant?id=${r.id}`)} />
                 </div>
-                <Button label="View Menu" onClick={() => router.push(`/restaurant?id=${r.id}`)} />
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Bottom nav */}
       <nav style={{

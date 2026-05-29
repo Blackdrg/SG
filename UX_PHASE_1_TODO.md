@@ -61,8 +61,8 @@ Deliver complete Figma UX architecture + enterprise UI/UX system via markdown sp
 - [x] State modeling (loading/empty/error/offline variants)
 - [x] Error boundary patterns
 - [x] Retry mechanisms
-- [ ] Network status handling
-- [ ] Offline-first patterns
+- [x] Network status handling
+- [x] Offline-first patterns
 
 ### Animations/Motion
 - [x] Entry animations (fade + slide)

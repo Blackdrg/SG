@@ -102,9 +102,14 @@ const ProfilePage = () => {
     );
   }
 
-  return (
-    <div style={{ padding: DESIGN_TOKENS.spacing.md }}>
-      <div style={{ textAlign: 'center', marginBottom: DESIGN_TOKENS.spacing.xl }}>
+   return (
+     <div style={{ padding: DESIGN_TOKENS.spacing.md }}>
+       {error && (
+         <div style={{ backgroundColor: '#ffebee', color: '#c62828', padding: '8px 12px', borderRadius: 4, marginBottom: DESIGN_TOKENS.spacing.md, fontSize: '14px' }}>
+           {error}
+         </div>
+       )}
+       <div style={{ textAlign: 'center', marginBottom: DESIGN_TOKENS.spacing.xl }}>
         <div style={{ 
           width: '100px', 
           height: '100px', 

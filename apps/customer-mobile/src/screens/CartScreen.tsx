@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Alert, Animated, Easing, AccessibilityInfo } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Alert, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
 
 export interface CartItem {
   id: string;
@@ -14,10 +14,10 @@ export interface CartItem {
 }
 
 const CartScreen = () => {
-  const navigation = useNavigation<any>();
+   const navigation = useNavigation();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;

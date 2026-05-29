@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Easing, ViewStyle } from 'react-native';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
 
 interface SkeletonProps {
   width?: number | string;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({ width = '100%', height = 20, borderRadius = 4, style }) => {

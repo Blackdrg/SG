@@ -18,18 +18,19 @@ export class PaymentsController {
     private configService: ConfigService,
   ) {}
 
-  @Post('create-intent')
-  @HttpCode(HttpStatus.OK)
-  async createPaymentIntent(
-    @Body() body: any,
-    @Headers('x-idempotency-key') idempotencyKey?: string
-  ) {
-    const fraudCheck = await this.fraudHardening.checkPaymentFraud({
-      userId: body.userId,
-      amount: body.amount,
-      ipAddress: body.ipAddress,
-      userAgent: body.userAgent,
-    });
+   @Post('create-intent')
+   @HttpCode(HttpStatus.OK)
+   async createPaymentIntent(
+     @Body() body: any,
+     @Req() req: Request,
+     @Headers('x-idempotency-key') idempotencyKey?: string
+   ) {
+     const fraudCheck = await this.fraudHardening.checkPaymentFraud({
+       userId: body.userId,
+       amount: body.amount,
+       ipAddress: req.ip || req.connection.remoteAddress || '0.0.0.0',
+       userAgent: req.get('User-Agent') || 'Unknown',
+     });
 
     if (!fraudCheck.allowed) {
       return {

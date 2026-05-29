@@ -1,14 +1,10 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-
 // Mock React Native components
 jest.mock('react-native', () => ({
   View: 'View',
   Text: 'Text',
   TextInput: 'TextInput',
   TouchableOpacity: 'TouchableOpacity',
-  StyleSheet: { create: (styles: any) => styles },
+  StyleSheet: { create: (styles) => styles },
   Alert: { alert: jest.fn() },
 }));
 
@@ -105,13 +101,12 @@ describe('Customer Mobile App - Full E2E Flow', () => {
       expect(order.driver).toBeDefined();
     });
 
-    it('should handle order cancellation', () => {
-      const order = { status: 'PLACED', canCancel: true };
-      const cancelWindow = 10 * 60 * 1000; // 10 minutes
+     it('should handle order cancellation', () => {
+       const order = { status: 'PLACED', canCancel: true };
 
-      expect(order.canCancel).toBe(true);
-      expect(order.status).toBe('PLACED');
-    });
+       expect(order.canCancel).toBe(true);
+       expect(order.status).toBe('PLACED');
+     });
   });
 
   describe('Payment Flow', () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, DESIGN_TOKENS } from '@spicegarden/ui';
+import { Button, Card, DESIGN_TOKENS, SkeletonCard } from '@spicegarden/ui';
 import { useRouter } from 'next/router';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../redux/store';
@@ -9,6 +9,7 @@ import { cartSlice } from '../redux/slices/cartSlice';
 const HistoryPage = () => {
   const router = useRouter();
   const { user } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
   const [orders, setOrders] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'delivered' | 'cancelled' | 'preparing' | 'ready' | 'pickedup'>('all');
   const [loading, setLoading] = useState(true);
@@ -130,54 +131,62 @@ const HistoryPage = () => {
         ))}
       </div>
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 32, marginBottom: 16 }}>&#x23F3;</div>
-          <p style={{ color: '#666' }}>Loading orders…</p>
-        </div>
-      ) : filteredOrders.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 32, marginBottom: 16 }}>&#x1F4ED;</div>
-          <p style={{ color: '#666' }}>No orders found</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
-          {filteredOrders.map((order) => (
-            <Card key={order.id} title={`#${order.id}`}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div>
-                  <h4 style={{ margin: 0 }}>{order.restaurant}</h4>
-                  <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '13px' }}>{order.items} items &middot; &#8377;{order.amount}</p>
-                </div>
-                <span style={{
-                  padding: '2px 10px', borderRadius: 12, fontSize: '12px', fontWeight: 'bold',
-                  backgroundColor: 
-                    order.status === 'delivered' ? '#e8f5e8' :
-                    order.status === 'cancelled' ? '#f8e8e8' :
-                    order.status === 'preparing' || order.status === 'ready' || order.status === 'pickedup' ? '#fff3e0' :
-                    '#f5f5f5',
-                  color: 
-                    order.status === 'delivered' ? DESIGN_TOKENS.colors.success :
-                    order.status === 'cancelled' ? '#999' :
-                    order.status === 'preparing' || order.status === 'ready' || order.status === 'pickedup' ? DESIGN_TOKENS.colors.warning :
-                    '#666',
-                }}>{order.status.toUpperCase()}</span>
-              </div>
-              <p style={{ margin: 0, color: '#999', fontSize: 13 }}>{order.date} &middot; {order.time}</p>
-              <div style={{ marginTop: DESIGN_TOKENS.spacing.sm }}>
-                {order.rating > 0 && (
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span key={star} style={{ color: star <= orderRating ? '#ffc107' : '#ddd' }}>&starf;</span>
-                    ))}
-                  </div>
-                )}
-                <Button label="Reorder" onClick={() => handleReorder(order.id)} variant="secondary" />
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+       {loading ? (
+         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 40 }}>
+           <SkeletonCard count={3} />
+           <p style={{ color: '#666', marginTop: DESIGN_TOKENS.spacing.sm }}>Loading orders…</p>
+         </div>
+       ) : filteredOrders.length === 0 ? (
+         <div style={{ textAlign: 'center', padding: 40 }}>
+           <div style={{ fontSize: 48, marginBottom: 24 }}>📦</div>
+           <h3 style={{ color: DESIGN_TOKENS.colors.textSecondary, marginBottom: DESIGN_TOKENS.spacing.sm }}>No orders yet</h3>
+           <p style={{ color: DESIGN_TOKENS.colors.textSecondary, fontSize: '14px', maxWidth: 300, margin: '0 auto' }}>
+             Your order history will appear here once you place your first order.
+           </p>
+           <Button 
+             label="Place First Order" 
+             onClick={() => router.push('/search')} 
+             variant="secondary"
+           />
+         </div>
+       ) : (
+         <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
+           {filteredOrders.map((order) => (
+             <Card key={order.id} title={`#${order.id}`}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                 <div>
+                   <h4 style={{ margin: 0 }}>{order.restaurant}</h4>
+                   <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '13px' }}>{order.items} items &middot; &#8377;{order.amount}</p>
+                 </div>
+                 <span style={{
+                   padding: '2px 10px', borderRadius: 12, fontSize: '12px', fontWeight: 'bold',
+                   backgroundColor: 
+                     order.status === 'delivered' ? '#e8f5e8' :
+                     order.status === 'cancelled' ? '#f8e8e8' :
+                     order.status === 'preparing' || order.status === 'ready' || order.status === 'pickedup' ? '#fff3e0' :
+                     '#f5f5f5',
+                   color: 
+                     order.status === 'delivered' ? DESIGN_TOKENS.colors.success :
+                     order.status === 'cancelled' ? '#999' :
+                     order.status === 'preparing' || order.status === 'ready' || order.status === 'pickedup' ? DESIGN_TOKENS.colors.warning :
+                     '#666',
+                 }}>{order.status.toUpperCase()}</span>
+               </div>
+               <p style={{ margin: 0, color: '#999', fontSize: 13 }}>{order.date} &middot; {order.time}</p>
+               <div style={{ marginTop: DESIGN_TOKENS.spacing.sm }}>
+                 {order.rating > 0 && (
+                   <div style={{ display: 'flex', gap: 2 }}>
+                     {[1, 2, 3, 4, 5].map((star) => (
+                       <span key={star} style={{ color: star <= order.rating ? '#ffc107' : '#ddd' }}>&starf;</span>
+                     ))}
+                   </div>
+                 )}
+                 <Button label="Reorder" onClick={() => handleReorder(order.id)} variant="secondary" />
+               </div>
+             </Card>
+           ))}
+         </div>
+       )}
 
       {/* Bottom nav */}
       <nav style={{

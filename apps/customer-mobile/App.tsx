@@ -5,10 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
-import RestaurantScreen from './src/screens/RestaurantScreen';
 import CartScreen from './src/screens/CartScreen';
-import CheckoutScreen from './src/screens/CheckoutScreen';
-import TrackingScreen from './src/screens/TrackingScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createStackNavigator();
@@ -63,13 +60,3 @@ export default function App() {
     <AppNavigator />
   );
 }
-
-// Styles would normally be in a separate file, but keeping it simple for now
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-};

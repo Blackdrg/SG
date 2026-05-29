@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, AccessibilityInfo } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +15,7 @@ const AuthScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  const navigation = useNavigation<any>();
+   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 

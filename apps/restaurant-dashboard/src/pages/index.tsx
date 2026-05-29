@@ -3,6 +3,36 @@ import { Button } from '@spicegarden/ui';
 import { io, Socket } from 'socket.io-client';
 
 // ── Types ──────────────────────────────────────────────────────────────────
+type OrderItem = {
+  id: string;
+  name: string;
+  qty: number;
+  modifiers?: string[];
+  note?: string;
+};
+
+type InventoryItem = {
+  id: string;
+  name: string;
+  inStock: number;
+  threshold: number;
+};
+
+type Order = {
+  id: string;
+  orderNumber: string;
+  diner: string;
+  table: string;
+  serviceType: ServiceType;
+  items: OrderItem[];
+  createdAt: Date;
+  status: OrderStatus;
+  estPrepMins: number;
+  prepStartedAt?: Date;
+};
+
+type OrderStatus = 'new' | 'preparing' | 'ready' | 'pickedup' | 'delivered' | 'cancelled' | 'delayed';
+type ServiceType = 'delivery' | 'dine-in' | 'takeaway';
 
 // ── Pre-seeded demo data ────────────────────────────────────────────────────
 
@@ -142,7 +172,7 @@ export default function KitchenDashboard() {
   };
   const statusColors: Record<OrderStatus, string> = {
     new: '#f04e31', accepted: '#ff9800', preparing: '#2196f3',
-    ready: '#4caf50', delayed: '#ff4444', completed: '#999',
+    ready: '#4caf50', delayed: '#ff4444', completed: '#999', pickedup: '#ff9800', delivered: '#4caf50',
   };
 
   const counts = Object.fromEntries(statuses.map((s) => [s, orders.filter((o) => o.status === s).length])) as Record<OrderStatus, number>;
@@ -169,14 +199,13 @@ export default function KitchenDashboard() {
         borderBottom: '1px solid #333',
       }}>
         <h1 style={{ margin: 0, fontSize: '18px' }}>&#x1F525; KITCHEN DISPLAY</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          < button
+<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
             onClick={() => !audioEnabled ? setAudioEnabled(true) : squashSound('toggle')}
             title={audioEnabled ? 'Mute alerts' : 'Unmute alerts'}
             style={{ background: audioEnabled ? '#333' : '#f04e31', border: 'none', borderRadius: 6, padding: '4px 10px', color: 'white', cursor: 'pointer', fontSize: '13px' }}
           >
-            {audioEnabled ? '🔊' : '🔇'}
-          </button>
+            {audioEnabled ? '🔊' : '🔇'}</button>
           <div style={{ background: '#00ff88', color: '#000', padding: '4px 14px', borderRadius: 20, fontWeight: 'bold', fontSize: '13px' }}>
             {orders.length} orders
           </div>

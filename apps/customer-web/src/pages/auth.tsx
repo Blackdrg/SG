@@ -7,6 +7,7 @@ import { API_URL } from '@spicegarden/shared/constants';
 
 const AuthPage = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ email: '', password: '', name: '', phone: '' });
   const [error, setError] = useState('');

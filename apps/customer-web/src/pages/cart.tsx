@@ -4,7 +4,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../redux/store';
 import { removeFromCart, updateQuantity } from '../redux/slices/cartSlice';
 import { useRouter } from 'next/router';
-import { API_URL } from '@spicegarden/shared/constants';
 
 const CartPage = () => {
   const router = useRouter();
@@ -40,20 +39,20 @@ const CartPage = () => {
          {cartItems.map((item) => (
            <Card key={item.id} title={item.name}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <div>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                   <Button label="-" onClick={() => {
-                     dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }));
-                   }} variant="secondary" style={{ width: 30, height: 30, padding: 0 }} />
-                   <span style={{ minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
-                   <Button label="+" onClick={() => {
-                     dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }));
-                   }} variant="secondary" style={{ width: 30, height: 30, padding: 0 }} />
-                 </span>
-                 <span style={{ marginLeft: DESIGN_TOKENS.spacing.md, fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary }}>
-                   &#8377;{item.price * item.quantity}
-                 </span>
-               </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Button label="-" onClick={() => {
+                      dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }));
+                    }} variant="secondary" style={{ width: 30, height: 30, padding: 0 }} />
+                    <span style={{ minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
+                    <Button label="+" onClick={() => {
+                      dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }));
+                    }} variant="secondary" style={{ width: 30, height: 30, padding: 0 }} />
+                  </div>
+                  <span style={{ marginLeft: DESIGN_TOKENS.spacing.md, fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary }}>
+                    &#8377;{item.price * item.quantity}
+                  </span>
+                </div>
                <Button label="Remove" onClick={() => dispatch(removeFromCart(item.id))} variant="secondary" />
              </div>
            </Card>

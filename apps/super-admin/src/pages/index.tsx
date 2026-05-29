@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
 import { io, Socket } from 'socket.io-client';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar,
 } from 'recharts';
 
@@ -39,6 +39,16 @@ interface HeatmapPoint {
   x: number; y: number; intensity: number; label: string;
 }
 
+const MOCK_REVENUE = [
+  { t: '00:00', orders: 10 },
+  { t: '04:00', orders: 15 },
+  { t: '08:00', orders: 20 },
+  { t: '12:00', orders: 25 },
+  { t: '16:00', orders: 30 },
+  { t: '20:00', orders: 22 },
+  { t: '23:59', orders: 18 },
+];
+
 // Fetch real stats from API
 async function fetchStats() {
   try {
@@ -61,29 +71,7 @@ async function fetchOrders() {
   return [];
 }
 
-// ── Generate a realistic-looking delivery heatmap ──────────────────────────────
 
-function generateHeatmap(): HeatmapPoint[] {
-  const hotspots = [
-    { cx: 30, cy: 40, r: 18 }, { cx: 70, cy: 25, r: 14 },
-    { cx: 50, cy: 65, r: 20 }, { cx: 20, cy: 75, r: 10 },
-    { cx: 80, cy: 60, r: 12 }, { cx: 45, cy: 30, r: 8 },
-  ];
-  const pts: HeatmapPoint[] = [];
-  const labels = ['Sector 17', 'Sector 22', 'Mohali', 'Panchkula', 'Zirakpur', 'Chandigarh'];
-  hotspots.forEach((h, i) => {
-    for (let dx = -h.r; dx <= h.r; dx += 3) {
-      for (let dy = -h.r; dy <= h.r; dy += 3) {
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist <= h.r) {
-          const intensity = Math.max(0, 1 - dist / h.r);
-          pts.push({ x: Math.min(95, Math.max(5, h.cx + dx)), y: Math.min(95, Math.max(5, h.cy + dy)), intensity, label: labels[i] });
-        }
-      }
-    }
-  });
-  return pts;
-}
 
 // ── Heatmap grid renderer ─────────────────────────────────────────────────────
 

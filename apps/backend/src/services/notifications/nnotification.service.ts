@@ -178,7 +178,7 @@ export class NotificationService {
   }
 
   async notifyRefundUpdate(userId: string, refundId: string, status: string, amount: number) {
-    const message = `Your refund of ₹${amount} for order has been ${status}.`;
+    const message = `Your refund of \u20B9${amount} for order has been ${status}.`;
     await this.sendPush(userId, 'Refund Update', message, { refundId, status, amount });
     // Consider email for refund updates? We'll do push for now.
   }

@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { Button, Card, DESIGN_TOKENS } from '@spicegarden/ui';
+import React, { useState, useEffect } from 'react';
+import { Button, Card, DESIGN_TOKENS, Skeleton } from '@spicegarden/ui';
 import { useRouter } from 'next/router';
-import { API_URL } from '@spicegarden/shared/constants';
 
 interface MenuItem {
   id: number;
@@ -22,6 +21,21 @@ const MenuPage = () => {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [cart, setCart] = useState<Array<MenuItem & { quantity: number }>>([]);
+  const [loading, setLoading] = useState(false); // Added loading state
+
+  // Simulate loading effect for demo purposes
+  // In a real app, this would be set when fetching data from API
+  useEffect(() => {
+    // Simulate API call delay
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    
+    // Set loading to true initially
+    setLoading(true);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const categories: Category[] = [
     { id: 'all', name: 'All', count: 24 },
@@ -83,35 +97,74 @@ const MenuPage = () => {
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
-        {filteredItems.map((item) => (
-          <div key={item.id} style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: DESIGN_TOKENS.spacing.sm,
-            marginBottom: DESIGN_TOKENS.spacing.md
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center'
-            }}>
-              <div style={{ fontSize: '24px' }}>{item.image}</div>
-              <div>
-                <span style={{ fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary }}>₹{item.price}</span>
-                <Button 
-                  label="Add" 
-                  onClick={() => addToCart(item)} 
-                  variant="secondary"
-                />
-              </div>
-            </div>
-            <div style={{ marginTop: DESIGN_TOKENS.spacing.sm, fontSize: '14px', color: '#666' }}>
-              {item.desc}
-            </div>
-          </div>
-        ))}
-      </div>
+       <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
+         {loading ? (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: DESIGN_TOKENS.spacing.md }}>
+             {Array.from({ length: 6 }).map((_, index) => (
+               <div key={index} style={{ 
+                 display: 'flex', 
+                 flexDirection: 'column', 
+                 gap: DESIGN_TOKENS.spacing.sm,
+                 marginBottom: DESIGN_TOKENS.spacing.md
+               }}>
+                 <div style={{ 
+                   display: 'flex', 
+                   justifyContent: 'space-between', 
+                   alignItems: 'center'
+                 }}>
+                   <Skeleton width={48} height={48} variant="circular" />
+                   <div>
+                     <Skeleton height={16} width="70%" style={{ marginBottom: DESIGN_TOKENS.spacing.xs }} />
+                     <Skeleton height={14} width="40%" />
+                   </div>
+                 </div>
+                 <Skeleton height={12} style={{ marginTop: DESIGN_TOKENS.spacing.sm }} />
+                 <Skeleton height={12} width="80%" />
+                 <Skeleton height={12} width="60%" />
+               </div>
+             ))}
+           </div>
+         ) : filteredItems.length === 0 ? (
+           <div style={{ textAlign: 'center', padding: DESIGN_TOKENS.spacing.lg }}>
+             <p style={{ fontSize: '20px', marginBottom: DESIGN_TOKENS.spacing.md }}>🍽️</p>
+             <p style={{ color: DESIGN_TOKENS.colors.textSecondary, marginBottom: DESIGN_TOKENS.spacing.sm }}>No items found</p>
+             <p style={{ color: DESIGN_TOKENS.colors.textSecondary, fontSize: '14px' }}>
+               Try selecting a different category or check back later for new items.
+             </p>
+             <Button 
+               label="Explore More" 
+               onClick={() => setActiveCategory('all')}
+               variant="outline"
+             />
+           </div>
+         ) : filteredItems.map((item) => (
+           <div key={item.id} style={{ 
+             display: 'flex', 
+             flexDirection: 'column', 
+             gap: DESIGN_TOKENS.spacing.sm,
+             marginBottom: DESIGN_TOKENS.spacing.md
+           }}>
+             <div style={{ 
+               display: 'flex', 
+               justifyContent: 'space-between', 
+               alignItems: 'center'
+             }}>
+               <div style={{ fontSize: '24px' }}>{item.image}</div>
+               <div>
+                 <span style={{ fontWeight: 'bold', color: DESIGN_TOKENS.colors.primary }}>₹{item.price}</span>
+                 <Button 
+                   label="Add" 
+                   onClick={() => addToCart(item)} 
+                   variant="secondary"
+                 />
+               </div>
+             </div>
+             <div style={{ marginTop: DESIGN_TOKENS.spacing.sm, fontSize: '14px', color: '#666' }}>
+               {item.desc}
+             </div>
+           </div>
+         ))}
+       </div>
 
       {cart.length > 0 && (
         <div style={{ marginTop: DESIGN_TOKENS.spacing.lg }}>

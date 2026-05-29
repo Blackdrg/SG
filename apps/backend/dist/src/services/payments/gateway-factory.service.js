@@ -25,11 +25,27 @@ let PaymentGatewayFactory = PaymentGatewayFactory_1 = class PaymentGatewayFactor
         this.razorpayGateway = this.razorpayGatewayInstance;
         const primaryGateway = this.configService.get('PAYMENT_PRIMARY_GATEWAY', 'stripe');
         this.defaultGateway = primaryGateway === 'razorpay' ? this.razorpayGateway : this.stripeGateway;
-        this.logger.log(Payment, gateway, factory, initialized);
-        with ()
-            ;
+        this.logger.log(`Payment gateway factory initialized with default gateway: ${this.defaultGateway.getGatewayName()}`);
     }
-    ;
+    getGateway(gatewayName) {
+        if (!gatewayName) {
+            return this.defaultGateway;
+        }
+        switch (gatewayName.toLowerCase()) {
+            case 'stripe':
+                return this.stripeGateway;
+            case 'razorpay':
+                return this.razorpayGateway;
+            default:
+                this.logger.warn(Unknown, payment, gateway, falling, back, to);
+            default:
+                ;
+                return this.defaultGateway;
+        }
+    }
+    getAvailableGateways() {
+        return ['stripe', 'razorpay'];
+    }
 };
 exports.PaymentGatewayFactory = PaymentGatewayFactory;
 exports.PaymentGatewayFactory = PaymentGatewayFactory = PaymentGatewayFactory_1 = __decorate([
@@ -38,27 +54,4 @@ exports.PaymentGatewayFactory = PaymentGatewayFactory = PaymentGatewayFactory_1 
         stripe_gateway_service_1.StripeGateway,
         razorpay_gateway_service_1.RazorpayGateway])
 ], PaymentGatewayFactory);
-getGateway(gatewayName ?  : string);
-payment_gateway_interface_1.PaymentGateway;
-{
-    if (!gatewayName) {
-        return this.defaultGateway;
-    }
-    switch (gatewayName.toLowerCase()) {
-        case 'stripe':
-            return this.stripeGateway;
-        case 'razorpay':
-            return this.razorpayGateway;
-        default:
-            this.logger.warn(Unknown, payment, gateway, falling, back, to);
-        default:
-            ;
-            return this.defaultGateway;
-    }
-}
-getAvailableGateways();
-string[];
-{
-    return ['stripe', 'razorpay'];
-}
 //# sourceMappingURL=gateway-factory.service.js.map

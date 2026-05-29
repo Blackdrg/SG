@@ -15,7 +15,10 @@ const config_1 = require("@nestjs/config");
 let EncryptionService = class EncryptionService {
     constructor(configService) {
         this.configService = configService;
-        this.secretKey = this.configService.get('ENCRYPTION_SECRET', 'spicegarden-super-secret');
+        this.secretKey = this.configService.get('ENCRYPTION_SECRET');
+        if (!this.secretKey || this.secretKey.includes('CHANGE_ME')) {
+            throw new Error('ENCRYPTION_SECRET not configured. Set secure random secret before starting.');
+        }
     }
     encrypt(text) {
         const CryptoJS = require('crypto-js');

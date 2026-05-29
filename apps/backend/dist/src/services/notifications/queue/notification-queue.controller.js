@@ -14,9 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationQueueController = void 0;
 const common_1 = require("@nestjs/common");
-const notification_queue_service_1 = require("./notification-queue.service");
-const module_1 = require();
 let NotificationQueueController = class NotificationQueueController {
+};
+exports.NotificationQueueController = NotificationQueueController;
+exports.NotificationQueueController = NotificationQueueController = __decorate([
+    (0, common_1.Controller)('notification-queue')
+], NotificationQueueController);
+class NotificationQueueController {
     constructor(notificationQueueService) {
         this.notificationQueueService = notificationQueueService;
     }
@@ -50,14 +54,14 @@ let NotificationQueueController = class NotificationQueueController {
         await this.notificationQueueService.processNotificationQueue();
         return { success: true };
     }
-};
+}
 exports.NotificationQueueController = NotificationQueueController;
 __decorate([
     (0, common_1.Post)('queue'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Queue a notification for reliable delivery' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notification queued successfully' }),
-    (0, module_1.ApiBody)({
+    ApiOperation({ summary: 'Queue a notification for reliable delivery' }),
+    ApiResponse({ status: 200, description: 'Notification queued successfully' }),
+    ApiBody({
         schema: {
             type: 'object',
             properties: {
@@ -81,10 +85,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Get notification by ID' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notification retrieved successfully' }),
-    (0, module_1.ApiResponse)({ status: 404, description: 'Notification not found' }),
-    (0, module_1.ApiParam)({ name: 'id', type: 'string' }),
+    ApiOperation({ summary: 'Get notification by ID' }),
+    ApiResponse({ status: 200, description: 'Notification retrieved successfully' }),
+    ApiResponse({ status: 404, description: 'Notification not found' }),
+    ApiParam({ name: 'id', type: 'string' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -93,9 +97,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Get notifications by status' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notifications retrieved successfully' }),
-    (0, module_1.ApiQuery)({ name: 'status', type: 'string', required: false }),
+    ApiOperation({ summary: 'Get notifications by status' }),
+    ApiResponse({ status: 200, description: 'Notifications retrieved successfully' }),
+    ApiQuery({ name: 'status', type: 'string', required: false }),
     __param(0, (0, common_1.Query)('status')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -104,10 +108,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)('recipient/:recipientId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Get notifications for a recipient' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notifications retrieved successfully' }),
-    (0, module_1.ApiParam)({ name: 'recipientId', type: 'string' }),
-    (0, module_1.ApiQuery)({ name: 'recipientType', type: 'string', required: true }),
+    ApiOperation({ summary: 'Get notifications for a recipient' }),
+    ApiResponse({ status: 200, description: 'Notifications retrieved successfully' }),
+    ApiParam({ name: 'recipientId', type: 'string' }),
+    ApiQuery({ name: 'recipientType', type: 'string', required: true }),
     __param(0, (0, common_1.Param)('recipientId')),
     __param(1, (0, common_1.Query)('recipientType')),
     __metadata("design:type", Function),
@@ -117,9 +121,9 @@ __decorate([
 __decorate([
     (0, common_1.Post)(':id/cancel'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Cancel a notification' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notification cancelled successfully' }),
-    (0, module_1.ApiParam)({ name: 'id', type: 'string' }),
+    ApiOperation({ summary: 'Cancel a notification' }),
+    ApiResponse({ status: 200, description: 'Notification cancelled successfully' }),
+    ApiParam({ name: 'id', type: 'string' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -128,8 +132,8 @@ __decorate([
 __decorate([
     (0, common_1.Get)('stats/overview'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Get notification statistics' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notification statistics retrieved successfully' }),
+    ApiOperation({ summary: 'Get notification statistics' }),
+    ApiResponse({ status: 200, description: 'Notification statistics retrieved successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -137,15 +141,10 @@ __decorate([
 __decorate([
     (0, common_1.Post)('process'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, module_1.ApiOperation)({ summary: 'Process the notification queue' }),
-    (0, module_1.ApiResponse)({ status: 200, description: 'Notification queue processed successfully' }),
+    ApiOperation({ summary: 'Process the notification queue' }),
+    ApiResponse({ status: 200, description: 'Notification queue processed successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], NotificationQueueController.prototype, "processNotificationQueue", null);
-exports.NotificationQueueController = NotificationQueueController = __decorate([
-    (0, module_1.ApiTags)('notification-queue'),
-    (0, common_1.Controller)('notification-queue'),
-    __metadata("design:paramtypes", [notification_queue_service_1.NotificationQueueService])
-], NotificationQueueController);
 //# sourceMappingURL=notification-queue.controller.js.map

@@ -8,23 +8,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationQueueModule = void 0;
 const common_1 = require("@nestjs/common");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
-const module_4 = require();
-const module_5 = require();
+const typeorm_1 = require("@nestjs/typeorm");
+const notification_queue_service_1 = require("./notification-queue.service");
+const notification_queue_controller_1 = require("./notification-queue.controller");
+const notification_entity_1 = require("../../../db/entities/notification.entity");
+const notification_module_1 = require("../notification.module");
 let NotificationQueueModule = class NotificationQueueModule {
 };
 exports.NotificationQueueModule = NotificationQueueModule;
 exports.NotificationQueueModule = NotificationQueueModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            module_1.TypeOrmModule.forFeature([module_4.NotificationEntity]),
-            module_5.NotificationModule,
+            typeorm_1.TypeOrmModule.forFeature([notification_entity_1.NotificationEntity]),
+            notification_module_1.NotificationModule,
         ],
-        providers: [module_2.NotificationQueueService],
-        controllers: [module_3.NotificationQueueController],
-        exports: [module_2.NotificationQueueService]
+        providers: [notification_queue_service_1.NotificationQueueService],
+        controllers: [notification_queue_controller_1.NotificationQueueController],
+        exports: [notification_queue_service_1.NotificationQueueService]
     })
 ], NotificationQueueModule);
 //# sourceMappingURL=notification-queue.module.js.map

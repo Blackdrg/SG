@@ -14,7 +14,7 @@ export class PaymentGatewayFactory {
   
   private defaultGateway: PaymentGateway;
 
-  constructor(
+constructor(
     private configService: ConfigService,
     private stripeGatewayInstance: StripeGateway,
     private razorpayGatewayInstance: RazorpayGateway
@@ -25,8 +25,8 @@ export class PaymentGatewayFactory {
     // Determine default gateway based on configuration
     const primaryGateway = this.configService.get<string>('PAYMENT_PRIMARY_GATEWAY', 'stripe');
     this.defaultGateway = primaryGateway === 'razorpay' ? this.razorpayGateway : this.stripeGateway;
-    
-    this.logger.log(Payment gateway factory initialized with default gateway: );
+
+    this.logger.log(`Payment gateway factory initialized with default gateway: ${this.defaultGateway.getGatewayName()}`);
   }
 
   getGateway(gatewayName?: string): PaymentGateway {

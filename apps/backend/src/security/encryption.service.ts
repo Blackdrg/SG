@@ -6,7 +6,10 @@ export class EncryptionService {
   private secretKey: string;
 
   constructor(private configService: ConfigService) {
-    this.secretKey = this.configService.get<string>('ENCRYPTION_SECRET', 'spicegarden-super-secret');
+    this.secretKey = this.configService.get<string>('ENCRYPTION_SECRET');
+    if (!this.secretKey || this.secretKey.includes('CHANGE_ME')) {
+      throw new Error('ENCRYPTION_SECRET not configured. Set secure random secret before starting.');
+    }
   }
 
   encrypt(text: string): string {

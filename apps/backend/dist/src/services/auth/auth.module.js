@@ -29,10 +29,16 @@ exports.AuthServiceModule = AuthServiceModule = __decorate([
             typeorm_1.TypeOrmModule.forFeature([session_entity_1.SessionEntity, user_entity_1.UserEntity]),
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
-                useFactory: async (configService) => ({
-                    secret: configService.get('JWT_SECRET') || 'secretKey',
-                    signOptions: { expiresIn: '60m' },
-                }),
+                useFactory: async (configService) => {
+                    const secret = configService.get('JWT_SECRET');
+                    if (!secret || secret.includes('CHANGE_ME') || secret.includes('secret')) {
+                        throw new Error('JWT_SECRET not configured. Generate secure random secret before production.');
+                    }
+                    return {
+                        secret,
+                        signOptions: { expiresIn: '60m' },
+                    };
+                },
                 inject: [config_1.ConfigService],
             }),
         ],

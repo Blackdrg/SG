@@ -14,11 +14,7 @@ const chargeback_controller_1 = require("./chargeback.controller");
 const payment_dispute_entity_1 = require("../../db/entities/payment-dispute.entity");
 const order_entity_1 = require("../../db/entities/order.entity");
 const user_entity_1 = require("../../db/entities/user.entity");
-const payment_service_module_1 = require("../payments/payment-service.module");
 const notification_module_1 = require("../../notifications/notification.module");
-const ledger_module_1 = require("../../modules/ledger/ledger.module");
-const audit_module_1 = require("../../audit/audit.module");
-const production_notification_module_1 = require("../../notifications/production-notification.module");
 let ChargebackModule = class ChargebackModule {
 };
 exports.ChargebackModule = ChargebackModule;
@@ -26,11 +22,7 @@ exports.ChargebackModule = ChargebackModule = __decorate([
     (0, common_1.Module)({
         imports: [
             typeorm_1.TypeOrmModule.forFeature([payment_dispute_entity_1.PaymentDisputeEntity, order_entity_1.OrderEntity, user_entity_1.UserEntity]),
-            payment_service_module_1.PaymentServiceModule,
             notification_module_1.NotificationModule,
-            ledger_module_1.LedgerModule,
-            audit_module_1.AuditModule,
-            production_notification_module_1.ProductionNotificationModule
         ],
         providers: [chargeback_service_1.ChargebackService],
         controllers: [chargeback_controller_1.ChargebackController],

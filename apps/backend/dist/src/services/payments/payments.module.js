@@ -8,74 +8,74 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentServiceModule = void 0;
 const common_1 = require("@nestjs/common");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
-const module_4 = require();
-const module_5 = require();
-const module_6 = require();
-const module_7 = require();
-const module_8 = require();
-const module_9 = require();
-const module_10 = require();
-const module_11 = require();
-const module_12 = require();
-const module_13 = require();
-const module_14 = require();
-const module_15 = require();
-const module_16 = require();
-const module_17 = require();
-const module_18 = require();
-const module_19 = require();
-const module_20 = require();
-const module_21 = require();
-const module_22 = require();
-const module_23 = require();
-const module_24 = require();
-const module_25 = require();
+const typeorm_1 = require("@nestjs/typeorm");
+const payments_service_1 = require("./payments.service");
+const payments_controller_1 = require("./payments.controller");
+const payment_hardening_service_1 = require("./payment-hardening.service");
+const retry_service_1 = require("./retry.service");
+const fraud_hardening_service_1 = require("./fraud-hardening.service");
+const idempotency_service_1 = require("./idempotency.service");
+const gateway_factory_service_1 = require("./gateway-factory.service");
+const stripe_gateway_service_1 = require("./gateways/stripe-gateway.service");
+const razorpay_gateway_service_1 = require("./gateways/razorpay-gateway.service");
+const order_entity_1 = require("../../db/entities/order.entity");
+const wallet_entity_1 = require("../../db/entities/wallet.entity");
+const wallet_transaction_entity_1 = require("../../db/entities/wallet-transaction.entity");
+const audit_log_entity_1 = require("../../db/entities/audit-log.entity");
+const idempotency_entity_1 = require("./idempotency.entity");
+const payment_validation_entity_1 = require("./payment-validation.entity");
+const payment_fraud_entity_1 = require("./payment-fraud.entity");
+const payment_event_entity_1 = require("./payment-event.entity");
+const ledger_entry_entity_1 = require("../../db/entities/ledger-entry.entity");
+const webhook_module_1 = require("./webhook/webhook.module");
+const audit_module_1 = require("../../audit/audit.module");
+const ledger_module_1 = require("../../modules/ledger/ledger.module");
+const gst_module_1 = require("../../services/gst/gst.module");
+const chargeback_module_1 = require("./chargeback/chargeback.module");
+const payment_dispute_entity_1 = require("../../db/entities/payment-dispute.entity");
 let PaymentServiceModule = class PaymentServiceModule {
 };
 exports.PaymentServiceModule = PaymentServiceModule;
 exports.PaymentServiceModule = PaymentServiceModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            module_1.TypeOrmModule.forFeature([
-                module_11.OrderEntity,
-                module_12.WalletEntity,
-                module_13.WalletTransactionEntity,
-                module_14.AuditLogEntity,
-                module_15.IdempotencyEntity,
-                module_16.PaymentValidationEventEntity,
-                module_17.PaymentFraudFlagEntity,
-                module_18.PaymentEventEntity,
-                module_19.LedgerEntryEntity,
-                module_25.PaymentDisputeEntity,
+            typeorm_1.TypeOrmModule.forFeature([
+                order_entity_1.OrderEntity,
+                wallet_entity_1.WalletEntity,
+                wallet_transaction_entity_1.WalletTransactionEntity,
+                audit_log_entity_1.AuditLogEntity,
+                idempotency_entity_1.IdempotencyEntity,
+                payment_validation_entity_1.PaymentValidationEventEntity,
+                payment_fraud_entity_1.PaymentFraudFlagEntity,
+                payment_event_entity_1.PaymentEventEntity,
+                ledger_entry_entity_1.LedgerEntryEntity,
+                payment_dispute_entity_1.PaymentDisputeEntity,
             ]),
-            module_20.WebhookModule,
-            module_21.AuditModule,
-            module_22.LedgerModule,
-            module_23.GSTModule,
-            module_24.ChargebackModule
+            webhook_module_1.WebhookModule,
+            audit_module_1.AuditModule,
+            ledger_module_1.LedgerModule,
+            gst_module_1.GSTModule,
+            chargeback_module_1.ChargebackModule
         ],
         providers: [
-            module_2.PaymentService,
-            module_4.PaymentHardeningService,
-            module_5.RetryService,
-            module_6.FraudHardeningService,
-            module_7.IdempotencyService,
-            module_8.PaymentGatewayFactory,
-            module_9.StripeGateway,
-            module_10.RazorpayGateway,
+            payments_service_1.PaymentService,
+            payment_hardening_service_1.PaymentHardeningService,
+            retry_service_1.RetryService,
+            fraud_hardening_service_1.FraudHardeningService,
+            idempotency_service_1.IdempotencyService,
+            gateway_factory_service_1.PaymentGatewayFactory,
+            stripe_gateway_service_1.StripeGateway,
+            razorpay_gateway_service_1.RazorpayGateway,
             ChargebackService
         ],
-        controllers: [module_3.PaymentsController],
+        controllers: [payments_controller_1.PaymentsController],
         exports: [
-            module_2.PaymentService,
-            module_4.PaymentHardeningService,
-            module_5.RetryService,
-            module_6.FraudHardeningService,
-            module_7.IdempotencyService,
-            module_8.PaymentGatewayFactory,
+            payments_service_1.PaymentService,
+            payment_hardening_service_1.PaymentHardeningService,
+            retry_service_1.RetryService,
+            fraud_hardening_service_1.FraudHardeningService,
+            idempotency_service_1.IdempotencyService,
+            gateway_factory_service_1.PaymentGatewayFactory,
             ChargebackService
         ],
     })

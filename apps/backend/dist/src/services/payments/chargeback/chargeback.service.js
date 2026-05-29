@@ -12,7 +12,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var ChargebackService_1;
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChargebackService = void 0;
 const common_1 = require("@nestjs/common");
@@ -22,22 +21,16 @@ const config_1 = require("@nestjs/config");
 const payment_dispute_entity_1 = require("../../db/entities/payment-dispute.entity");
 const order_entity_1 = require("../../db/entities/order.entity");
 const user_entity_1 = require("../../db/entities/user.entity");
-const payments_service_1 = require("../payments.service");
 const notification_service_1 = require("../../notifications/notification.service");
-const ledger_service_1 = require("../../modules/ledger/ledger.service");
-const audit_service_1 = require("../../audit/audit.service");
 const production_notification_service_1 = require("../../notifications/production-notification.service");
 const stripe_1 = require("stripe");
 let ChargebackService = ChargebackService_1 = class ChargebackService {
-    constructor(configService, disputeRepo, orderRepo, userRepo, paymentService, notificationService, ledgerService, auditService, productionNotification) {
+    constructor(configService, disputeRepo, orderRepo, userRepo, notificationService, productionNotification) {
         this.configService = configService;
         this.disputeRepo = disputeRepo;
         this.orderRepo = orderRepo;
         this.userRepo = userRepo;
-        this.paymentService = paymentService;
         this.notificationService = notificationService;
-        this.ledgerService = ledgerService;
-        this.auditService = auditService;
         this.productionNotification = productionNotification;
         this.logger = new common_1.Logger(ChargebackService_1.name);
         this.stripe = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY') || 'sk_test_placeholder', {
@@ -47,21 +40,19 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
     async handleDisputeCreated(event) {
         try {
             const dispute = event.data.object;
-            const charge = await this.stripe.charges.retrieve(dispute.charge);
-            const paymentIntentId = charge.payment_intent;
-            const order = await this.orderRepo.findOne({
+            const charge = await this.stripe.charges.retrieve(typeof dispute.charge === 'string' ? dispute.charge : dispute.charge.id);
+            const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id;
+            const order = paymentIntentId ? await this.orderRepo.findOne({
                 where: { paymentIntentId: paymentIntentId }
-            });
+            }) : null;
             if (!order) {
-                this.logger.warn(Order, not, found);
-                for (payment; intent;)
-                    ;
+                this.logger.warn(`Order not found for payment intent ${paymentIntentId || 'unknown'}`);
             }
             const existingDispute = await this.disputeRepo.findOne({
                 where: { disputeId: dispute.id }
             });
             if (existingDispute) {
-                this.logger.warn(Dispute, already, exists in our, system);
+                this.logger.warn(`Dispute ${dispute.id} already exists in our system`);
                 return existingDispute;
             }
             const paymentDispute = this.disputeRepo.create({
@@ -75,28 +66,27 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
                 status: this.mapStripeDisputeStatus(dispute.status),
             });
             const savedDispute = await this.disputeRepo.save(paymentDispute);
-            await this.auditService.logPaymentEvent('chargeback_received', order ? order.userId : 'unknown', dispute.amount / 100, dispute.currency, 'stripe', dispute.id, false, null, Chargeback, received);
-            await this.productionNotification.sendPaymentNotification(order ? order.userId : 'system', chargeback - , {
-                type: 'fraud_detected',
-                severity: 'high',
-                userId: order ? order.userId : 'unknown',
-                orderId: order ? order.id : undefined,
-                paymentId: dispute.id,
-                amount: dispute.amount / 100,
-                message: Chargeback, received, for: amount.Reason,
-                metadata: {
-                    disputeId: dispute.id,
-                    stripeDisputeReason: dispute.reason,
-                    chargeId: dispute.charge
-                }
-            });
-            this.logger.log(Created, dispute, record);
-            for (stripe_1.default; dispute;)
-                ;
+            if (order) {
+                await this.productionNotification.sendPaymentNotification(order.userId, `chargeback-${dispute.id}`, {
+                    type: 'fraud_detected',
+                    severity: 'high',
+                    userId: order.userId,
+                    orderId: order.id,
+                    paymentId: dispute.id,
+                    amount: dispute.amount / 100,
+                    message: `Chargeback received for amount ${(dispute.amount / 100).toFixed(2)}. Reason: ${dispute.reason}`,
+                    metadata: {
+                        disputeId: dispute.id,
+                        stripeDisputeReason: dispute.reason,
+                        chargeId: dispute.charge
+                    }
+                });
+            }
+            this.logger.log(`Created dispute record for Stripe dispute ${dispute.id}`);
             return savedDispute;
         }
         catch (error) {
-            this.logger.error(Failed, to, handle, dispute, created, error);
+            this.logger.error(`Failed to handle dispute created:`, error);
             throw new common_1.InternalServerErrorException('Failed to process dispute');
         }
     }
@@ -107,116 +97,41 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
                 where: { disputeId: dispute.id }
             });
             if (!paymentDispute) {
-                this.logger.warn(Dispute, not, found in our, system);
-                throw new common_1.NotFoundException(Dispute, not, found);
+                this.logger.warn(`Dispute ${dispute.id} not found in our system`);
+                throw new common_1.NotFoundException(`Dispute ${dispute.id} not found`);
             }
             paymentDispute.status = this.mapStripeDisputeStatus(dispute.status);
             paymentDispute.chargedBackAmount = dispute.chargeback_amount ? dispute.chargeback_amount / 100 : null;
             paymentDispute.chargedBackAt = dispute.chargeback_at ? new Date(dispute.chargeback_at * 1000) : null;
             if (dispute.status === 'won' && paymentDispute.isRefundedToCustomer === false) {
-                this.logger.log(Dispute, was, won, considering, customer, refund);
+                this.logger.log(`Dispute ${dispute.id} was won, considering customer refund`);
             }
             const updatedDispute = await this.disputeRepo.save(paymentDispute);
-            await this.auditService.logPaymentEvent('chargeback_closed', paymentDispute.orderId ?
-                (await this.orderRepo.findOne({ where: { id: paymentDispute.orderId } }))?.userId || 'unknown' :
-                'unknown', paymentDispute.disputedAmount, paymentDispute.currency, 'stripe', dispute.id, dispute.status === 'won', null, Chargeback, closed);
-            with (status)
-                : ;
-            ;
-            await this.productionNotification.sendPaymentNotification(paymentDispute.orderId ?
-                (await this.orderRepo.findOne({ where: { id: paymentDispute.orderId } }))?.userId || 'system' :
-                'system', chargeback - resolution - , {
-                type: dispute.status === 'won' ? 'payment_success' : 'payment_failure',
-                severity: dispute.status === 'won' ? 'medium' : 'high',
-                userId: paymentDispute.orderId ?
-                    (await this.orderRepo.findOne({ where: { id: paymentDispute.orderId } }))?.userId || 'unknown' :
-                    'unknown',
-                orderId: paymentDispute.orderId,
-                paymentId: dispute.id,
-                amount: paymentDispute.disputedAmount,
-                message: Chargeback,
-                metadata: {
-                    disputeId: dispute.id,
-                    stripeDisputeStatus: dispute.status,
-                    chargedBackAmount: paymentDispute.chargedBackAmount
-                }
-            });
-            this.logger.log(Updated, dispute, record);
-            for (stripe_1.default; dispute; )
-                with (status)
-                    ;
+            const order = paymentDispute.orderId ?
+                await this.orderRepo.findOne({ where: { id: paymentDispute.orderId } }) :
+                null;
+            if (order) {
+                await this.productionNotification.sendPaymentNotification(order.userId, `chargeback-resolution-${dispute.id}`, {
+                    type: dispute.status === 'won' ? 'payment_success' : 'payment_failure',
+                    severity: dispute.status === 'won' ? 'medium' : 'high',
+                    userId: order.userId,
+                    orderId: order.id,
+                    paymentId: dispute.id,
+                    amount: paymentDispute.disputedAmount,
+                    message: `Chargeback ${dispute.id}: ${dispute.status}`,
+                    metadata: {
+                        disputeId: dispute.id,
+                        stripeDisputeStatus: dispute.status,
+                        chargedBackAmount: paymentDispute.chargedBackAmount
+                    }
+                });
+            }
+            this.logger.log(`Updated dispute record for Stripe dispute ${dispute.id} with status ${dispute.status}`);
             return updatedDispute;
         }
         catch (error) {
-            this.logger.error(Failed, to, handle, dispute, closed, error);
+            this.logger.error(`Failed to handle dispute closed:`, error);
             throw new common_1.InternalServerErrorException('Failed to process dispute closure');
-        }
-    }
-    async initiateRefundForWonDispute(disputeId, processedBy, gatewayName) {
-        const dispute = await this.disputeRepo.findOne({
-            where: { disputeId: disputeId }
-        });
-        if (!dispute) {
-            throw new common_1.NotFoundException(Dispute, not, found);
-        }
-        if (dispute.status !== 'won') {
-            throw new common_1.BadRequestException(Can, only, initiate, refund);
-            for (won; disputes.Current; status)
-                : ;
-            ;
-        }
-        if (dispute.isRefundedToCustomer) {
-            throw new common_1.BadRequestException(Customer, has, already, been, refunded);
-            for (this; dispute;)
-                ;
-        }
-        const order = dispute.orderId ?
-            await this.orderRepo.findOne({ where: { id: dispute.orderId } }) :
-            null;
-        if (!order) {
-            throw new common_1.NotFoundException(Order, not, found);
-            for (dispute;;)
-                ;
-        }
-        try {
-            const paymentIntentId = order.paymentIntentId;
-            if (!paymentIntentId) {
-                throw new common_1.BadRequestException(Payment, intent, ID, not, found);
-                for (order;;)
-                    ;
-            }
-            const refund = await this.paymentService.refundPayment(paymentIntentId, dispute.disputedAmount, order.userId, Chargeback, dispute, was, won - refunding, customer, undefined, gatewayName);
-            dispute.isRefundedToCustomer = true;
-            dispute.refundedAt = new Date();
-            dispute.refundedBy = processedBy;
-            await this.disputeRepo.save(dispute);
-            await this.auditService.logPaymentEvent('chargeback_refund_initiated', order.userId, dispute.disputedAmount, dispute.currency, 'stripe', dispute.id, true, null, Refund, initiated);
-            for (won; chargeback; dispute)
-                ;
-            await this.productionNotification.sendPaymentNotification(order.userId, chargeback - refund - , {
-                type: 'refund_completed',
-                severity: 'low',
-                userId: order.userId,
-                orderId: order.id,
-                paymentId: dispute.id,
-                amount: dispute.disputedAmount,
-                message: Refund, of, processed, for: won, chargeback, dispute,
-                metadata: {
-                    disputeId: dispute.id,
-                    refundId: refund.id
-                }
-            });
-            this.logger.log(Initiated, refund);
-            for (won; dispute;)
-                ;
-            return refund;
-        }
-        catch (error) {
-            this.logger.error(Failed, to, initiate, refund);
-            for (won; dispute; )
-                : , error;
-            ;
-            throw error;
         }
     }
     async getDisputeById(disputeId) {
@@ -225,19 +140,19 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
             relations: ['order']
         });
         if (!dispute) {
-            throw new common_1.NotFoundException(Dispute, not, found);
+            throw new common_1.NotFoundException(`Dispute ${disputeId} not found`);
         }
         return dispute;
     }
     async getDisputesForOrder(orderId) {
         return await this.disputeRepo.find({
-            where: { orderId },
+            where: { orderId: orderId },
             order: { createdAt: 'DESC' }
         });
     }
     async getDisputesByStatus(status) {
         return await this.disputeRepo.find({
-            where: { status },
+            where: { status: status },
             order: { createdAt: 'DESC' }
         });
     }
@@ -307,7 +222,7 @@ exports.ChargebackService = ChargebackService = ChargebackService_1 = __decorate
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        payments_service_1.PaymentService,
-        notification_service_1.NotificationService, typeof (_a = typeof ledger_service_1.LedgerService !== "undefined" && ledger_service_1.LedgerService) === "function" ? _a : Object, typeof (_b = typeof audit_service_1.AuditService !== "undefined" && audit_service_1.AuditService) === "function" ? _b : Object, production_notification_service_1.ProductionNotificationService])
+        notification_service_1.NotificationService,
+        production_notification_service_1.ProductionNotificationService])
 ], ChargebackService);
 //# sourceMappingURL=chargeback.service.js.map

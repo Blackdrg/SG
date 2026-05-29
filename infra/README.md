@@ -101,15 +101,49 @@ orders (id, user_id, restaurant_id, status, total, items, created_at)
 ## Secrets
 
 Generated in `./secrets/`:
+- `jwt_secret.txt` - JWT signing key (CRITICAL: verify random before production)
+- `stripe_secret.txt` - Stripe API key (REQUIRED for payments)
+- `razorpay_key_id.txt` - Razorpay Key ID (REQUIRED for INR payments)
+- `razorpay_key_secret.txt` - Razorpay Key Secret (REQUIRED for INR payments)
+- `fcm_server_key.txt` - FCM server key (REQUIRED for push notifications)
+- `apns_private_key.txt` - APNs private key (REQUIRED for iOS push)
+- `apns_key_id.txt` - APNs Key ID
+- `apns_team_id.txt` - APNs Team ID
+- `sendgrid_api_key.txt` - SendGrid API key (REQUIRED for emails)
+- `google_maps_api_key.txt` - Google Maps API key (REQUIRED for routing/ETA)
+- `twilio_account_sid.txt` - Twilio Account SID
+- `twilio_auth_token.txt` - Twilio Auth Token
 - `db_password.txt` - PostgreSQL password
-- `jwt_secret.txt` - JWT signing key
-- `stripe_secret.txt` - Stripe API key
 - `grafana_admin_password.txt` - Grafana admin
 - `opensearch_admin_password.txt` - OpenSearch admin
 - `sentry_secret_key.txt` - Sentry secret
 - `sentry_db_password.txt` - Sentry database
 
 All files are gitignored. Never commit secrets.
+
+**⚠️ PRODUCTION READINESS CHECKLIST**
+
+Before onboarding real users:
+
+| Priority | Item | Status | Action Required |
+|----------|------|--------|-----------------|
+| CRITICAL | JWT Secret rotated | ❌ | Generate new random secret, update .env |
+| CRITICAL | Stripe live keys | ❌ | Add sk_live_* and whsec_live_* keys |
+| CRITICAL | FCM server key | ❌ | Add Firebase server key |
+| CRITICAL | APNs configured | ❌ | Add keys from Apple Developer Portal |
+| HIGH | Razorpay live keys | ❌ | Add rzp_live_* keys for INR payments |
+| HIGH | SendGrid API key | ❌ | Add for transactional emails |
+| HIGH | Google Maps API key | ❌ | Add for customer routing/ETA |
+| MEDIUM | Twilio credentials | ❌ | Add for SMS/OTP |
+| MEDIUM | Slack webhook URL | ❌ | Configure for alerts |
+| MEDIUM | PagerDuty routing key | ❌ | Configure for on-call alerts |
+
+## Production Deployment
+
+1. Update `.env` with all required API keys
+2. Run `./infra/scripts/generate-secrets.ps1` or `./infra/scripts/setup-secrets.sh`
+3. Configure `infra/k8s/secrets.yaml` for Kubernetes
+4. Deploy: `kubectl apply -f infra/k8s/production-hardened.yaml`
 
 ## Health Checks
 

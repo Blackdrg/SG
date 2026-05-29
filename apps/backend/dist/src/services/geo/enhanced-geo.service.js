@@ -19,8 +19,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const restaurant_entity_1 = require("../../db/entities/restaurant.entity");
 const restaurant_branch_entity_1 = require("../../db/entities/restaurant-branch.entity");
-const module_1 = require();
-const module_2 = require();
+const driver_entity_1 = require("../../db/entities/driver.entity");
+const order_entity_1 = require("../../db/entities/order.entity");
 let EnhancedGeoService = EnhancedGeoService_1 = class EnhancedGeoService {
     constructor(restaurantRepo, branchRepo, driverRepo, orderRepo, dataSource) {
         this.restaurantRepo = restaurantRepo;
@@ -73,9 +73,9 @@ let EnhancedGeoService = EnhancedGeoService_1 = class EnhancedGeoService {
             .select([
             'branch',
             'restaurant',
-            ST_DistanceSphere(branch.location, geometry, ST_MakePoint(lng, lat), geometry), AS, distance,
+            `ST_DistanceSphere(branch.location, ST_MakePoint(:lng, :lat)) AS distance`,
         ])
-            .where(ST_DistanceSphere(branch.location, geometry, ST_MakePoint(lng, lat), geometry) <= , radius, { lng: customerLocation.lng, lat: customerLocation.lat, radius })
+            .where(`ST_DistanceSphere(branch.location, ST_MakePoint(:lng, :lat)) <= :radius`, { lng: customerLocation.lng, lat: customerLocation.lat, radius })
             .andWhere('branch.isOnline = :isOnline', { isOnline: true })
             .andWhere('restaurant.isActive = :isActive', { isActive: true })
             .orderBy('distance', 'ASC')
@@ -116,11 +116,11 @@ let EnhancedGeoService = EnhancedGeoService_1 = class EnhancedGeoService {
             .createQueryBuilder('driver')
             .select([
             'driver',
-            ST_DistanceSphere(driver.currentLocation, geometry, ST_MakePoint(lng, lat), geometry), AS, distance,
+            `ST_DistanceSphere(driver.currentLocation, ST_MakePoint(:lng, :lat)) AS distance`,
         ])
             .where('driver.isOnline = :isOnline', { isOnline: true })
             .andWhere('driver.isAvailable = :isAvailable', { isAvailable: true })
-            .andWhere(ST_DistanceSphere(driver.currentLocation, geometry, ST_MakePoint(lng, lat), geometry) <= , radius, { lng: restaurantLocation.lng, lat: restaurantLocation.lat, radius })
+            .andWhere(`ST_DistanceSphere(driver.currentLocation, ST_MakePoint(:lng, :lat)) <= :radius`, { lng: restaurantLocation.lng, lat: restaurantLocation.lat, radius })
             .orderBy('distance', 'ASC')
             .limit(limit)
             .getRawMany()
@@ -144,7 +144,7 @@ let EnhancedGeoService = EnhancedGeoService_1 = class EnhancedGeoService {
     async updateDriverLocation(driverId, locationUpdate) {
         const driver = await this.driverRepo.findOne({ where: { id: driverId } });
         if (!driver) {
-            throw new Error(Driver, not, found);
+            throw new Error(`Driver not found: ${driverId}`);
         }
         driver.currentLocation = {
             lat: locationUpdate.latitude,
@@ -165,10 +165,7 @@ let EnhancedGeoService = EnhancedGeoService_1 = class EnhancedGeoService {
             }
         }
         const updatedDriver = await this.driverRepo.save(driver);
-        this.logger.log(Updated, location);
-        for (driver; ; )
-            : , ;
-        ;
+        this.logger.log(`Updated location for driver ${driverId}`);
         return updatedDriver;
     }
     async checkGeofence(driverId, branchId) {
@@ -247,7 +244,7 @@ let EnhancedGeoService = EnhancedGeoService_1 = class EnhancedGeoService {
             const etaLeg = this.predictETA(distance, 30, trafficConditions);
             instructions.push({
                 step: i + 1,
-                instruction: Proceed, to, waypoint,
+                instruction: `Proceed to waypoint ${i + 1}`,
                 distance,
                 duration: etaLeg.duration
             });
@@ -305,8 +302,8 @@ exports.EnhancedGeoService = EnhancedGeoService = EnhancedGeoService_1 = __decor
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(restaurant_entity_1.RestaurantEntity)),
     __param(1, (0, typeorm_1.InjectRepository)(restaurant_branch_entity_1.RestaurantBranchEntity)),
-    __param(2, (0, typeorm_1.InjectRepository)(module_1.DriverEntity)),
-    __param(3, (0, typeorm_1.InjectRepository)(module_2.OrderEntity)),
+    __param(2, (0, typeorm_1.InjectRepository)(driver_entity_1.DriverEntity)),
+    __param(3, (0, typeorm_1.InjectRepository)(order_entity_1.OrderEntity)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

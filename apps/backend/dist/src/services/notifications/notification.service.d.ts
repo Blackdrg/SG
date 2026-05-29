@@ -79,10 +79,12 @@ export declare class NotificationService {
         success: boolean;
         reason: string;
         sent?: undefined;
+        results?: undefined;
         error?: undefined;
     } | {
         success: boolean;
         sent: number;
+        results: any[];
         reason?: undefined;
         error?: undefined;
     } | {
@@ -90,7 +92,9 @@ export declare class NotificationService {
         error: string;
         reason?: undefined;
         sent?: undefined;
+        results?: undefined;
     }>;
+    private generateJWT;
     notifyDeliveryLifecycle(orderId: string, event: 'driver_assigned' | 'picked_up' | 'nearby' | 'delivered', userId: string, driverInfo?: any): Promise<void>;
     notifyRestaurant(orderId: string, alertType: 'new_order' | 'order_cancelled' | 'order_delayed', restaurantId: string): Promise<{
         success: boolean;

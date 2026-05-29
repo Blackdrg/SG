@@ -17,10 +17,16 @@ import { SecurityModule } from '../../security/security.module';
     TypeOrmModule.forFeature([SessionEntity, UserEntity]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'secretKey',
-        signOptions: { expiresIn: '60m' },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret || secret.includes('CHANGE_ME') || secret.includes('secret')) {
+          throw new Error('JWT_SECRET not configured. Generate secure random secret before production.');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '60m' },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

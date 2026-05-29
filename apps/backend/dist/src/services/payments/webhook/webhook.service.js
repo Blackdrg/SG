@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var WebhookService_1;
-var _a, _b, _c, _d, _e;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhookService = void 0;
 const common_1 = require("@nestjs/common");
@@ -20,16 +20,16 @@ const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const payment_webhook_entity_1 = require("../../../db/entities/payment-webhook.entity");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
+const payment_event_entity_1 = require("../payment-event.entity");
+const order_entity_1 = require("../../../db/entities/order.entity");
+const payment_fraud_entity_1 = require("../payment-fraud.entity");
 const stripe_1 = require("stripe");
-const crypto = require();
-const module_4 = require();
-const module_5 = require();
-const module_6 = require();
-const module_7 = require();
-const module_8 = require();
+const crypto = require("crypto");
+const notification_service_1 = require("../../notifications/notification.service");
+const production_notification_service_1 = require("../../notifications/production-notification.service");
+const ledger_service_1 = require("../../../modules/ledger/ledger.service");
+const gateway_factory_service_1 = require("./gateway-factory.service");
+const chargeback_service_1 = require("./chargeback/chargeback.service");
 let WebhookService = WebhookService_1 = class WebhookService {
     constructor(configService, webhookRepo, paymentEventRepo, orderRepo, fraudFlagRepo, notificationService, productionNotification, ledgerService, paymentGatewayFactory, chargebackService) {
         this.configService = configService;
@@ -61,15 +61,12 @@ let WebhookService = WebhookService_1 = class WebhookService {
                 event = await this.verifyRazorpayWebhook(payload, signature);
             }
             else {
-                throw new common_1.BadRequestException('Unsupported payment gateway: ');
+                throw new common_1.BadRequestException(`Unsupported payment gateway: ${gateway}`);
             }
         }
         catch (err) {
-            this.logger.error(Webhook, signature, verification, failed);
-            for (; ; )
-                : ;
-            ;
-            throw new common_1.BadRequestException(Webhook, Error);
+            this.logger.error(`Webhook signature verification failed for ${gateway}: ${err.message}`);
+            throw new common_1.BadRequestException(`Webhook Error: ${err.message}`);
         }
         const existingWebhook = await this.webhookRepo.findOne({
             where: {
@@ -78,7 +75,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
             }
         });
         if (existingWebhook) {
-            this.logger.warn(Duplicate, webhook, received, Skipping, processing.);
+            this.logger.warn(`Duplicate webhook received: ${event.id}. Skipping processing.`);
             return { received: true, duplicate: true };
         }
         const existingEvent = await this.paymentEventRepo.findOne({
@@ -87,9 +84,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
             }
         });
         if (existingEvent?.isProcessed) {
-            this.logger.warn(Already, processed, event);
-            for (;;)
-                ;
+            this.logger.warn(`Already processed event for ${event.data?.object?.metadata?.orderId || event.id}`);
             return { received: true, alreadyProcessed: true };
         }
         try {
@@ -111,10 +106,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
             return { received: true, processed: true };
         }
         catch (error) {
-            this.logger.error(Webhook, processing, failed);
-            for (event; ; )
-                : , error;
-            ;
+            this.logger.error(`Webhook processing failed for event ${event.id}:`, error);
             await this.paymentEventRepo.save({
                 userId: event.data?.object?.metadata?.userId || 'unknown',
                 orderId: event.data?.object?.metadata?.orderId || event.id,
@@ -122,7 +114,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
                 payload: { error: error.message, ...event.data?.object },
                 isProcessed: false,
             });
-            throw new common_1.InternalServerErrorException(Webhook, processing, failed);
+            throw new common_1.InternalServerErrorException(`Webhook processing failed: ${error.message}`);
         }
     }
     detectGatewayFromHeaders(headers) {
@@ -185,7 +177,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
         else if (gateway === 'razorpay') {
             return await this.handleRazorpayEvent(event);
         }
-        throw new Error(Unsupported, gateway);
+        throw new Error(`Unsupported gateway: ${gateway}`);
     }
     async handleStripeEvent(event) {
         switch (event.type) {
@@ -208,7 +200,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
             case 'charge.succeeded':
                 return await this.handleChargeSucceeded(event);
             default:
-                this.logger.warn(Unhandled, stripe_1.default, event, type);
+                this.logger.warn(`Unhandled Stripe event type: ${event.type}`);
                 return { received: true, unhandled: true };
         }
     }
@@ -223,7 +215,7 @@ let WebhookService = WebhookService_1 = class WebhookService {
             case 'refund.failed':
                 return await this.handleRefundFailed(event);
             default:
-                this.logger.warn(Unhandled, Razorpay, event, type);
+                this.logger.warn(`Unhandled Razorpay event type: ${event.event}`);
                 return { received: true, unhandled: true };
         }
     }
@@ -242,17 +234,15 @@ let WebhookService = WebhookService_1 = class WebhookService {
             type: 'payment_success',
             severity: 'low',
             amount: paymentIntent.amount / 100,
-            message: Payment, succeeded, for: ,
+            message: `Payment succeeded for ${paymentIntent.id}`,
         });
         try {
-            await this.ledgerService.createTransaction(paymentIntent.id, 'cash', 'revenue', paymentIntent.amount / 100, paymentIntent.currency, 'payment', paymentIntent.id, Payment, succeeded);
-            for (order;;)
-                ;
+            await this.ledgerService.createTransaction(paymentIntent.id, 'cash', 'revenue', paymentIntent.amount / 100, paymentIntent.currency, 'payment', paymentIntent.id, `Payment succeeded for order ${paymentIntent.id}`);
         }
         catch (ledgerError) {
             this.logger.error('Failed to create ledger entry for payment success:', ledgerError);
         }
-        this.logger.log(stripe_1.default, PaymentIntent, succeeded);
+        this.logger.log(`Stripe PaymentIntent ${paymentIntent.id} succeeded`);
         return { received: true, paymentConfirmed: true };
     }
     async handlePaymentIntentFailed(event) {
@@ -270,9 +260,9 @@ let WebhookService = WebhookService_1 = class WebhookService {
             type: 'payment_failure',
             severity: 'high',
             amount: paymentIntent.amount / 100,
-            message: Payment, failed: ,
+            message: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
         });
-        this.logger.warn(stripe_1.default, PaymentIntent, failed);
+        this.logger.warn(`Stripe PaymentIntent ${paymentIntent.id} failed`);
         return { received: true, paymentFailed: true };
     }
     async handleChargeRefunded(event) {
@@ -281,27 +271,20 @@ let WebhookService = WebhookService_1 = class WebhookService {
             type: 'refund_completed',
             severity: 'medium',
             amount: (charge.amount_refunded || 0) / 100,
-            message: Refund, completed, for: ,
+            message: `Refund completed for ${charge.id}`,
         });
         try {
-            await this.ledgerService.createTransaction(charge.id, 'refund', 'cash', (charge.amount_refunded || 0) / 100, charge.currency, 'refund', charge.id, Refund, processed);
-            for (charge;;)
-                ;
+            await this.ledgerService.createTransaction(charge.id, 'refund', 'cash', (charge.amount_refunded || 0) / 100, charge.currency, 'refund', charge.id, `Refund processed for charge ${charge.id}`);
         }
         catch (ledgerError) {
             this.logger.error('Failed to create ledger entry for refund:', ledgerError);
         }
-        this.logger.log(stripe_1.default, Charge, refunded);
-        for (;;)
-            ;
+        this.logger.log(`Stripe Charge ${charge.id} refunded for ${charge.amount_refunded}`);
         return { received: true, refundProcessed: true };
     }
     async handleChargeRefundUpdated(event) {
         const charge = event.data.object;
-        this.logger.log(stripe_1.default, Refund, updated);
-        for (charge; ; )
-            : refunded;
-        ;
+        this.logger.log(`Stripe Refund updated for charge ${charge.id}: ${charge.amount_refunded} refunded`);
         return { received: true, refundUpdated: true };
     }
     async handleDisputeCreated(event) {
@@ -312,27 +295,23 @@ let WebhookService = WebhookService_1 = class WebhookService {
     }
     async handleAmountCapturableUpdated(event) {
         const paymentIntent = event.data.object;
-        this.logger.log(stripe_1.default, Amount, capturable, updated);
-        for (;;)
-            ;
+        this.logger.log(`Stripe Amount capturable updated for ${paymentIntent.id}`);
         return { received: true, amountCapturableUpdated: true };
     }
     async handleChargeExpired(event) {
         const charge = event.data.object;
-        this.logger.warn(stripe_1.default, Charge, expired);
+        this.logger.warn(`Stripe Charge expired: ${charge.id}`);
         return { received: true, chargeExpired: true };
     }
     async handleChargeSucceeded(event) {
         const charge = event.data.object;
         try {
-            await this.ledgerService.createTransaction(charge.id, 'cash', 'revenue', charge.amount / 100, charge.currency, 'payment', charge.id, Payment, succeeded);
-            for (charge;;)
-                ;
+            await this.ledgerService.createTransaction(charge.id, 'cash', 'revenue', charge.amount / 100, charge.currency, 'payment', charge.id, `Payment succeeded for charge ${charge.id}`);
         }
         catch (ledgerError) {
             this.logger.error('Failed to create ledger entry for charge success:', ledgerError);
         }
-        this.logger.log(stripe_1.default, Charge, succeeded);
+        this.logger.log(`Stripe Charge succeeded: ${charge.id}`);
         return { received: true, chargeSucceeded: true };
     }
     async handlePaymentAuthorized(event) {
@@ -350,17 +329,15 @@ let WebhookService = WebhookService_1 = class WebhookService {
             type: 'payment_success',
             severity: 'low',
             amount: payment.amount / 100,
-            message: Payment, succeeded, for: ,
+            message: `Payment succeeded for ${payment.id}`,
         });
         try {
-            await this.ledgerService.createTransaction(payment.id, 'cash', 'revenue', payment.amount / 100, payment.currency, 'payment', payment.id, Payment, succeeded);
-            for (order;;)
-                ;
+            await this.ledgerService.createTransaction(payment.id, 'cash', 'revenue', payment.amount / 100, payment.currency, 'payment', payment.id, `Payment succeeded for order ${payment.id}`);
         }
         catch (ledgerError) {
             this.logger.error('Failed to create ledger entry for payment success:', ledgerError);
         }
-        this.logger.log(Razorpay, payment, authorized);
+        this.logger.log(`Razorpay payment authorized: ${payment.id}`);
         return { received: true, paymentConfirmed: true };
     }
     async handlePaymentFailed(event) {
@@ -378,9 +355,9 @@ let WebhookService = WebhookService_1 = class WebhookService {
             type: 'payment_failure',
             severity: 'high',
             amount: payment.amount / 100,
-            message: Payment, failed: ,
+            message: `Payment failed: ${payment.error_description || 'Unknown error'}`,
         });
-        this.logger.warn(Razorpay, payment, failed);
+        this.logger.warn(`Razorpay payment failed: ${payment.id}`);
         return { received: true, paymentFailed: true };
     }
     async handleRefundProcessed(event) {
@@ -389,22 +366,20 @@ let WebhookService = WebhookService_1 = class WebhookService {
             type: 'refund_completed',
             severity: 'medium',
             amount: refund.amount / 100,
-            message: Refund, completed, for: ,
+            message: `Refund completed for ${refund.id}`,
         });
         try {
-            await this.ledgerService.createTransaction(refund.id, 'refund', 'cash', refund.amount / 100, refund.currency, 'refund', refund.id, Refund, processed);
-            for (;;)
-                ;
+            await this.ledgerService.createTransaction(refund.id, 'refund', 'cash', refund.amount / 100, refund.currency, 'refund', refund.id, `Refund processed for ${refund.id}`);
         }
         catch (ledgerError) {
             this.logger.error('Failed to create ledger entry for refund:', ledgerError);
         }
-        this.logger.log(Razorpay, refund, processed);
+        this.logger.log(`Razorpay refund processed: ${refund.id}`);
         return { received: true, refundProcessed: true };
     }
     async handleRefundFailed(event) {
         const refund = event.payload.refund.entity;
-        this.logger.warn(Razorpay, refund, failed);
+        this.logger.warn(`Razorpay refund failed: ${refund.id}`);
         return { received: true, refundFailed: true };
     }
     async getWebhookStats() {
@@ -438,13 +413,16 @@ exports.WebhookService = WebhookService;
 exports.WebhookService = WebhookService = WebhookService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(1, (0, typeorm_1.InjectRepository)(payment_webhook_entity_1.PaymentWebhookEntity)),
-    __param(2, (0, typeorm_1.InjectRepository)(module_1.PaymentEventEntity)),
-    __param(3, (0, typeorm_1.InjectRepository)(module_2.OrderEntity)),
-    __param(4, (0, typeorm_1.InjectRepository)(module_3.PaymentFraudFlagEntity)),
+    __param(2, (0, typeorm_1.InjectRepository)(payment_event_entity_1.PaymentEventEntity)),
+    __param(3, (0, typeorm_1.InjectRepository)(order_entity_1.OrderEntity)),
+    __param(4, (0, typeorm_1.InjectRepository)(payment_fraud_entity_1.PaymentFraudFlagEntity)),
     __metadata("design:paramtypes", [config_1.ConfigService,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository, typeof (_a = typeof module_4.NotificationService !== "undefined" && module_4.NotificationService) === "function" ? _a : Object, typeof (_b = typeof module_5.ProductionNotificationService !== "undefined" && module_5.ProductionNotificationService) === "function" ? _b : Object, typeof (_c = typeof module_6.LedgerService !== "undefined" && module_6.LedgerService) === "function" ? _c : Object, typeof (_d = typeof module_7.PaymentGatewayFactory !== "undefined" && module_7.PaymentGatewayFactory) === "function" ? _d : Object, typeof (_e = typeof module_8.ChargebackService !== "undefined" && module_8.ChargebackService) === "function" ? _e : Object])
+        typeorm_2.Repository,
+        notification_service_1.NotificationService,
+        production_notification_service_1.ProductionNotificationService,
+        ledger_service_1.LedgerService, typeof (_a = typeof gateway_factory_service_1.PaymentGatewayFactory !== "undefined" && gateway_factory_service_1.PaymentGatewayFactory) === "function" ? _a : Object, typeof (_b = typeof chargeback_service_1.ChargebackService !== "undefined" && chargeback_service_1.ChargebackService) === "function" ? _b : Object])
 ], WebhookService);
 //# sourceMappingURL=webhook.service.js.map

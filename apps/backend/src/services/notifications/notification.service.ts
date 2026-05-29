@@ -37,7 +37,7 @@ export class NotificationService {
 
   async sendPush(userId: string, title: string, body: string, data?: any) {
     const fcmKey = this.configService.get<string>('FCM_SERVER_KEY');
-    if (!fcmKey) {
+    if (!fcmKey || fcmKey.includes('CHANGE_ME')) {
       this.logger.warn(`FCM not configured - push to ${userId}: ${title}`);
       return { success: false, reason: 'FCM not configured' };
     }
@@ -109,7 +109,7 @@ export class NotificationService {
 
   async sendEmail(email: string, subject: string, template: string, context: any) {
     const sendgridKey = this.configService.get<string>('SENDGRID_API_KEY');
-    if (!sendgridKey) {
+    if (!sendgridKey || sendgridKey.includes('CHANGE_ME')) {
       this.logger.warn(`SendGrid not configured - email to ${email}: ${subject}`);
       return { success: false, reason: 'SendGrid not configured' };
     }
@@ -159,8 +159,10 @@ export class NotificationService {
     const apnsKey = this.configService.get<string>('APNS_PRIVATE_KEY');
     const apnsKeyId = this.configService.get<string>('APNS_KEY_ID');
     const apnsTeamId = this.configService.get<string>('APNS_TEAM_ID');
+    const apnsBundleId = this.configService.get<string>('APNS_BUNDLE_ID');
+    const apnsEnv = this.configService.get<string>('APNS_ENVIRONMENT') || 'production';
 
-    if (!apnsKey || !apnsKeyId || !apnsTeamId) {
+    if (!apnsKey || apnsKey.includes('CHANGE_ME') || !apnsKeyId || !apnsTeamId || !apnsBundleId) {
       this.logger.warn(`APNs not configured - push to ${userId}: ${title}`);
       return { success: false, reason: 'APNs not configured' };
     }
@@ -175,16 +177,61 @@ export class NotificationService {
     }
 
     try {
-      const payload = {
-        aps: { aison: true, alert: { title, body }, sound: 'default' },
-        ...(data || {}),
-      };
-      this.logger.log(`APNs notification would be sent for user ${userId}: ${JSON.stringify(payload)}`);
-      return { success: true, sent: apnsTokens.length };
+      const token = this.generateJWT(apnsKeyId, apnsTeamId, apnsKey);
+      const results = [];
+      
+      // Use correct APNs endpoint based on environment
+      const apnsHost = apnsEnv === 'development' 
+        ? 'api.development.push.apple.com' 
+        : 'api.push.apple.com';
+
+      for (const deviceToken of apnsTokens) {
+        const payload = {
+          aps: {
+            alert: { title, body },
+            sound: 'default',
+          },
+          ...(data || {}),
+        };
+
+        const response = await fetch(`https://${apnsHost}/3/device/${deviceToken}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'apns-topic': apnsBundleId,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          this.logger.error(`APNs failed for token ${deviceToken.substring(0, 8)}...: ${response.status} ${error}`);
+          results.push({ token: deviceToken.substring(0, 8), success: false, error });
+        } else {
+          results.push({ token: deviceToken.substring(0, 8), success: true });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      this.logger.log(`APNs: ${successCount}/${apnsTokens.length} notifications sent to user ${userId}`);
+      return { success: successCount > 0, sent: successCount, results };
     } catch (error) {
       this.logger.error(`APNs send failed for user ${userId}:`, error);
       return { success: false, error: (error as Error).message };
     }
+  }
+
+  private generateJWT(keyId: string, teamId: string, privateKey: string): string {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({}, privateKey, {
+      algorithm: 'ES256',
+      expiresIn: '1 hour',
+      audience: 'appstoreconnect-v1',
+      issuer: teamId,
+      keyid: keyId,
+    });
+    return token;
   }
 
   async notifyDeliveryLifecycle(orderId: string, event: 'driver_assigned' | 'picked_up' | 'nearby' | 'delivered', userId: string, driverInfo?: any) {

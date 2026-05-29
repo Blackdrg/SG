@@ -1,9 +1,9 @@
 import { Repository } from 'typeorm';
-import { ConfigService } from  = '@nestjs/config';
-import { NotificationEntity } from  = '../../../db/entities/notification.entity';
-import { NotificationStatus } from  = '../../../db/entities/notification-status.enum';
-import { NotificationService } from  = '../notification.service';
-import { QueueService } from  = '../../../../infra/queue/queue.service';
+import { ConfigService } from '@nestjs/config';
+import { NotificationEntity } from '../../../db/entities/notification.entity';
+import { NotificationStatus } from '../../../db/entities/notification-status.enum';
+import { NotificationService } from '../notification.service';
+import { QueueService } from '../../../../infra/queue/queue.service';
 export declare class NotificationQueueService {
     private readonly notificationRepo;
     private readonly configService;

@@ -1,8 +1,8 @@
 import { Repository, DataSource } from 'typeorm';
 import { RestaurantEntity } from '../../db/entities/restaurant.entity';
 import { RestaurantBranchEntity } from '../../db/entities/restaurant-branch.entity';
-import { DriverEntity } from  = '../../db/entities/driver.entity';
-import { OrderEntity } from  = '../../db/entities/order.entity';
+import { DriverEntity } from '../../db/entities/driver.entity';
+import { OrderEntity } from '../../db/entities/order.entity';
 interface GeoPoint {
     lat: number;
     lng: number;

@@ -20,7 +20,6 @@ const retry_service_1 = require("./retry.service");
 const fraud_hardening_service_1 = require("./fraud-hardening.service");
 const idempotency_service_1 = require("./idempotency.service");
 const config_1 = require("@nestjs/config");
-const switch_1 = require("@nestjs/switch");
 let PaymentsController = class PaymentsController {
     constructor(paymentService, paymentHardening, retryService, fraudHardening, idempotency, configService) {
         this.paymentService = paymentService;
@@ -100,9 +99,9 @@ exports.PaymentsController = PaymentsController;
 __decorate([
     (0, common_1.Post)('create-intent'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Create a payment intent' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Payment intent created successfully' }),
-    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    ApiOperation({ summary: 'Create a payment intent' }),
+    ApiResponse({ status: 200, description: 'Payment intent created successfully' }),
+    ApiResponse({ status: 400, description: 'Bad request' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __param(2, (0, common_1.Headers)('x-idempotency-key')),
@@ -114,9 +113,9 @@ __decorate([
 __decorate([
     (0, common_1.Post)('refund'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Refund a payment' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund processed successfully' }),
-    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    ApiOperation({ summary: 'Refund a payment' }),
+    ApiResponse({ status: 200, description: 'Refund processed successfully' }),
+    ApiResponse({ status: 400, description: 'Bad request' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Headers)('x-idempotency-key')),
     __param(2, (0, common_1.Query)('gateway')),
@@ -127,8 +126,8 @@ __decorate([
 __decorate([
     (0, common_1.Get)('gateways'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get available payment gateways' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'List of available payment gateways' }),
+    ApiOperation({ summary: 'Get available payment gateways' }),
+    ApiResponse({ status: 200, description: 'List of available payment gateways' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -136,14 +135,13 @@ __decorate([
 __decorate([
     (0, common_1.Get)('gateway/config'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get payment gateway configuration' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Payment gateway configuration' }),
+    ApiOperation({ summary: 'Get payment gateway configuration' }),
+    ApiResponse({ status: 200, description: 'Payment gateway configuration' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], PaymentsController.prototype, "getGatewayConfig", null);
 exports.PaymentsController = PaymentsController = __decorate([
-    (0, switch_1.ApiTags)('payments'),
     (0, common_1.Controller)('payments'),
     __metadata("design:paramtypes", [payments_service_1.PaymentService,
         payment_hardening_service_1.PaymentHardeningService,

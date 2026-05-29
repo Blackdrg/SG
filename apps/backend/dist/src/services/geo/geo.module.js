@@ -7,21 +7,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeoModule = void 0;
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
-const module_4 = require();
-const module_5 = require();
-const module_6 = require();
-const module_7 = require();
+const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const restaurant_entity_1 = require("../../db/entities/restaurant.entity");
+const restaurant_branch_entity_1 = require("../../db/entities/restaurant-branch.entity");
+const driver_entity_1 = require("../../db/entities/driver.entity");
+const order_entity_1 = require("../../db/entities/order.entity");
+const enhanced_geo_service_1 = require("./enhanced-geo.service");
 let GeoModule = class GeoModule {
 };
 exports.GeoModule = GeoModule;
 exports.GeoModule = GeoModule = __decorate([
-    (0, module_1.Module)({
-        imports: [module_2.TypeOrmModule.forFeature([module_3.RestaurantEntity, module_4.RestaurantBranchEntity, module_5.DriverEntity, module_6.OrderEntity])],
-        providers: [module_7.EnhancedGeoService],
-        exports: [module_7.EnhancedGeoService],
+    (0, common_1.Module)({
+        imports: [typeorm_1.TypeOrmModule.forFeature([restaurant_entity_1.RestaurantEntity, restaurant_branch_entity_1.RestaurantBranchEntity, driver_entity_1.DriverEntity, order_entity_1.OrderEntity])],
+        providers: [enhanced_geo_service_1.EnhancedGeoService],
+        exports: [enhanced_geo_service_1.EnhancedGeoService],
     })
 ], GeoModule);
 //# sourceMappingURL=geo.module.js.map

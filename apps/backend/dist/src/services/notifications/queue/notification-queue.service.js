@@ -12,17 +12,17 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var NotificationQueueService_1;
-var _a, _b, _c;
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationQueueService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
-const module_4 = require();
-const module_5 = require();
+const config_1 = require("@nestjs/config");
+const notification_entity_1 = require("../../../db/entities/notification.entity");
+const notification_status_enum_1 = require("../../../db/entities/notification-status.enum");
+const notification_service_1 = require("../notification.service");
+const queue_service_1 = require("../../../../infra/queue/queue.service");
 let NotificationQueueService = NotificationQueueService_1 = class NotificationQueueService {
     constructor(notificationRepo, configService, notificationService, queueService) {
         this.notificationRepo = notificationRepo;
@@ -38,7 +38,7 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
             notificationType,
             payload,
             provider,
-            status: module_3.NotificationStatus.PENDING,
+            status: notification_status_enum_1.NotificationStatus.PENDING,
             maxAttempts: options.maxAttempts || 3,
             callbackUrl: options.callbackUrl,
             metadata: options.metadata || {},
@@ -50,8 +50,8 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
     async processNotificationQueue() {
         const notifications = await this.notificationRepo.find({
             where: [
-                { status: module_3.NotificationStatus.PENDING },
-                { status: module_3.NotificationStatus.RETRYING, nextAttemptAt: (0, typeorm_2.LessThanOrEqual)(new Date()) }
+                { status: notification_status_enum_1.NotificationStatus.PENDING },
+                { status: notification_status_enum_1.NotificationStatus.RETRYING, nextAttemptAt: (0, typeorm_2.LessThanOrEqual)(new Date()) }
             ],
             order: { createdAt: 'ASC' },
             take: 10
@@ -61,12 +61,12 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
                 await this.processNotification(notification);
             }
             catch (error) {
-                this.logger.error(Failed, to, process, notification, error);
+                this.logger.error(`Failed to process notification ${notification.id}:`, error);
             }
         }
     }
     async processNotification(notification) {
-        notification.status = module_3.NotificationStatus.PROCESSING;
+        notification.status = notification_status_enum_1.NotificationStatus.PROCESSING;
         notification.lastAttemptAt = new Date();
         notification.attemptCount += 1;
         await this.notificationRepo.save(notification);
@@ -93,7 +93,7 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
                     break;
             }
             if (result?.success) {
-                notification.status = module_3.NotificationStatus.SENT;
+                notification.status = notification_status_enum_1.NotificationStatus.SENT;
                 notification.completedAt = new Date();
                 if (notification.callbackUrl) {
                     await this.queueService.enqueue('NOTIFICATION_CALLBACK', {
@@ -115,12 +115,12 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
                 providerResponse: error.response || null
             };
             if (notification.attemptCount < (notification.maxAttempts || 3)) {
-                notification.status = module_3.NotificationStatus.RETRYING;
+                notification.status = notification_status_enum_1.NotificationStatus.RETRYING;
                 const delayMinutes = Math.pow(2, notification.attemptCount - 1);
                 notification.nextAttemptAt = new Date(Date.now() + (delayMinutes * 60 * 1000));
             }
             else {
-                notification.status = module_3.NotificationStatus.FAILED;
+                notification.status = notification_status_enum_1.NotificationStatus.FAILED;
                 notification.completedAt = new Date();
                 if (notification.callbackUrl) {
                     await this.queueService.enqueue('NOTIFICATION_CALLBACK', {
@@ -139,7 +139,7 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
     async getNotificationById(id) {
         const notification = await this.notificationRepo.findOne({ where: { id } });
         if (!notification) {
-            throw new common_1.NotFoundException(Notification, not, found);
+            throw new common_1.NotFoundException(`Notification ${id} not found`);
         }
         return notification;
     }
@@ -158,20 +158,20 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
     async cancelNotification(id) {
         const notification = await this.notificationRepo.findOne({ where: { id } });
         if (!notification) {
-            throw new common_1.NotFoundException(Notification, not, found);
+            throw new common_1.NotFoundException(`Notification ${id} not found`);
         }
-        notification.status = module_3.NotificationStatus.CANCELLED;
+        notification.status = notification_status_enum_1.NotificationStatus.CANCELLED;
         notification.completedAt = new Date();
         await this.notificationRepo.save(notification);
     }
     async getNotificationStats() {
         const [pending, processing, sent, failed, retrying, cancelled] = await Promise.all([
-            this.notificationRepo.count({ where: { status: module_3.NotificationStatus.PENDING } }),
-            this.notificationRepo.count({ where: { status: module_3.NotificationStatus.PROCESSING } }),
-            this.notificationRepo.count({ where: { status: module_3.NotificationStatus.SENT } }),
-            this.notificationRepo.count({ where: { status: module_3.NotificationStatus.FAILED } }),
-            this.notificationRepo.count({ where: { status: module_3.NotificationStatus.RETRYING } }),
-            this.notificationRepo.count({ where: { status: module_3.NotificationStatus.CANCELLED } }),
+            this.notificationRepo.count({ where: { status: notification_status_enum_1.NotificationStatus.PENDING } }),
+            this.notificationRepo.count({ where: { status: notification_status_enum_1.NotificationStatus.PROCESSING } }),
+            this.notificationRepo.count({ where: { status: notification_status_enum_1.NotificationStatus.SENT } }),
+            this.notificationRepo.count({ where: { status: notification_status_enum_1.NotificationStatus.FAILED } }),
+            this.notificationRepo.count({ where: { status: notification_status_enum_1.NotificationStatus.RETRYING } }),
+            this.notificationRepo.count({ where: { status: notification_status_enum_1.NotificationStatus.CANCELLED } }),
         ]);
         const total = pending + processing + sent + failed + retrying + cancelled;
         return {
@@ -190,7 +190,9 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
 exports.NotificationQueueService = NotificationQueueService;
 exports.NotificationQueueService = NotificationQueueService = NotificationQueueService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(module_2.NotificationEntity)),
-    __metadata("design:paramtypes", [typeorm_2.Repository, typeof (_a = typeof module_1.ConfigService !== "undefined" && module_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof module_4.NotificationService !== "undefined" && module_4.NotificationService) === "function" ? _b : Object, typeof (_c = typeof module_5.QueueService !== "undefined" && module_5.QueueService) === "function" ? _c : Object])
+    __param(0, (0, typeorm_1.InjectRepository)(notification_entity_1.NotificationEntity)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        config_1.ConfigService,
+        notification_service_1.NotificationService, typeof (_a = typeof queue_service_1.QueueService !== "undefined" && queue_service_1.QueueService) === "function" ? _a : Object])
 ], NotificationQueueService);
 //# sourceMappingURL=notification-queue.service.js.map

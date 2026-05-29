@@ -1,6 +1,31 @@
 /// <reference lib="dom" />
-import { useState, useCallback } from 'react';
-import { useNetworkStatus } from '@spicegarden/ui';
+import { useState, useCallback, useEffect } from 'react';
+
+export const useNetworkStatus = () => {
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [lastOnline, setLastOnline] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setLastOnline(new Date());
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  return { isOnline, lastOnline };
+};
 
 interface QueuedRequest<T> {
   id: string;

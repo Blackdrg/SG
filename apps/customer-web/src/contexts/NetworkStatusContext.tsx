@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { useNetworkStatus } from '@spicegarden/ui';
+import { useNetworkStatus } from '../hooks/useOfflineQueue';
 
 const NetworkStatusContext = createContext({
    isOnline: true,

@@ -110,12 +110,12 @@ export default function DriverApp() {
        () => {
          setLocationPermission('granted');
        },
-      (error) => {
-        setLocationPermission('denied');
-        addLog(`Location error: ${error.message}`);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
+       (error: Geolocation.GeoError) => {
+         setLocationPermission('denied');
+         addLog(`Location error: ${error.message}`);
+       },
+       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+     );
   }, [fadeAnim, addLog]);
 
   useEffect(() => {
@@ -128,23 +128,23 @@ export default function DriverApp() {
     }
 
     locationWatchId.current = Geolocation.watchPosition(
-       (position) => {
-         const location = {
-           lat: position.coords.latitude,
-           lng: position.coords.longitude,
-         };
-         socket?.emit('driverLocationUpdate', { 
-           driverId: 'current',
-           location 
-         });
-       },
-      (error) => addLog(`Location watch error: ${error.message}`),
-      { 
-        enableHighAccuracy: true, 
-        distanceFilter: 10,
-        interval: 5000 
-      }
-    );
+        (position: Geolocation.GeoPosition) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          socket?.emit('driverLocationUpdate', { 
+            driverId: 'current',
+            location 
+          });
+        },
+        (error: Geolocation.GeoError) => addLog(`Location watch error: ${error.message}`),
+        { 
+          enableHighAccuracy: true, 
+          distanceFilter: 10, 
+          interval: 5000 
+        }
+      );
 
     return () => {
       if (locationWatchId.current !== null) {
@@ -172,10 +172,10 @@ export default function DriverApp() {
       }
     });
     s.on('shiftReminder', (data: { shiftType: string; endTime: string }) => {
-      addLog(`Shift reminder: ${data.shiftType} ends at ${data.endTime}`);
-      Alert.alert('Shift Update', `Your ${data.shiftType} shift ends at ${data.endTime}`);
-      setShift({ type: data.shiftType, endTime: data.endTime });
-    });
+       addLog(`Shift reminder: ${data.shiftType} ends at ${data.endTime}`);
+       Alert.alert('Shift Update', `Your ${data.shiftType} shift ends at ${data.endTime}`);
+       setShift({ isActive: true, type: data.shiftType, endTime: data.endTime });
+     });
 
     return () => { s.disconnect(); };
   }, [isOnline, activeDelivery?.id, addLog]);
@@ -736,9 +736,13 @@ const styles = StyleSheet.create({
   navInlineBtn: { position: 'absolute', right: 8, top: 8 },
   navInlineText: { fontSize: 16 },
 
-  navBtn: {
-    backgroundColor: '#2196f3', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8,
-  },
+  btn: { backgroundColor: '#444', borderRadius: 6, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginVertical: 4 },
+  btnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  btnAccept: { backgroundColor: DESIGN_TOKENS.colors.success },
+  btnReject: { backgroundColor: DESIGN_TOKENS.colors.danger },
+  navBtn: { backgroundColor: '#2196f3', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  navBtnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+
   arriveBtn: { backgroundColor: DESIGN_TOKENS.colors.warning, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
   completeBtn: { backgroundColor: DESIGN_TOKENS.colors.success, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
   failBtn: { backgroundColor: DESIGN_TOKENS.colors.danger, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
@@ -809,7 +813,5 @@ const styles = StyleSheet.create({
   btnAccept: { backgroundColor: DESIGN_TOKENS.colors.primary, flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
   btnReject: { backgroundColor: DESIGN_TOKENS.colors.danger, flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
   timeInfo: { color: '#ccc', fontSize: 12, marginTop: 4 },
-  statusLabel: { color: '#fff', fontSize: 14, marginTop: 4 },
-  navBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+
 });

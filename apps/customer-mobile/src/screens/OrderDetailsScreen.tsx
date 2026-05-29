@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const OrderDetailsScreen = () => {
-  const route = useRoute<any>();
-  const navigation = useNavigation<any>();
+  type OrderDetailsParams = { orderId: string; };
+const route = useRoute<RouteProp<Record<string, OrderDetailsParams>, string>>();
+const navigation = useNavigation<NavigationProp<Record<string, OrderDetailsParams>>>();
   const { orderId } = route.params;
   
-  const [order, setOrder] = useState<any>(null);
+  interface OrderItem { id: string; name: string; description: string; price: number; quantity: number; image: string; }
+interface Order { restaurantImage: string; restaurantName: string; items: OrderItem[]; }
+const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
 
   useEffect(() => {
     const loadOrderDetails = async () => {
@@ -195,7 +198,7 @@ const OrderDetailsScreen = () => {
           <View style={styles.restaurantRow}>
             <Image 
                 source={{ uri: order.restaurantImage }} 
-                style={styles.restaurantImage as any}
+                style={styles.restaurantImage}
               />
             <View style={styles.restaurantInfo}>
               <Text style={styles.restaurantName}>{order.restaurantName}</Text>
@@ -208,11 +211,11 @@ const OrderDetailsScreen = () => {
         <View style={styles.itemsSection}>
           <Text style={styles.sectionTitle}>Order Items</Text>
           <View style={styles.itemsList}>
-            {order.items.map((item: any) => (
+            {order.items.map((item: OrderItem) => (
               <View key={item.id} style={styles.itemRow}>
                 <Image 
                   source={{ uri: item.image }} 
-                  style={styles.itemImage as any}
+                  style={styles.itemImage}
                 />
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.name}</Text>

@@ -6,7 +6,11 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "lint": "eslint . --ext .ts --ext .tsx"
+    "lint": "eslint . --ext .ts --ext .tsx",
+    "test:unit": "echo \"no unit tests\"",
+    "test:integration": "echo \"no integration tests\"",
+    "test:e2e": "echo \"no e2e tests\"",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.0",

@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../redux/store';
 import { ordersApi } from '@spicegarden/shared/api';
-import { addToCart, clearCart } from '../redux/slices/cartSlice';
+import { addToCart, clearCart, CartItem } from '../redux/slices/cartSlice';
 
 const HistoryPage = () => {
   const router = useRouter();
@@ -32,11 +32,12 @@ const HistoryPage = () => {
       }
 
       setLoading(true);
-      setError(null);
-      try {
-        const data = await ordersApi.list(user.token);
-        // Transform API response to match our interface
-        const transformedOrders = data.map((order: any) => ({
+setError(null);
+       try {
+         const response = await ordersApi.list(user.token);
+         const data = response.data;
+         // Transform API response to match our interface
+         const transformedOrders = data.map((order: any) => ({
           id: order.id,
           date: new Date(order.createdAt).toISOString().split('T')[0],
           time: new Date(order.createdAt).toISOString().split('T')[1].substring(0, 5),

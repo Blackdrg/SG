@@ -9,4 +9,3 @@ export const SearchIcon = (props: IconProps) => {
   
   return <Search size={size} color={color} strokeWidth={strokeWidth} {...props} />;
 };
-export { SearchIcon as Search, SearchIcon };

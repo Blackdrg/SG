@@ -7,21 +7,26 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationModule = void 0;
-const common_1 = require("@nestjs/common");
-const common_2 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const notification_service_1 = require("./notification.service");
-const production_notification_service_1 = require("./production-notification.service");
-const user_device_entity_1 = require("../../db/entities/user-device.entity");
+const module_1 = require();
+const module_2 = require();
+const module_3 = require();
+const module_4 = require();
+const module_5 = require();
+const module_6 = require();
+const module_7 = require();
+const module_8 = require();
 let NotificationModule = class NotificationModule {
 };
 exports.NotificationModule = NotificationModule;
 exports.NotificationModule = NotificationModule = __decorate([
-    (0, common_1.Global)(),
-    (0, common_2.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([user_device_entity_1.UserDeviceEntity])],
-        providers: [notification_service_1.NotificationService, production_notification_service_1.ProductionNotificationService],
-        exports: [notification_service_1.NotificationService, production_notification_service_1.ProductionNotificationService],
+    (0, module_1.Global)(),
+    (0, module_2.Module)({
+        imports: [
+            module_3.TypeOrmModule.forFeature([module_6.UserDeviceEntity, module_7.NotificationEntity]),
+            module_8.NotificationQueueModule,
+        ],
+        providers: [module_4.NotificationService, module_5.ProductionNotificationService],
+        exports: [module_4.NotificationService, module_5.ProductionNotificationService],
     })
 ], NotificationModule);
 //# sourceMappingURL=notification.module.js.map

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, FlatList, Animated, Easing, ActivityIndicator } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
 import { Skeleton } from '../components/SkeletonLoader';
@@ -20,11 +20,13 @@ interface SearchResult {
 }
 
 const SearchScreen = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // Reserved for advanced search filters (next sprints)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [activeFilters, setActiveFilters] = useState<{
     rating: number | null;
     maxDistance: number | null;
@@ -67,7 +69,7 @@ const SearchScreen = () => {
     }
   };
 
-  const saveRecentSearch = async (searchQuery: string) => {
+  const saveRecentSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
     
     const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);
@@ -78,7 +80,7 @@ const SearchScreen = () => {
     } catch (e) {
       console.error('Failed to save recent search:', e);
     }
-  };
+  }, [recentSearches]);
 
   const search = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -113,7 +115,7 @@ const SearchScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [recentSearches]);
+  }, [recentSearches, saveRecentSearch]);
 
   const clearRecent = async () => {
     setRecentSearches([]);

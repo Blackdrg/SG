@@ -22,6 +22,3 @@ export const HomeIcon = ({
     />
   );
 };
-
-
-export { HomeIcon };

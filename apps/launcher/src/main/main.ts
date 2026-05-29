@@ -9,6 +9,29 @@ import { EnvironmentManager } from './environment-manager';
 import { ProcessManager } from './process-manager';
 import { AutoUpdater } from './auto-updater';
 
+/**
+ * System diagnostics information returned by getSystemInfo.
+ */
+interface SystemInfo {
+  cpu: {
+    model: string;
+    cores: number;
+    speed: number;
+    usage: number;
+  };
+  memory: {
+    total: number;
+    available: number;
+    used: number;
+    usagePercent: string;
+  };
+  os: {
+    platform: string;
+    release: string;
+    arch: string;
+  };
+}
+
 const isDev = process.env.NODE_ENV === 'development';
 
 class SpiceGardenLauncher {
@@ -172,12 +195,12 @@ class SpiceGardenLauncher {
       return await this.envManager.checkPorts();
     });
 
-    ipcMain.handle('get-logs', async (_, service: string) => {
-      return await this.processManager.getLogs(service);
+    ipcMain.handle('get-logs', async (_, options: LogOptions) => {
+      return await this.processManager.getLogs(options.service, options.lines);
     });
   }
 
-  private async getSystemInfo(): Promise<any> {
+  private async getSystemInfo(): Promise<SystemInfo> {
     const cpu = await si.cpu();
     const mem = await si.mem();
     const osInfo = await si.osInfo();

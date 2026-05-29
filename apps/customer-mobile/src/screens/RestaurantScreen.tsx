@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ScrollView, Animated, Easing, Alert } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
 
 interface MenuItem {
   id: string;
@@ -12,7 +12,26 @@ interface MenuItem {
   category: string;
   image: string;
 }
-
+// Full cart item definition for offline‑first UX
+interface CartItem {
+  id: string;
+  restaurantId: string;
+  name: string;
+  image?: string;
+  price: number;
+  originalPrice?: number;
+  quantity: number;
+  options?: {
+    size?: string;
+    spiceLevel?: string;
+    addOns?: string[];
+    customizations?: string[];
+  };
+  notes?: string;
+  isVeg?: boolean;
+  category?: string;
+  itemTotal: number;
+}
 interface RestaurantInfo {
   id: string;
   name: string;
@@ -22,8 +41,8 @@ interface RestaurantInfo {
 }
 
 const RestaurantScreen = () => {
-  const route = useRoute<any>();
-  const navigation = useNavigation<any>();
+  const route = useRoute();
+  const navigation = useNavigation();
   const { restaurantId } = route.params || {};
   
   const [activeCategory, setActiveCategory] = useState<'all' | string>('all');
@@ -90,7 +109,7 @@ const RestaurantScreen = () => {
       const cartJson = await AsyncStorage.getItem('sg_cart');
       if (cartJson) {
         const cart = JSON.parse(cartJson);
-        setCartCount(cart.reduce((sum: number, item: any) => sum + item.quantity, 0));
+        setCartCount(cart.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0));
       }
     } catch (error) {
       console.error('Failed to load cart:', error);
@@ -102,20 +121,29 @@ const RestaurantScreen = () => {
     
     try {
       const cartJson = await AsyncStorage.getItem('sg_cart');
-      let cart: any[] = [];
+      let cart: CartItem[] = [];
       if (cartJson) {
         cart = JSON.parse(cartJson);
       }
       
-      const existingItemIndex = cart.findIndex((cartItem: any) => cartItem.id === item.id);
+      const existingItemIndex = cart.findIndex((cartItem) => cartItem.id === item.id);
       if (existingItemIndex >= 0) {
         cart[existingItemIndex].quantity += 1;
       } else {
-        cart.push({ ...item, quantity: 1 });
+        cart.push({
+  id: item.id,
+  restaurantId: restaurantId,
+  name: item.name,
+  image: item.image,
+  price: item.price,
+  quantity: 1,
+  category: item.category,
+  itemTotal: item.price * 1,
+});
       }
       
       await AsyncStorage.setItem('sg_cart', JSON.stringify(cart));
-      setCartCount(cart.reduce((sum: number, cartItem: any) => sum + cartItem.quantity, 0));
+      setCartCount(cart.reduce((sum: number, cartItem: { quantity: number }) => sum + cartItem.quantity, 0));
       
       const scaleAnim = scaleAnims.get(item.id) || new Animated.Value(1);
       scaleAnims.set(item.id, scaleAnim);

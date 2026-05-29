@@ -9,4 +9,3 @@ export const ProfileIcon = (props: IconProps) => {
   
   return <User size={size} color={color} strokeWidth={strokeWidth} {...props} />;
 };
-export { ProfileIcon as User, ProfileIcon };

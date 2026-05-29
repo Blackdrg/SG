@@ -2,12 +2,16 @@
   "name": "@spicegarden/super-admin",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint --config .eslintrc.json src --ext .js,.jsx,.ts,.tsx"
-  },
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "eslint --config .eslintrc.json src --ext .js,.jsx,.ts,.tsx",
+      "test:unit": "echo \"no unit tests\"",
+      "test:integration": "echo \"no integration tests\"",
+      "test:e2e": "echo \"no e2e tests\"",
+      "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e"
+    },
   "dependencies": {
     "@spicegarden/ui": "*",
     "next": "^14.2.3",

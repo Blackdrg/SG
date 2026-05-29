@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Alert, ScrollView } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { useRoute, useNavigation, NavigationProp, ParamListBase, RouteProp } from '@react-navigation/native';
+
+import { DESIGN_TOKENS } from '@spicegarden/ui';
+
+type TrackingScreenRouteProp = RouteProp<{ Tracking: { orderId: string } }, 'Tracking'>;
 
 interface TrackingData {
   orderId: string;
@@ -21,8 +23,8 @@ interface OrderStatus {
 }
 
 const TrackingScreen = () => {
-  const route = useRoute<any>();
-  const navigation = useNavigation<any>();
+  const route = useRoute<TrackingScreenRouteProp>();
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { orderId } = route.params || {};
   
   const [trackingData, setTrackingData] = useState<TrackingData | null>(null);

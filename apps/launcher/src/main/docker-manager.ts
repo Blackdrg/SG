@@ -1,9 +1,9 @@
 import { spawn } from 'child_process';
-import * as fs from 'fs';
+
 import * as path from 'path';
 import { StoreManager } from './store-manager';
 
-interface DockerService {
+export interface DockerService {
   name: string;
   status: 'running' | 'stopped' | 'starting' | 'error';
   containerId?: string;
@@ -112,8 +112,9 @@ export class DockerManager {
           resolve({ success: code === 0, error: code !== 0 ? error : undefined });
         });
       });
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
     }
   }
 
@@ -131,9 +132,11 @@ export class DockerManager {
           resolve({ success: code === 0, error: code !== 0 ? error : undefined });
         });
       });
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
     }
+
   }
 
   async resetDatabases(): Promise<{ success: boolean; error?: string }> {
@@ -142,8 +145,9 @@ export class DockerManager {
       await new Promise((resolve) => setTimeout(resolve, 3000));
       await this.startInfrastructure();
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
     }
   }
 }

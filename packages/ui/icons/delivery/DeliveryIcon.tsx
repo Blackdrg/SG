@@ -22,6 +22,3 @@ export const DeliveryIcon = ({
     />
   );
 };
-
-
-export { DeliveryIcon, DeliveryIcon as Bike };

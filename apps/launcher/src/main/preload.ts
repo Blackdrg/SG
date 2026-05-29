@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetDatabase: () => ipcRenderer.invoke('reset-database'),
   checkPorts: () => ipcRenderer.invoke('check-ports'),
   getLogs: (service: string) => ipcRenderer.invoke('get-logs', service),
-  onServiceStatusUpdate: (callback: (status: any) => void) => {
+  onServiceStatusUpdate: (callback: (status: unknown) => void) => {
     ipcRenderer.on('service-status-update', (_, status) => callback(status));
   }
 });

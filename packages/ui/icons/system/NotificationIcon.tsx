@@ -22,5 +22,3 @@ export const NotificationIcon = ({
     />
   );
 };
-
-export { NotificationIcon };

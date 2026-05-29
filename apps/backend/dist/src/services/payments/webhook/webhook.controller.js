@@ -21,9 +21,13 @@ let PaymentWebhookController = class PaymentWebhookController {
         this.webhookService = webhookService;
         this.configService = configService;
     }
-    async handleWebhook(req, signature) {
+    async handleWebhook(req, stripeSignature, razorpaySignature) {
         const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
-        return await this.webhookService.processWebhook(rawBody, signature);
+        const signature = stripeSignature || razorpaySignature;
+        if (!signature) {
+            throw new Error('Missing webhook signature');
+        }
+        return await this.webhookService.processWebhook(rawBody, signature, req.headers);
     }
     async getWebhookStats() {
         return await this.webhookService.getWebhookStats();
@@ -35,8 +39,9 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Headers)('stripe-signature')),
+    __param(2, (0, common_1.Headers)('x-razorpay-signature')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], PaymentWebhookController.prototype, "handleWebhook", null);
 __decorate([

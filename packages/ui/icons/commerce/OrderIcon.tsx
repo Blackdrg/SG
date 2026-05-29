@@ -22,6 +22,3 @@ export const OrderIcon = ({
     />
   );
 };
-
-
-export { OrderIcon, OrderIcon as Package };

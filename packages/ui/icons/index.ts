@@ -2,31 +2,31 @@
 // Never import directly from lucide-react - use these semantic exports
 
 // Navigation Icons
-export { HomeIcon, Home } from './navigation/HomeIcon';
-export { ProfileIcon, User } from './navigation/ProfileIcon';
-export { SearchIcon, Search } from './navigation/SearchIcon';
+export { HomeIcon } from './navigation/HomeIcon';
+export { ProfileIcon } from './navigation/ProfileIcon';
+export { SearchIcon } from './navigation/SearchIcon';
 
 // Commerce Icons
-export { CartIcon, ShoppingCart } from './commerce/CartIcon';
-export { OrderIcon, Package } from './commerce/OrderIcon';
-export { WalletIcon, Wallet } from './commerce/WalletIcon';
-export { PaymentIcon, CreditCard } from './commerce/PaymentIcon';
+export { CartIcon } from './commerce/CartIcon';
+export { OrderIcon } from './commerce/OrderIcon';
+export { WalletIcon } from './commerce/WalletIcon';
+export { PaymentIcon } from './commerce/PaymentIcon';
 
 // Delivery Icons
-export { DeliveryIcon, Bike } from './delivery/DeliveryIcon';
+export { DeliveryIcon } from './delivery/DeliveryIcon';
 
 // Kitchen Icons
-export { KitchenIcon, ChefHat } from './kitchen/KitchenIcon';
+export { KitchenIcon } from './kitchen/KitchenIcon';
 export { FireIcon, Flame } from './kitchen/FireIcon';
 
 // System Icons
-export { NotificationIcon, Bell } from './system/NotificationIcon';
-export { RatingIcon, Star } from './system/RatingIcon';
-export { LocationIcon, MapPin } from './system/LocationIcon';
+export { NotificationIcon } from './system/NotificationIcon';
+export { RatingIcon } from './system/RatingIcon';
+export { LocationIcon } from './system/LocationIcon';
 
 // Admin Icons
-export { DashboardIcon, BarChart3 } from './admin/AdminIcons';
-export { UsersIcon, Users } from './admin/AdminIcons';
+export { DashboardIcon } from './admin/AdminIcons';
+export { UsersIcon } from './admin/AdminIcons';
 export { ShieldIcon } from './admin/AdminIcons';
 
 // Status Icons
@@ -66,12 +66,21 @@ export { Ban } from 'lucide-react';
 export { Banknote } from 'lucide-react';
 export { Smartphone } from 'lucide-react';
 
-// Semantic re-exports
-export { CartIcon as Cart, CartIcon };
-export { OrderIcon as Order, OrderIcon };
-export { DeliveryIcon as Delivery, DeliveryIcon };
-export { KitchenIcon as Kitchen, KitchenIcon };
-export { NotificationIcon as Notification, NotificationIcon };
-export { PaymentIcon as Payment, PaymentIcon };
-export { LocationIcon as Location, LocationIcon };
-export { RatingIcon as Rating, RatingIcon };
+// Semantic re-exports - just rename the exports
+import { CartIcon as CartIconComponent } from './commerce/CartIcon';
+import { OrderIcon as OrderIconComponent } from './commerce/OrderIcon';
+import { DeliveryIcon as DeliveryIconComponent } from './delivery/DeliveryIcon';
+import { KitchenIcon as KitchenIconComponent } from './kitchen/KitchenIcon';
+import { NotificationIcon as NotificationIconComponent } from './system/NotificationIcon';
+import { PaymentIcon as PaymentIconComponent } from './commerce/PaymentIcon';
+import { LocationIcon as LocationIconComponent } from './system/LocationIcon';
+import { RatingIcon as RatingIconComponent } from './system/RatingIcon';
+
+export { CartIconComponent as Cart };
+export { OrderIconComponent as Order };
+export { DeliveryIconComponent as Delivery };
+export { KitchenIconComponent as Kitchen };
+export { NotificationIconComponent as Notification };
+export { PaymentIconComponent as Payment };
+export { LocationIconComponent as Location };
+export { RatingIconComponent as Rating };

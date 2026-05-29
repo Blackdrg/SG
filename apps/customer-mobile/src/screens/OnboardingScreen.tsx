@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Dimensions, Image } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
+import { NavigationProp, ParamListBase } from '@react-navigation/native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// SCREEN_WIDTH was unused and removed
 
 interface OnboardingSlide {
   id: string;
@@ -44,7 +45,7 @@ const onboardingSlides: OnboardingSlide[] = [
   },
 ];
 
-const OnboardingScreen = ({ navigation }: any) => {
+const OnboardingScreen = ({ navigation }: { navigation: NavigationProp<ParamListBase> }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   

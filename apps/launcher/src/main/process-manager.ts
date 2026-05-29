@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { StoreManager } from './store-manager';
@@ -38,7 +38,7 @@ export class ProcessManager {
     { name: 'Restaurant Dashboard', type: 'node', startCmd: 'npm run dev -- -p 3002', cwd: 'apps/restaurant-dashboard', port: 3002 },
     { name: 'Admin Dashboard', type: 'node', startCmd: 'npm run dev -- -p 3003', cwd: 'apps/super-admin', port: 3003 }
   ];
-  private processes: Map<string, any> = new Map();
+  private processes: Map<string, ChildProcess> = new Map();
   private logsPath: string;
 
   constructor(storeManager: StoreManager, dockerManager: DockerManager) {
@@ -103,7 +103,7 @@ export class ProcessManager {
       const proc = this.processes.get(service.name);
       if (proc && !proc.killed) {
         status.status = 'running';
-        status.pid = (proc as any).pid;
+        status.pid = proc.pid;
       } else if (service.type === 'docker') {
         const dockerStatuses = await this.dockerManager.getStatus();
         const dockerStatus = dockerStatuses.find(s => s.name === service.name.toLowerCase());
@@ -135,7 +135,7 @@ export class ProcessManager {
       proc.stderr?.pipe(logFile);
 
       return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return { success: false, error: err.message };
     }
   }

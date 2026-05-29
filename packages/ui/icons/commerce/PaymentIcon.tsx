@@ -22,6 +22,3 @@ export const PaymentIcon = ({
     />
   );
 };
-
-
-export { PaymentIcon };

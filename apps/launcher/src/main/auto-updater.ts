@@ -22,7 +22,7 @@ export class AutoUpdater {
 
     autoUpdater.checkForUpdates();
 
-    autoUpdater.on('update-available', (info) => {
+    autoUpdater.on('update-available', () => {
       dialog.showMessageBox({
         type: 'info',
         title: 'Update Available',
@@ -36,7 +36,7 @@ export class AutoUpdater {
       });
     });
 
-    autoUpdater.on('update-downloaded', (info) => {
+    autoUpdater.on('update-downloaded', () => {
       dialog.showMessageBox({
         type: 'info',
         title: 'Update Ready',

@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "test:unit": "jest --testPathPattern=\"(order|kitchen|delivery).service.spec\" --passWithNoTests",
+    "test:integration": "jest --testPathPattern=\".integration.\" --passWithNoTests",
+    "test:e2e": "jest --testPathPattern=\"e2e.spec\" --passWithNoTests",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.0",

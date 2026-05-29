@@ -22,6 +22,3 @@ export const CartIcon = ({
     />
   );
 };
-
-
-export { CartIcon, CartIcon as ShoppingCart };

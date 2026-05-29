@@ -22,5 +22,3 @@ export const KitchenIcon = ({
     />
   );
 };
-
-export { KitchenIcon };

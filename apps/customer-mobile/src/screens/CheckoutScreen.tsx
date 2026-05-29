@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing, Alert, ScrollView } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CartItem } from './CartScreen';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import type { CartItem } from './CartScreen';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
 
+type CheckoutParams = { cartItems?: CartItem[] };
 const CheckoutScreen = () => {
-  const route = useRoute<any>();
-  const navigation = useNavigation<any>();
-  const { cartItems }: { cartItems: CartItem[] } = route.params || { cartItems: [] };
+  const route = useRoute<RouteProp<Record<string, CheckoutParams>, string>>();
+  const navigation = useNavigation<NavigationProp<Record<string, CheckoutParams>>>();
+  const { cartItems = [] } = route.params ?? {};
   
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'cash'>('card');
   const [tip, setTip] = useState(0);

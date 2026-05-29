@@ -23,6 +23,3 @@ export const RatingIcon = ({
     />
   );
 };
-
-
-export { RatingIcon };

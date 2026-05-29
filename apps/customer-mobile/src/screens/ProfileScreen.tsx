@@ -1,11 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
+
+// Strict union for profile navigation destinations
+type ProfileScreen =
+  | 'Orders'
+  | 'Favorites'
+  | 'Wallet'
+  | 'Addresses'
+  | 'Notifications'
+  | 'Settings'
+  | 'Support'
+  | 'Privacy'
+  | 'Logout';
 
 const ProfileScreen = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const [userData, setUserData] = useState({
     fullName: '',
     email: '',
@@ -239,7 +251,7 @@ const ProfileScreen = () => {
                   <TouchableOpacity 
                     key={item.id} 
                     style={styles.menuItem}
-                    onPress={() => item.screen && navigation.navigate(item.screen as any)}
+                    onPress={() => navigation.navigate(item.screen as ProfileScreen)}
                     accessibilityLabel={`Go to ${item.label}`}
                     accessibilityRole="link"
                   >

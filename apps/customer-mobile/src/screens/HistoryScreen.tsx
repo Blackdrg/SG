@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DESIGN_TOKENS, MOTION_EASING } from '@spicegarden/ui';
+import { DESIGN_TOKENS } from '@spicegarden/ui';
 
 interface OrderItem {
   name: string;
@@ -22,7 +22,7 @@ interface Order {
 }
 
 const HistoryScreen = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<'all' | 'preparing' | 'ready' | 'pickedup' | 'delivered' | 'cancelled'>('all');
   const [loading, setLoading] = useState(true);
@@ -84,9 +84,7 @@ const HistoryScreen = () => {
 
   const filteredOrders = filter === 'all' ? orders : orders.filter(order => order.status === filter);
 
-  const handleOrderPress = useCallback((orderId: string) => {
-    navigation.navigate('OrderDetails', { orderId });
-  }, [navigation]);
+
 
   const handleReorder = useCallback(async (orderId: string) => {
     try {

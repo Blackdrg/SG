@@ -22,6 +22,3 @@ export const LocationIcon = ({
     />
   );
 };
-
-
-export { LocationIcon as MapPin, LocationIcon };

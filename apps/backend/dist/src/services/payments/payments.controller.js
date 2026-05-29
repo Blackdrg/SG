@@ -20,6 +20,7 @@ const retry_service_1 = require("./retry.service");
 const fraud_hardening_service_1 = require("./fraud-hardening.service");
 const idempotency_service_1 = require("./idempotency.service");
 const config_1 = require("@nestjs/config");
+const switch_1 = require("@nestjs/switch");
 let PaymentsController = class PaymentsController {
     constructor(paymentService, paymentHardening, retryService, fraudHardening, idempotency, configService) {
         this.paymentService = paymentService;
@@ -29,7 +30,7 @@ let PaymentsController = class PaymentsController {
         this.idempotency = idempotency;
         this.configService = configService;
     }
-    async createPaymentIntent(body, req, idempotencyKey) {
+    async createPaymentIntent(body, req, idempotencyKey, gateway) {
         const fraudCheck = await this.fraudHardening.checkPaymentFraud({
             userId: body.userId,
             amount: body.amount,
@@ -50,7 +51,7 @@ let PaymentsController = class PaymentsController {
                     return existing.response;
                 }
             }
-            const intent = await this.paymentService.createPaymentIntent(body.amount, body.currency || 'usd', body.userId, { orderId: body.orderId, paymentMethodId: body.paymentMethodId });
+            const intent = await this.paymentService.createPaymentIntent(body.amount, body.currency || 'usd', body.userId, { orderId: body.orderId, paymentMethodId: body.paymentMethodId }, req, gateway);
             if (idempotencyKey) {
                 await this.idempotency.complete(idempotencyKey, 'create_payment_intent', intent);
             }
@@ -59,9 +60,12 @@ let PaymentsController = class PaymentsController {
         if (!retryResult.success) {
             throw new common_1.BadRequestException(retryResult.error?.message);
         }
-        return { clientSecret: retryResult.result?.client_secret };
+        return {
+            clientSecret: retryResult.result?.client_secret || retryResult.result?.id,
+            gateway: gateway || this.configService.get('PAYMENT_PRIMARY_GATEWAY', 'stripe')
+        };
     }
-    async refund(body, idempotencyKey) {
+    async refund(body, idempotencyKey, gateway) {
         const retryResult = await this.retryService.executeWithRetry(async () => {
             if (idempotencyKey) {
                 const existing = await this.idempotency.validateOrCreate(idempotencyKey, 'refund_payment', body.userId, { paymentIntentId: body.paymentIntentId, amount: body.amount });
@@ -69,7 +73,7 @@ let PaymentsController = class PaymentsController {
                     return existing.response;
                 }
             }
-            const refund = await this.paymentService.refundPayment(body.paymentIntentId, body.amount, body.userId, body.reason);
+            const refund = await this.paymentService.refundPayment(body.paymentIntentId, body.amount, body.userId, body.reason, undefined, gateway);
             if (idempotencyKey) {
                 await this.idempotency.complete(idempotencyKey, 'refund_payment', refund);
             }
@@ -80,28 +84,66 @@ let PaymentsController = class PaymentsController {
         }
         return retryResult.result;
     }
+    getAvailableGateways() {
+        return ['stripe', 'razorpay'];
+    }
+    getGatewayConfig() {
+        return {
+            primaryGateway: this.configService.get('PAYMENT_PRIMARY_GATEWAY', 'stripe'),
+            availableGateways: ['stripe', 'razorpay'],
+            stripeEnabled: !!this.configService.get('STRIPE_SECRET_KEY'),
+            razorpayEnabled: !!this.configService.get('RAZORPAY_KEY_ID')
+        };
+    }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
     (0, common_1.Post)('create-intent'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, switch_1.ApiOperation)({ summary: 'Create a payment intent' }),
+    (0, switch_1.ApiResponse)({ status: 200, description: 'Payment intent created successfully' }),
+    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __param(2, (0, common_1.Headers)('x-idempotency-key')),
+    __param(3, (0, common_1.Query)('gateway')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String]),
+    __metadata("design:paramtypes", [Object, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "createPaymentIntent", null);
 __decorate([
     (0, common_1.Post)('refund'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, switch_1.ApiOperation)({ summary: 'Refund a payment' }),
+    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund processed successfully' }),
+    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Headers)('x-idempotency-key')),
+    __param(2, (0, common_1.Query)('gateway')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "refund", null);
+__decorate([
+    (0, common_1.Get)('gateways'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, switch_1.ApiOperation)({ summary: 'Get available payment gateways' }),
+    (0, switch_1.ApiResponse)({ status: 200, description: 'List of available payment gateways' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "getAvailableGateways", null);
+__decorate([
+    (0, common_1.Get)('gateway/config'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, switch_1.ApiOperation)({ summary: 'Get payment gateway configuration' }),
+    (0, switch_1.ApiResponse)({ status: 200, description: 'Payment gateway configuration' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "getGatewayConfig", null);
 exports.PaymentsController = PaymentsController = __decorate([
+    (0, switch_1.ApiTags)('payments'),
     (0, common_1.Controller)('payments'),
     __metadata("design:paramtypes", [payments_service_1.PaymentService,
         payment_hardening_service_1.PaymentHardeningService,

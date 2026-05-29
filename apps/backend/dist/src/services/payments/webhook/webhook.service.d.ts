@@ -1,12 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
-import { StripeWebhookEntity } from '../../../db/entities/stripe-webhook.entity';
-import { PaymentEventEntity } from '../payment-event.entity';
-import { OrderEntity } from '../../../db/entities/order.entity';
-import { PaymentFraudFlagEntity } from '../payment-fraud.entity';
-import { NotificationService } from '../../notifications/notification.service';
-import { ProductionNotificationService } from '../../notifications/production-notification.service';
-import { LedgerService } from '../../../modules/ledger/ledger.service';
+import { PaymentWebhookEntity } from '../../../db/entities/payment-webhook.entity';
+import { PaymentEventEntity } from  = '../payment-event.entity';
+import { OrderEntity } from  = '../../../db/entities/order.entity';
+import { PaymentFraudFlagEntity } from  = '../payment-fraud.entity';
+import { NotificationService } from  = '../../notifications/notification.service';
+import { ProductionNotificationService } from  = '../../notifications/production-notification.service';
+import { LedgerService } from  = '../../../modules/ledger/ledger.service';
+import { PaymentGatewayFactory } from  = './gateway-factory.service';
+import { ChargebackService } from  = './chargeback/chargeback.service';
 export declare class WebhookService {
     private configService;
     private readonly webhookRepo;
@@ -16,12 +18,19 @@ export declare class WebhookService {
     private notificationService;
     private productionNotification;
     private ledgerService;
+    private paymentGatewayFactory;
+    private chargebackService;
     private readonly logger;
     private stripe;
-    constructor(configService: ConfigService, webhookRepo: Repository<StripeWebhookEntity>, paymentEventRepo: Repository<PaymentEventEntity>, orderRepo: Repository<OrderEntity>, fraudFlagRepo: Repository<PaymentFraudFlagEntity>, notificationService: NotificationService, productionNotification: ProductionNotificationService, ledgerService: LedgerService);
-    processWebhook(payload: Buffer, signature: string): Promise<any>;
+    constructor(configService: ConfigService, webhookRepo: Repository<PaymentWebhookEntity>, paymentEventRepo: Repository<PaymentEventEntity>, orderRepo: Repository<OrderEntity>, fraudFlagRepo: Repository<PaymentFraudFlagEntity>, notificationService: NotificationService, productionNotification: ProductionNotificationService, ledgerService: LedgerService, paymentGatewayFactory: PaymentGatewayFactory, chargebackService: ChargebackService);
+    processWebhook(payload: Buffer, signature: string, headers: any): Promise<any>;
+    private detectGatewayFromHeaders;
+    private verifyStripeWebhook;
+    private verifyRazorpayWebhook;
     private mapEventToPaymentEvent;
     private handleEvent;
+    private handleStripeEvent;
+    private handleRazorpayEvent;
     private handlePaymentIntentSucceeded;
     private handlePaymentIntentFailed;
     private handleChargeRefunded;
@@ -31,5 +40,9 @@ export declare class WebhookService {
     private handleAmountCapturableUpdated;
     private handleChargeExpired;
     private handleChargeSucceeded;
+    private handlePaymentAuthorized;
+    private handlePaymentFailed;
+    private handleRefundProcessed;
+    private handleRefundFailed;
     getWebhookStats(): Promise<any>;
 }

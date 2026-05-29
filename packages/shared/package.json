@@ -4,11 +4,15 @@
   "private": true,
   "main": "index.ts",
   "types": "index.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "echo \"lint placeholder\""
-  },
+    "scripts": {
+      "build": "tsc",
+      "dev": "tsc --watch",
+      "lint": "echo \"lint placeholder\"",
+      "test:unit": "echo \"no unit tests\"",
+      "test:integration": "echo \"no integration tests\"",
+      "test:e2e": "echo \"no e2e tests\"",
+      "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e"
+    },
   "devDependencies": {
     "typescript": "^5.0.0"
   }

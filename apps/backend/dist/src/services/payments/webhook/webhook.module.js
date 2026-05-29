@@ -9,24 +9,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhookModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const stripe_webhook_entity_1 = require("../../../db/entities/stripe-webhook.entity");
-const payment_event_entity_1 = require("../payment-event.entity");
-const payment_fraud_entity_1 = require("../payment-fraud.entity");
-const webhook_service_1 = require("./webhook.service");
-const webhook_controller_1 = require("./webhook.controller");
-const notification_module_1 = require("../../notifications/notification.module");
+const payment_webhook_entity_1 = require("../../../db/entities/payment-webhook.entity");
+const module_1 = require();
+const module_2 = require();
+const module_3 = require();
+const module_4 = require();
+const module_5 = require();
+const module_6 = require();
+const module_7 = require();
 let WebhookModule = class WebhookModule {
 };
 exports.WebhookModule = WebhookModule;
 exports.WebhookModule = WebhookModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([stripe_webhook_entity_1.StripeWebhookEntity, payment_event_entity_1.PaymentEventEntity, payment_fraud_entity_1.PaymentFraudFlagEntity]),
-            notification_module_1.NotificationModule,
+            typeorm_1.TypeOrmModule.forFeature([payment_webhook_entity_1.PaymentWebhookEntity, module_1.PaymentEventEntity, module_2.PaymentFraudFlagEntity, module_3.PaymentDisputeEntity]),
+            module_6.NotificationModule,
+            module_7.ChargebackModule,
         ],
-        providers: [webhook_service_1.WebhookService],
-        controllers: [webhook_controller_1.PaymentWebhookController],
-        exports: [webhook_service_1.WebhookService],
+        providers: [module_4.WebhookService],
+        controllers: [module_5.PaymentWebhookController],
+        exports: [module_4.WebhookService],
     })
 ], WebhookModule);
 //# sourceMappingURL=webhook.module.js.map

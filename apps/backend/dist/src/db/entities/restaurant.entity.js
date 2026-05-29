@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RestaurantEntity = void 0;
 const typeorm_1 = require("typeorm");
 const restaurant_branch_entity_1 = require("./restaurant-branch.entity");
+const restaurant_gst_entity_1 = require("./restaurant-gst.entity");
 let RestaurantEntity = class RestaurantEntity {
 };
 exports.RestaurantEntity = RestaurantEntity;
@@ -47,6 +48,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => restaurant_branch_entity_1.RestaurantBranchEntity, (branch) => branch.restaurant),
     __metadata("design:type", Array)
 ], RestaurantEntity.prototype, "branches", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => restaurant_gst_entity_1.RestaurantGSTEntity, gstDetail => gstDetail.restaurant),
+    __metadata("design:type", restaurant_gst_entity_1.RestaurantGSTEntity)
+], RestaurantEntity.prototype, "gstDetail", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

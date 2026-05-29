@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { LedgerEntryEntity } from '../db/entities/ledger-entry.entity';
+import { Repository, MoreThanOrEqual, LessThan, Raw } from 'typeorm';
+import { LedgerEntryEntity } from '../../db/entities/ledger-entry.entity';
 
 @Injectable()
 export class LedgerService {
@@ -106,16 +106,13 @@ export class LedgerService {
     endDate: Date,
   ): Promise<LedgerEntryEntity[]> {
     return await this.ledgerRepo.find({
-      where: {
-        account,
-        createdAt: /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */ 
-          /* MoreThanOrEqual */ (startDate as any),
-        /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */
-        /* And */
-        /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-        /* LessThan */ (endDate as any),
-        /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */
-      },
+        where: {
+          account,
+          createdAt: Raw(
+            (alias) => `${alias} >= :startDate AND ${alias} < :endDate`,
+            { startDate, endDate }
+          ),
+        },
       order: { createdAt: 'ASC' },
     });
   }

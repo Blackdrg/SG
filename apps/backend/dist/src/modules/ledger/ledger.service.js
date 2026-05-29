@@ -17,7 +17,7 @@ exports.LedgerService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const ledger_entry_entity_1 = require("../db/entities/ledger-entry.entity");
+const ledger_entry_entity_1 = require("../../db/entities/ledger-entry.entity");
 let LedgerService = LedgerService_1 = class LedgerService {
     constructor(ledgerRepo) {
         this.ledgerRepo = ledgerRepo;
@@ -53,11 +53,11 @@ let LedgerService = LedgerService_1 = class LedgerService {
         return await this.ledgerRepo.find({
             where: {
                 account,
-                createdAt: startDate,
-            }(endDate),
-        }, order, { createdAt: 'ASC' });
+                createdAt: (0, typeorm_2.Raw)((alias) => `${alias} >= :startDate AND ${alias} < :endDate`, { startDate, endDate }),
+            },
+            order: { createdAt: 'ASC' },
+        });
     }
-    ;
 };
 exports.LedgerService = LedgerService;
 exports.LedgerService = LedgerService = LedgerService_1 = __decorate([

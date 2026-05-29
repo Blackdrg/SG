@@ -8,7 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LedgerModule = void 0;
 const common_1 = require("@nestjs/common");
-const ledger_entry_entity_1 = require("../db/entities/ledger-entry.entity");
+const ledger_entry_entity_1 = require("../../db/entities/ledger-entry.entity");
 const typeorm_1 = require("@nestjs/typeorm");
 const ledger_service_1 = require("./ledger.service");
 let LedgerModule = class LedgerModule {

@@ -340,58 +340,107 @@ export class KitchenService {
   /**
    * Calculate and record actual prep time and delays for food preparation
    */
-  private async calculateAndRecordFoodPrepTiming(prepId: string): Promise<void> {
-    try {
-      const foodPrep = await this.foodPrepRepo.findOne({
-        where: { id: prepId },
-        relations: ['batch', 'batch.recipe', 'branch']
-      });
-      
-      if (!foodPrep || !foodPrep.startedAt) return;
+    private async calculateAndRecordFoodPrepTiming(prepId: string): Promise<void> {
+     try {
+       const foodPrep = await this.foodPrepRepo.findOne({
+         where: { id: prepId },
+         relations: ['batch', 'batch.recipe', 'branch']
+       });
 
-      // Calculate actual prep time
-      const completedAt = foodPrep.completedAt || new Date();
-      const actualTimeMs = completedAt.getTime() - foodPrep.startedAt.getTime();
-      const actualTimeMinutes = Math.max(0, actualTimeMs / 60000);
-      
-      // Get estimated time from recipe or historical data
-      let estimatedTimeMinutes = 30; // Default
-      if (foodPrep.batch?.recipe?.prepTimeMinutes) {
-        estimatedTimeMinutes = foodPrep.batch.recipe.prepTimeMinutes;
-      } else if (foodPrep.batch?.recipe?.cookTimeMinutes) {
-        estimatedTimeMinutes = foodPrep.batch.recipe.cookTimeMinutes;
-      }
-      
-      // Calculate delay
-      const delayMinutes = actualTimeMinutes - estimatedTimeMinutes;
-      
-      // Determine delay reasons (simplified - in reality this would be more sophisticated)
-      const delayReasons: string[] = [];
-      if (delayMinutes > 10) {
-        delayReasons.push('Preparation took longer than expected');
-      }
-      if (delayMinutes < -5) {
-        delayReasons.push('Prepared faster than expected');
-      }
-      
-      // Update the food prep record
-      foodPrep.actualPrepTimeMinutes = actualTimeMinutes;
-      foodPrep.estimatedPrepTimeMinutes = estimatedTimeMinutes;
-      foodPrep.delayMinutes = delayMinutes;
-      foodPrep.delayReasons = delayReasons;
-      
-      await this.foodPrepRepo.save(foodPrep);
-      
-      // Record SLA for prep time
-      await this.recordPrepTimeSLA(foodPrep.branch.id, actualTimeMinutes, estimatedTimeMinutes);
-      
-      this.logger.log(`Calculated timing for food prep ${prepId}: ${actualTimeMinutes.toFixed(1)}m actual vs ${estimatedTimeMinutes.toFixed(1)}m estimated`);
-    } catch (error) {
-      this.logger.error(`Error calculating food prep timing for ${prepId}`, error);
-    }
-  }
+       if (!foodPrep || !foodPrep.startedAt) return;
 
-  /**
+       // Calculate actual prep time
+       const completedAt = foodPrep.completedAt || new Date();
+       const actualTimeMs = completedAt.getTime() - foodPrep.startedAt.getTime();
+       const actualTimeMinutes = Math.max(0, actualTimeMs / 60000);
+
+       // Get estimated time from recipe or historical data
+       let estimatedTimeMinutes = 30; // Default
+       if (foodPrep.batch?.recipe?.prepTimeMinutes) {
+         estimatedTimeMinutes = foodPrep.batch.recipe.prepTimeMinutes;
+       } else if (foodPrep.batch?.recipe?.cookTimeMinutes) {
+         estimatedTimeMinutes = foodPrep.batch.recipe.cookTimeMinutes;
+       }
+
+       // Calculate delay
+       const delayMinutes = actualTimeMinutes - estimatedTimeMinutes;
+
+       // Determine delay reasons (simplified - in reality this would be more sophisticated)
+       const delayReasons: string[] = [];
+       if (delayMinutes > 10) {
+         delayReasons.push('Preparation took longer than expected');
+       }
+       if (delayMinutes < -5) {
+         delayReasons.push('Prepared faster than expected');
+       }
+
+       // Update the food prep record
+       foodPrep.actualPrepTimeMinutes = actualTimeMinutes;
+       foodPrep.estimatedPrepTimeMinutes = estimatedTimeMinutes;
+       foodPrep.delayMinutes = delayMinutes;
+       foodPrep.delayReasons = delayReasons;
+
+       await this.foodPrepRepo.save(foodPrep);
+
+       // Record SLA for prep time
+       await this.recordPrepTimeSLA(foodPrep.branch.id, actualTimeMinutes, estimatedTimeMinutes);
+
+       this.logger.log(`Calculated timing for food prep ${prepId}: ${actualTimeMinutes.toFixed(1)}m actual vs ${estimatedTimeMinutes.toFixed(1)}m estimated`);
+     } catch (error) {
+       this.logger.error(`Error calculating food prep timing for ${prepId}`, error);
+     }
+   }
+   
+   private async calculateAndRecordBatchTiming(batchId: string): Promise<void> {
+     try {
+       const batch = await this.batchRepo.findOne({
+         where: { id: batchId },
+         relations: ['recipe', 'branch']
+       });
+       
+       if (!batch || !batch.startedAt) return;
+       
+       // Calculate actual prep time
+       const completedAt = batch.completedAt || new Date();
+       const actualTimeMs = completedAt.getTime() - batch.startedAt.getTime();
+       const actualTimeMinutes = Math.max(0, actualTimeMs / 60000);
+       
+        // Get estimated time from batch entity
+        let estimatedTimeMinutes = batch.estimatedPrepTimeMinutes ?? 0;
+        if (!estimatedTimeMinutes && batch.recipe?.prepTimeMinutes) {
+          estimatedTimeMinutes = batch.recipe.prepTimeMinutes;
+        } else if (!estimatedTimeMinutes && batch.recipe?.cookTimeMinutes) {
+          estimatedTimeMinutes = batch.recipe.cookTimeMinutes;
+        }
+       
+       // Calculate delay
+       const delayMinutes = actualTimeMinutes - estimatedTimeMinutes;
+       
+       // Determine delay reasons (simplified)
+       const delayReasons: string[] = [];
+       if (delayMinutes > 10) {
+         delayReasons.push('Batch preparation took longer than expected');
+       }
+       if (delayMinutes < -5) {
+         delayReasons.push('Batch prepared faster than expected');
+       }
+       
+       // Update the batch record
+       batch.actualPrepTimeMinutes = actualTimeMinutes;
+       batch.delayMinutes = delayMinutes;
+       batch.delayReasons = delayReasons;
+       
+       await this.batchRepo.save(batch);
+       
+       // TODO: Consider recording SLA for batch timing if needed
+       
+       this.logger.log(`Calculated timing for batch ${batchId}: ${actualTimeMinutes.toFixed(1)}m actual vs ${estimatedTimeMinutes.toFixed(1)}m estimated`);
+     } catch (error) {
+       this.logger.error(`Error calculating batch timing for ${batchId}`, error);
+     }
+   }
+   
+   /**
    * Record prep time SLA metrics and check for breaches
    */
   private async recordPrepTimeSLA(branchId: string, actualTime: number, targetTime: number): Promise<void> {
@@ -798,17 +847,17 @@ export class KitchenService {
     });
     
     const summary: Record<string, any> = {};
-    for (const metric of metrics) {
-      if (!summary[metric.metricName] || new Date(metric.measuredAt) > new Date(summary[metric.metricName].measuredAt)) {
-        summary[metric.metricName] = {
-          value: metric.value,
-          unit: metric.unit,
-          targetValue: metric.targetValue,
-          targetUnit: metric.targetUnit,
-          measuredAt: metric.measuredAt
-        };
-      }
-    }
+     for (const metric of metrics) {
+       if (!summary[metric.metricName] || new Date(metric.measuredAt) > new Date(summary[metric.metricName].measuredAt)) {
+         summary[metric.metricName] = {
+           value: metric.value,
+           unit: metric.unit,
+           targetValue: metric.targetValue,
+           targetUnit: metric.targetUnit,
+           measuredAt: metric.measuredAt
+         };
+       }
+     }
     
     return summary;
   }

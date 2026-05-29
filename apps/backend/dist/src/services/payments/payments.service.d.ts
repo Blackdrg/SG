@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../../audit/audit.service';
-import { LedgerService } from '../../../modules/ledger/ledger.service';
+import { LedgerService } from '../../modules/ledger/ledger.service';
 export declare class PaymentService {
     private configService;
     private auditService;

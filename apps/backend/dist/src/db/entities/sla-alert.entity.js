@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SLAAlertEntity = void 0;
 const typeorm_1 = require("typeorm");
 const restaurant_branch_entity_1 = require("./restaurant-branch.entity");
-const order_entity_1 = require("./order/order.entity");
+const order_entity_1 = require("./order.entity");
 let SLAAlertEntity = class SLAAlertEntity {
 };
 exports.SLAAlertEntity = SLAAlertEntity;
@@ -28,31 +28,47 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], SLAAlertEntity.prototype, "slaType", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], SLAAlertEntity.prototype, "targetValue", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], SLAAlertEntity.prototype, "actualValue", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Boolean)
+], SLAAlertEntity.prototype, "isBreached", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], SLAAlertEntity.prototype, "breachSeverity", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], SLAAlertEntity.prototype, "relatedOrderId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => order_entity_1.OrderEntity, { nullable: true }),
+    __metadata("design:type", order_entity_1.OrderEntity)
+], SLAAlertEntity.prototype, "relatedOrder", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], SLAAlertEntity.prototype, "isNotified", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], SLAAlertEntity.prototype, "notifiedAt", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], SLAAlertEntity.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], SLAAlertEntity.prototype, "updatedAt", void 0);
 exports.SLAAlertEntity = SLAAlertEntity = __decorate([
     (0, typeorm_1.Entity)('sla_alerts')
 ], SLAAlertEntity);
-/ Type of SLA;
-targetValue;
-number;
-/ Target SLA value (e.g., 15 minutes for prep);
-actualValue;
-number;
-/ Actual measured value;
-isBreached;
-boolean;
-/ Whether SLA is breached;
-breachSeverity ?  : 'low' | 'medium' | 'high';
-/ Severity of breach;
-relatedOrderId ?  : string;
-/ If related to a specific order;
-relatedOrder ?  : order_entity_1.OrderEntity;
-isNotified;
-boolean;
-/ Whether alert has been sent;
-notifiedAt ?  : Date;
-/ When notification was sent;
-createdAt;
-Date;
-updatedAt;
-Date;
 //# sourceMappingURL=sla-alert.entity.js.map

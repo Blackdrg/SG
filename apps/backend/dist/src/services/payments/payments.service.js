@@ -9,14 +9,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var PaymentService_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const stripe_1 = require("stripe");
 const audit_service_1 = require("../../audit/audit.service");
-const ledger_service_1 = require("../../../modules/ledger/ledger.service");
+const ledger_service_1 = require("../../modules/ledger/ledger.service");
 let PaymentService = PaymentService_1 = class PaymentService {
     constructor(configService, auditService, ledgerService) {
         this.configService = configService;
@@ -137,6 +136,7 @@ exports.PaymentService = PaymentService;
 exports.PaymentService = PaymentService = PaymentService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService,
-        audit_service_1.AuditService, typeof (_a = typeof ledger_service_1.LedgerService !== "undefined" && ledger_service_1.LedgerService) === "function" ? _a : Object])
+        audit_service_1.AuditService,
+        ledger_service_1.LedgerService])
 ], PaymentService);
 //# sourceMappingURL=payments.service.js.map

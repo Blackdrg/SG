@@ -8,11 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentDisputeEntity = void 0;
 const typeorm_1 = require("typeorm");
-const order_entity_1 = require("./order/order.entity");
+const order_entity_1 = require("./order.entity");
 let PaymentDisputeEntity = class PaymentDisputeEntity {
 };
 exports.PaymentDisputeEntity = PaymentDisputeEntity;
@@ -22,46 +21,65 @@ __decorate([
 ], PaymentDisputeEntity.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => order_entity_1.OrderEntity),
-    __metadata("design:type", typeof (_a = typeof order_entity_1.OrderEntity !== "undefined" && order_entity_1.OrderEntity) === "function" ? _a : Object)
+    __metadata("design:type", order_entity_1.OrderEntity)
 ], PaymentDisputeEntity.prototype, "order", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], PaymentDisputeEntity.prototype, "disputeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], PaymentDisputeEntity.prototype, "disputeType", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
+    __metadata("design:type", Number)
+], PaymentDisputeEntity.prototype, "disputedAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], PaymentDisputeEntity.prototype, "currency", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], PaymentDisputeEntity.prototype, "reason", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], PaymentDisputeEntity.prototype, "evidence", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], PaymentDisputeEntity.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], PaymentDisputeEntity.prototype, "chargedBackAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], PaymentDisputeEntity.prototype, "chargedBackAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], PaymentDisputeEntity.prototype, "isRefundedToCustomer", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], PaymentDisputeEntity.prototype, "refundedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], PaymentDisputeEntity.prototype, "refundedBy", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], PaymentDisputeEntity.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], PaymentDisputeEntity.prototype, "updatedAt", void 0);
 exports.PaymentDisputeEntity = PaymentDisputeEntity = __decorate([
     (0, typeorm_1.Entity)('payment_disputes')
 ], PaymentDisputeEntity);
-/ External dispute ID from payment processor (Stripe, etc.);
-disputeType;
-string;
-/ Type of dispute (e.g., 'fraudulent', 'product_not_received', 'not_as_described');
-disputedAmount;
-number;
-/ Amount being disputed;
-currency;
-string;
-/ Currency of disputed amount;
-reason;
-string;
-/ Reason provided by customer for dispute;
-evidence ?  : any;
-/ Evidence submitted for dispute resolution;
-status;
-'warning' | 'needs_response' | 'under_review' | 'won' | 'lost';
-/ Dispute status;
-chargedBackAmount ?  : number;
-/ Amount charged back if dispute lost;
-chargedBackAt ?  : Date;
-/ When chargeback occurred;
-isRefundedToCustomer;
-boolean;
-/ Whether customer has been refunded (independent of dispute outcome);
-refundedAt ?  : Date;
-/ When refund was issued to customer;
-refundedBy ?  : string;
-/ Who issued the refund;
-createdAt;
-Date;
-updatedAt;
-Date;
 //# sourceMappingURL=payment-dispute.entity.js.map

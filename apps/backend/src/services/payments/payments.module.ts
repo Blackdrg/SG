@@ -17,7 +17,7 @@ import { PaymentEventEntity } from './payment-event.entity';
 import { LedgerEntryEntity } from '../../db/entities/ledger-entry.entity';
 import { WebhookModule } from './webhook/webhook.module';
 import { AuditModule } from '../../audit/audit.module';
-import { LedgerModule } from '../../../modules/ledger/ledger.module';
+import { LedgerModule } from '../../modules/ledger/ledger.module';
 import { GSTModule } from '../../services/gst/gst.module';
 
 @Module({

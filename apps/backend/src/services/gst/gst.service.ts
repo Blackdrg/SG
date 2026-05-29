@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { OrderEntity } from '../db/entities/order.entity';
-import { OrderItemEntity } from '../db/entities/order-item.entity';
-import { GSTDetailEntity } from '../db/entities/gst-detail.entity';
-import { HSNSACEntity } from '../db/entities/hsn-sac.entity';
-import { RestaurantGSTEntity } from '../db/entities/restaurant-gst.entity';
-import { MenuItemEntity } from '../db/entities/menu-item.entity';
-import { RestaurantEntity } from '../db/entities/restaurant.entity';
+import { OrderEntity } from '../../db/entities/order.entity';
+import { OrderItemEntity } from '../../db/entities/order-item.entity';
+import { GSTDetailEntity } from '../../db/entities/gst-detail.entity';
+import { HSNSACEntity } from '../../db/entities/hsn-sac.entity';
+import { RestaurantGSTEntity } from '../../db/entities/restaurant-gst.entity';
+import { MenuItemEntity } from '../../db/entities/menu-item.entity';
+import { RestaurantEntity } from '../../db/entities/restaurant.entity';
 
 @Injectable()
 export class GSTService {

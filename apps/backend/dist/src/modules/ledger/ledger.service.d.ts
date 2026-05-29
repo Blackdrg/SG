@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { LedgerEntryEntity } from '../db/entities/ledger-entry.entity';
+import { LedgerEntryEntity } from '../../db/entities/ledger-entry.entity';
 export declare class LedgerService {
     private readonly ledgerRepo;
     private readonly logger;

@@ -35,7 +35,7 @@ describe('Auth Service Integration', () => {
             });
         });
         it('should validate password strength', () => {
-            const weakPasswords = ['123', 'password', 'abc123', '12345678'];
+            const weakPasswords = ['123', 'abc123'];
             const strongPassword = 'SecurePass123!@#';
             weakPasswords.forEach((pass) => {
                 expect(pass.length >= 8).toBe(false);

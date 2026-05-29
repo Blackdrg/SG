@@ -291,6 +291,42 @@ let KitchenService = KitchenService_1 = class KitchenService {
             this.logger.error(`Error calculating food prep timing for ${prepId}`, error);
         }
     }
+    async calculateAndRecordBatchTiming(batchId) {
+        try {
+            const batch = await this.batchRepo.findOne({
+                where: { id: batchId },
+                relations: ['recipe', 'branch']
+            });
+            if (!batch || !batch.startedAt)
+                return;
+            const completedAt = batch.completedAt || new Date();
+            const actualTimeMs = completedAt.getTime() - batch.startedAt.getTime();
+            const actualTimeMinutes = Math.max(0, actualTimeMs / 60000);
+            let estimatedTimeMinutes = batch.estimatedPrepTimeMinutes ?? 0;
+            if (!estimatedTimeMinutes && batch.recipe?.prepTimeMinutes) {
+                estimatedTimeMinutes = batch.recipe.prepTimeMinutes;
+            }
+            else if (!estimatedTimeMinutes && batch.recipe?.cookTimeMinutes) {
+                estimatedTimeMinutes = batch.recipe.cookTimeMinutes;
+            }
+            const delayMinutes = actualTimeMinutes - estimatedTimeMinutes;
+            const delayReasons = [];
+            if (delayMinutes > 10) {
+                delayReasons.push('Batch preparation took longer than expected');
+            }
+            if (delayMinutes < -5) {
+                delayReasons.push('Batch prepared faster than expected');
+            }
+            batch.actualPrepTimeMinutes = actualTimeMinutes;
+            batch.delayMinutes = delayMinutes;
+            batch.delayReasons = delayReasons;
+            await this.batchRepo.save(batch);
+            this.logger.log(`Calculated timing for batch ${batchId}: ${actualTimeMinutes.toFixed(1)}m actual vs ${estimatedTimeMinutes.toFixed(1)}m estimated`);
+        }
+        catch (error) {
+            this.logger.error(`Error calculating batch timing for ${batchId}`, error);
+        }
+    }
     async recordPrepTimeSLA(branchId, actualTime, targetTime) {
         try {
             const branch = await this.branchRepo.findOne({ where: { id: branchId } });

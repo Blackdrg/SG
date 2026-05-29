@@ -46,6 +46,7 @@ export declare class KitchenService {
     logFoodPrep(data: Partial<FoodPrepEntity>): Promise<FoodPrepEntity>;
     updateFoodPrepQuality(prepId: string, qualityData: Partial<FoodPrepEntity['qualityCheck']>): Promise<FoodPrepEntity>;
     private calculateAndRecordFoodPrepTiming;
+    private calculateAndRecordBatchTiming;
     private recordPrepTimeSLA;
     recordKitchenSLA(data: Partial<KitchenSLAEntity>): Promise<KitchenSLAEntity>;
     recordAvgPrepTime(branchId: string, prepTimeMinutes: number, period?: 'hourly' | 'daily' | 'weekly'): Promise<KitchenSLAEntity>;

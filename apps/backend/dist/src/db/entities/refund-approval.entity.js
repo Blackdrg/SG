@@ -8,11 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefundApprovalEntity = void 0;
 const typeorm_1 = require("typeorm");
-const order_entity_1 = require("./order/order.entity");
+const order_entity_1 = require("./order.entity");
 let RefundApprovalEntity = class RefundApprovalEntity {
 };
 exports.RefundApprovalEntity = RefundApprovalEntity;
@@ -22,55 +21,77 @@ __decorate([
 ], RefundApprovalEntity.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => order_entity_1.OrderEntity),
-    __metadata("design:type", typeof (_a = typeof order_entity_1.OrderEntity !== "undefined" && order_entity_1.OrderEntity) === "function" ? _a : Object)
+    __metadata("design:type", order_entity_1.OrderEntity)
 ], RefundApprovalEntity.prototype, "order", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], RefundApprovalEntity.prototype, "refundId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
+    __metadata("design:type", Number)
+], RefundApprovalEntity.prototype, "refundAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "currency", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "reason", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "requestedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "requestType", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "approvalStatus", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "approverId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], RefundApprovalEntity.prototype, "approvedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "rejectionReason", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], RefundApprovalEntity.prototype, "processedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "processedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], RefundApprovalEntity.prototype, "requiresManagerApproval", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "managerApproverId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], RefundApprovalEntity.prototype, "managerApprovedAt", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], RefundApprovalEntity.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], RefundApprovalEntity.prototype, "updatedAt", void 0);
 exports.RefundApprovalEntity = RefundApprovalEntity = __decorate([
     (0, typeorm_1.Entity)('refund_approvals')
 ], RefundApprovalEntity);
-/ External refund ID from payment processor;
-refundAmount;
-number;
-/ Amount to be refunded;
-currency;
-string;
-/ Currency of refund amount;
-reason;
-string;
-/ Reason for refund request;
-requestedBy;
-string;
-/ Who requested the refund (customer ID or staff ID);
-requestType;
-'customer_request' | 'agent_initiated' | 'policy_exception' | 'dispute_resolution';
-/ Type of refund request;
-approvalStatus;
-'pending' | 'approved' | 'rejected' | 'processed';
-/ Current approval status;
-approverId ?  : string;
-/ Who approved/rejected;
-the;
-refund;
-approvedAt ?  : Date;
-/ When the refund was approved;
-rejectionReason ?  : string;
-/ Reason if rejected;
-processedAt ?  : Date;
-/ When the refund was actually processed;
-processedBy ?  : string;
-/ Who processed the refund;
-requiresManagerApproval;
-boolean;
-/ Whether manager approval is needed (based on amount/policy;
-managerApproverId ?  : string;
-/ Manager who needs to approve;
-managerApprovedAt ?  : Date;
-/ When manager approved;
-createdAt;
-Date;
-updatedAt;
-Date;
 //# sourceMappingURL=refund-approval.entity.js.map

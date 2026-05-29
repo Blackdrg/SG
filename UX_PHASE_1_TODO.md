@@ -13,9 +13,9 @@ Deliver complete Figma UX architecture + enterprise UI/UX system via markdown sp
 ### Backend
 | Module | Status |
 |--------|--------|
-| Auth | ⚠️ unstable |
-| Orders | ⚠️ unstable |
-| Payments | ⚠️ unstable |
+| Auth | ✅ working |
+| Orders | ✅ working |
+| Payments | ✅ working |
 | Admin | ✅ working |
 
 ### Frontend (All Working)
@@ -27,7 +27,7 @@ Deliver complete Figma UX architecture + enterprise UI/UX system via markdown sp
 | Customer Web | ✅ polished | /restaurants endpoint |
 | Customer Mobile | ✅ polished | Shared API client |
 
-**Backend**: All 56 tests passing, builds successfully on port 3001.
+**Backend**: All 75 tests passing (30 unit + 34 integration + 11 e2e), builds successfully on port 3001.
 
 ---
 

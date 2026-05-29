@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Stripe } from 'stripe';
 import { AuditService } from '../../audit/audit.service';
-import { LedgerService } from '../../../modules/ledger/ledger.service';
+import { LedgerService } from '../../modules/ledger/ledger.service';
 
 @Injectable()
 export class PaymentService {

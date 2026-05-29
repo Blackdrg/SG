@@ -72,6 +72,14 @@ __decorate([
     __metadata("design:type", Number)
 ], DriverEntity.prototype, "totalDistance", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], DriverEntity.prototype, "failureCount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], DriverEntity.prototype, "lastLocationUpdate", void 0);
+__decorate([
     (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, default: 0 }),
     __metadata("design:type", Number)
 ], DriverEntity.prototype, "averageSpeed", void 0);

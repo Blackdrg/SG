@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { RestaurantBranchEntity } from './restaurant-branch.entity';
+import { RestaurantGSTEntity } from './restaurant-gst.entity';
 
 @Entity('restaurants')
 export class RestaurantEntity {
@@ -24,8 +25,11 @@ export class RestaurantEntity {
   @Column({ default: 'active' })
   status!: string;
 
-  @OneToMany(() => RestaurantBranchEntity, (branch) => branch.restaurant)
-  branches!: RestaurantBranchEntity[];
+   @OneToMany(() => RestaurantBranchEntity, (branch) => branch.restaurant)
+   branches!: RestaurantBranchEntity[];
+
+   @OneToOne(() => RestaurantGSTEntity, gstDetail => gstDetail.restaurant)
+   gstDetail?: RestaurantGSTEntity;
 
   @CreateDateColumn()
   createdAt!: Date;

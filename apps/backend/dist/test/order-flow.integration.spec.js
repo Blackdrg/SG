@@ -76,9 +76,8 @@ describe('Order Service Integration', () => {
             invalidTransitions.forEach(({ from, to }) => {
                 const fromIndex = orderStatuses.indexOf(from);
                 const toIndex = orderStatuses.indexOf(to);
-                if (fromIndex !== toIndex) {
-                    expect(toIndex < fromIndex).toBe(true);
-                }
+                const isInvalid = (toIndex < fromIndex) || (toIndex > fromIndex + 1);
+                expect(isInvalid).toBe(true);
             });
         });
     });

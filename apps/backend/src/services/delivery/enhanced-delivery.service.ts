@@ -96,8 +96,8 @@ export class EnhancedDeliveryService {
 
   async updateLocation(driverId: string, lat: number, lng: number) {
     return this.driverRepo.update(driverId, {
-      currentLocation: { lat, lng } as any,
-      lastLocationUpdate: new Date() as any,
+       currentLocation: { lat, lng } as any,
+       lastLocationUpdate: new Date(),
     });
   }
 
@@ -200,13 +200,14 @@ export class EnhancedDeliveryService {
         paymentStatus: PaymentStatus.FAILED,
       });
 
-      const driver = await manager.findOne(DriverEntity, { where: { id: driverId } });
-      if (driver && reasonDetails !== 'customer_unavailable') {
-        await manager.update(DriverEntity, driverId, {
-          failureCount: (driver.failureCount || 0) + 1,
-          isFraudSuspicious: (driver.failureCount || 0) >= 3,
-        });
-      }
+       const driver = await manager.findOne(DriverEntity, { where: { id: driverId } });
+       if (driver && reasonDetails !== 'customer_unavailable') {
+         const newFailureCount = driver.failureCount + 1;
+         await manager.update(DriverEntity, driverId, {
+           failureCount: newFailureCount,
+           isFraudSuspicious: newFailureCount >= 3,
+         });
+       }
     });
 
     this.handleDriverNoShow(driverId);

@@ -10,7 +10,7 @@ SpiceGarden is a hyper-scale, production-ready food delivery ecosystem architect
 
 | Component | Status | Tests |
 |-----------|--------|-------|
-| Backend API | ✅ **Working** | 56 passing (9 suites) |
+| Backend API | ✅ **Working** | 75 passing (12 suites) |
 | Customer Web | ✅ **Working** | Real API integration |
 | Customer Mobile | ✅ **Working** | Real API integration |
 | Restaurant Dashboard | ✅ **Working** | WebSocket + fallback |
@@ -38,8 +38,8 @@ SpiceGarden is a hyper-scale, production-ready food delivery ecosystem architect
 ## 🧪 Test Results
 
 ```
-Test Suites: 9 passed, 9 total
-Tests:       56 passed, 56 total
+Test Suites: 12 passed, 12 total
+Tests:       75 passed, 75 total
 ```
 
 Run with: `npm run test -w @spicegarden/backend`
@@ -70,6 +70,10 @@ Run with: `npm run test -w @spicegarden/backend`
 | `PaymentService` | Stripe + webhooks |
 | `RealtimeService` | Socket.IO gateways |
 | `MetricsModule` | Prometheus observability |
+| `AIService` | Recommendations, demand forecasting, chatbot |
+| `ComplianceService` | GDPR data retention, user export/deletion |
+| `AuditService` | Enhanced logging with request sanitization |
+| `EncryptionService` | PII field encryption/decryption |
 
 ### Order States
 ```
@@ -248,10 +252,13 @@ All frontends have **real API integration** with fallback mock data when backend
 # Backend
 npm run dev -w @spicegarden/backend    # Start dev server
 npm run build -w @spicegarden/backend  # Production build
-npm run test -w @spicegarden/backend    # Run tests (56 passing)
+npm run test -w @spicegarden/backend    # Run tests (75 passing)
 
-# Frontend (any)
-npm run dev -w @spicegarden/customer-web
+# Frontend applications
+npm run dev -w @spicegarden/customer-web       # Customer web app
+npm run dev -w @spicegarden/super-admin        # Super admin dashboard
+npm run dev -w @spicegarden/restaurant-dashboard # Restaurant dashboard
+# For mobile: npx expo start (or use android/ios scripts)
 
 # Docker
 docker-compose -f compose.infra.yaml up -d
@@ -264,19 +271,37 @@ docker-compose -f compose.infra.yaml logs -f spicegarden
 
 ### Completed
 - ✅ Backend modular architecture (NestJS 10)
-- ✅ All 56 tests passing (9 suites)
+- ✅ All 75 tests passing (12 suites)
 - ✅ Docker infrastructure (10 services)
 - ✅ Prometheus + Grafana monitoring
 - ✅ Health check endpoint (`/health`)
 - ✅ Design tokens & shared types
 - ✅ All frontend apps with real API integration
 - ✅ Admin endpoints for live dashboards
+- ✅ Payment dispute entity and service
+- ✅ Refund approval entity and service
+- ✅ SLA alert entity and service
+- ✅ GST calculation and invoice generation
+- ✅ Ledger service updates
+- ✅ Kitchen service updates
+- ✅ Enhanced delivery service (surge pricing, fraud detection, incentives)
+- ✅ Driver entity updates (KYC status, fraud scoring, location tracking)
+- ✅ Restaurant entity updates (GST details integration)
+- ✅ Compliance service (GDPR data retention, user export/deletion)
+- ✅ Audit service (enhanced logging with request sanitization)
+- ✅ Encryption service (PII field encryption/decryption)
+- ✅ AI service (recommendations, demand forecasting, chatbot)
 
 ### Next
 - Configure real Stripe keys
 - Implement FCM/Twilio notifications
 - Add PostGIS for geo queries
 - Real-time driver location tracking
+- Implement Lottie animations for success states
+- Add haptic feedback for mobile
+- Complete web pages (search, menu, checkout)
+- Add unit tests for UI components
+- Configure ESLint for web applications
 
 ---
 
@@ -290,9 +315,20 @@ docker-compose -f compose.infra.yaml logs -f spicegarden
 | `RestaurantEntity` | `apps/backend/src/db/entities/restaurant.entity.ts` | id, name, slug, description, status, branches |
 | `RestaurantBranchEntity` | `apps/backend/src/db/entities/restaurant-branch.entity.ts` | id, branchName, address, location (point), isOnline |
 | `OrderEntity` | `apps/backend/src/db/entities/order.entity.ts` | id, userId, restaurantId, status, grandTotal, items |
-| `DriverEntity` | `apps/backend/src/db/entities/driver.entity.ts` | id, userId, vehicleDetails, rating, isOnline |
+| `DriverEntity` | `apps/backend/src/db/entities/driver.entity.ts` | id, userId, licenseNumber, vehicleNumber, vehicleType, kycStatus, isOnline, isAvailable, rating, currentLocation, totalDeliveries, totalDistance, failureCount, lastLocationUpdate, averageSpeed, fraudScore, isFraudSuspicious, lastFraudCheck, fraudFlags |
 | `SessionEntity` | `apps/backend/src/db/entities/session.entity.ts` | id, userId, deviceName, deviceType, ipAddress, refreshToken, expiresAt, isActive |
 | `AuditLogEntity` | `apps/backend/src/db/entities/audit-log.entity.ts` | id, action, performedBy, entityType, entityId, metadata, ipAddress, timestamp |
+| `PaymentDisputeEntity` | `apps/backend/src/db/entities/payment-dispute.entity.ts` | id, order, disputeId, disputeType, disputedAmount, currency, reason, evidence, status, chargedBackAmount, chargedBackAt, isRefundedToCustomer, refundedAt, refundedBy |
+| `RefundApprovalEntity` | `apps/backend/src/db/entities/refund-approval.entity.ts` | id, order, refundId, refundAmount, currency, reason, requestedBy, requestType, approvalStatus, approverId, approvedAt, rejectionReason, processedAt, processedBy, requiresManagerApproval, managerApproverId, managerApprovedAt |
+| `SLAAlertEntity` | `apps/backend/src/db/entities/sla-alert.entity.ts` | id, branch, slaType, targetValue, actualValue, isBreached, breachSeverity, relatedOrderId, relatedOrder, isNotified, notifiedAt |
+| `RestaurantGSTEntity` | `apps/backend/src/db/entities/restaurant-gst.entity.ts` | id, gstin, legalNameOfBusiness, tradeName, address, stateCode, state |
+| `GSTDetailEntity` | `apps/backend/src/db/entities/gst-detail.entity.ts` | id, order, taxableValue, cgstRate, sgstRate, igstRate, cgstAmount, sgstAmount, igstAmount, totalGstAmount, totalAmount, placeOfSupply, reverseChargeApplicable |
+| `DeliverySLAEntity` | `apps/backend/src/db/entities/delivery-sla.entity.ts` | id, driver, branch, metricName, value, unit, targetValue, targetUnit, measurementPeriod, measuredAt |
+| `DriverScoreEntity` | `apps/backend/src/db/entities/driver-score.entity.ts` | id, driver, branch, overallScore, onTimeDeliveryRate, acceptanceRate, cancellationRate, customerRating, totalDeliveries, totalDistance, averageSpeed, lastCalculatedAt |
+| `InventoryItemEntity` | `apps/backend/src/db/entities/inventory-item.entity.ts` | id, name, currentStock, unit, lowStockThreshold, expiryDate, reorderPoint, reorderQuantity, unitCost, totalCost, wastage, wastageCost, branch, supplier, isActive |
+| `RecipeEntity` | `apps/backend/src/db/entities/recipe.entity.ts` | id, name, description, prepTimeMinutes, cookTimeMinutes, yieldQuantity, yieldUnit, servingsNumber, costPerServing, totalCost, ingredients, instructions, isActive, branch |
+| `SupplierEntity` | `apps/backend/src/db/entities/supplier.entity.ts` | id, name, contactPerson, email, phone, address, isActive, inventoryItems |
+| `KitchenSLAEntity` | `apps/backend/src/db/entities/kitchen-sla.entity.ts` | id, metricName, value, unit, targetValue, targetUnit, measurementPeriod, measuredAt, branch |
 
 ### Backend Endpoints (Diagnostic)
 
@@ -429,10 +465,14 @@ POST /admin/users/ban     - Ban user (body: userId, reason)
 | `test` | `jest` (all tests) |
 | `test:watch` | `jest --watch` |
 | `test:cov` | `jest --coverage` (80% threshold) |
-| `test:unit` | `order/*.service.spec, kitchen.service.spec` |
-| `test:integration` | `*.integration.spec.ts` |
-| `test:e2e` | `e2e.spec.ts` |
+| `test:unit` | `jest --testPathPattern="(order|kitchen|delivery).service.spec"` |
+| `test:integration` | `jest --testPathPattern=".integration."` |
+| `test:e2e` | `jest --testPathPattern="e2e.spec"` |
 | `test:load` | `k6 run test/load/10k-users.js` |
+| `test:load:20k` | `k6 run test/load/20k-users.js` |
+| `test:load:breaking` | `k6 run test/load/breaking-point.js` |
+| `test:chaos` | `kubectl apply -f test/chaos/` |
+| `test:all` | `npm run test:unit && npm run test:integration && npm run test:e2e` |
 
 ### Customer Web Tests (`apps/customer-web/jest.config.js`)
 | Config | Value |

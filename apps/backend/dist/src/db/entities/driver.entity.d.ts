@@ -16,6 +16,8 @@ export declare class DriverEntity {
     };
     totalDeliveries: number;
     totalDistance: number;
+    failureCount: number;
+    lastLocationUpdate?: Date;
     averageSpeed: number;
     fraudScore: number;
     isFraudSuspicious: boolean;

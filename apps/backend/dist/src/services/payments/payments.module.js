@@ -26,7 +26,7 @@ const payment_event_entity_1 = require("./payment-event.entity");
 const ledger_entry_entity_1 = require("../../db/entities/ledger-entry.entity");
 const webhook_module_1 = require("./webhook/webhook.module");
 const audit_module_1 = require("../../audit/audit.module");
-const ledger_module_1 = require("../../../modules/ledger/ledger.module");
+const ledger_module_1 = require("../../modules/ledger/ledger.module");
 const gst_module_1 = require("../../services/gst/gst.module");
 let PaymentServiceModule = class PaymentServiceModule {
 };

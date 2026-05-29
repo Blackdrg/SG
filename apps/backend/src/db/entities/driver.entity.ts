@@ -43,8 +43,14 @@ export class DriverEntity {
   @Column({ default: 0 })
   totalDeliveries!: number;
 
-  @Column({ default: 0 })
-  totalDistance!: number;
+   @Column({ default: 0 })
+   totalDistance!: number;
+
+   @Column({ default: 0 })
+   failureCount!: number;
+
+   @Column({ nullable: true })
+   lastLocationUpdate?: Date;
 
   @Column('decimal', { precision: 5, scale: 2, default: 0 })
   averageSpeed!: number;

@@ -19,7 +19,7 @@ export class GSTController {
 
   @Get('invoice/:orderId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.RESTAURANT, UserRole.USER)
+   @Roles(UserRole.ADMIN, UserRole.RESTAURANT, UserRole.CUSTOMER)
   async generateGSTInvoice(@Param('orderId') orderId: string) {
     return this.gstService.generateGSTInvoice(orderId);
   }

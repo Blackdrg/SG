@@ -15,7 +15,7 @@ describe('Payment Service Integration', () => {
         });
         it('should handle successful payment', () => {
             const paymentIntent = { id: 'pi-123', status: 'succeeded' };
-            const orderStatus = 'PENDING';
+            let orderStatus = 'PENDING';
             if (paymentIntent.status === 'succeeded') {
                 orderStatus = 'PAYMENT_CONFIRMED';
             }
@@ -23,7 +23,7 @@ describe('Payment Service Integration', () => {
         });
         it('should handle payment failure gracefully', () => {
             const paymentIntent = { id: 'pi-123', status: 'requires_payment_method', lastPaymentError: 'card_declined' };
-            const orderStatus = 'PENDING';
+            let orderStatus = 'PENDING';
             if (paymentIntent.status !== 'succeeded') {
                 orderStatus = 'PAYMENT_FAILED';
             }

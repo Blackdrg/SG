@@ -156,9 +156,10 @@ let EnhancedDeliveryService = EnhancedDeliveryService_1 = class EnhancedDelivery
             });
             const driver = await manager.findOne(driver_entity_1.DriverEntity, { where: { id: driverId } });
             if (driver && reasonDetails !== 'customer_unavailable') {
+                const newFailureCount = driver.failureCount + 1;
                 await manager.update(driver_entity_1.DriverEntity, driverId, {
-                    failureCount: (driver.failureCount || 0) + 1,
-                    isFraudSuspicious: (driver.failureCount || 0) >= 3,
+                    failureCount: newFailureCount,
+                    isFraudSuspicious: newFailureCount >= 3,
                 });
             }
         });

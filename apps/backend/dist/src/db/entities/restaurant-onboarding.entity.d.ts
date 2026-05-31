@@ -5,13 +5,17 @@ export declare enum OnboardingStep {
     BANK_VERIFICATION = "bank_verification",
     MENU_SETUP = "menu_setup",
     STAFF_INVITE = "staff_invite",
+    GST_CONFIG = "gst_config",
+    PRICING_SETUP = "pricing_setup",
+    PAYOUT_SETUP = "payout_setup",
     COMPLETION = "completion"
 }
 export declare enum OnboardingStatus {
     PENDING = "pending",
     IN_PROGRESS = "in_progress",
     COMPLETED = "completed",
-    REJECTED = "rejected"
+    REJECTED = "rejected",
+    AWAITING_REVIEW = "awaiting_review"
 }
 export declare class RestaurantOnboardingEntity {
     id: string;

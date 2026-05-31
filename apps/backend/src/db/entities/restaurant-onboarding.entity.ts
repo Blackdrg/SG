@@ -7,6 +7,9 @@ export enum OnboardingStep {
   BANK_VERIFICATION = 'bank_verification',
   MENU_SETUP = 'menu_setup',
   STAFF_INVITE = 'staff_invite',
+  GST_CONFIG = 'gst_config',
+  PRICING_SETUP = 'pricing_setup',
+  PAYOUT_SETUP = 'payout_setup',
   COMPLETION = 'completion',
 }
 
@@ -15,6 +18,7 @@ export enum OnboardingStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   REJECTED = 'rejected',
+  AWAITING_REVIEW = 'awaiting_review',
 }
 
 @Entity('restaurant_onboarding')

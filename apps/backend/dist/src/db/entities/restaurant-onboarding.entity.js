@@ -19,6 +19,9 @@ var OnboardingStep;
     OnboardingStep["BANK_VERIFICATION"] = "bank_verification";
     OnboardingStep["MENU_SETUP"] = "menu_setup";
     OnboardingStep["STAFF_INVITE"] = "staff_invite";
+    OnboardingStep["GST_CONFIG"] = "gst_config";
+    OnboardingStep["PRICING_SETUP"] = "pricing_setup";
+    OnboardingStep["PAYOUT_SETUP"] = "payout_setup";
     OnboardingStep["COMPLETION"] = "completion";
 })(OnboardingStep || (exports.OnboardingStep = OnboardingStep = {}));
 var OnboardingStatus;
@@ -27,6 +30,7 @@ var OnboardingStatus;
     OnboardingStatus["IN_PROGRESS"] = "in_progress";
     OnboardingStatus["COMPLETED"] = "completed";
     OnboardingStatus["REJECTED"] = "rejected";
+    OnboardingStatus["AWAITING_REVIEW"] = "awaiting_review";
 })(OnboardingStatus || (exports.OnboardingStatus = OnboardingStatus = {}));
 let RestaurantOnboardingEntity = class RestaurantOnboardingEntity {
 };

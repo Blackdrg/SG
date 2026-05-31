@@ -26,6 +26,18 @@ let RestaurantOnboardingService = RestaurantOnboardingService_1 = class Restaura
         this.dataSource = dataSource;
         this.logger = new common_1.Logger(RestaurantOnboardingService_1.name);
     }
+    async getOnboardingByRestaurantId(restaurantId) {
+        let onboarding = await this.onboardingRepo.findOne({ where: { restaurantId } });
+        if (!onboarding) {
+            onboarding = this.onboardingRepo.create({
+                restaurantId,
+                currentStep: restaurant_onboarding_entity_1.OnboardingStep.BUSINESS_REGISTRATION,
+                status: restaurant_onboarding_entity_1.OnboardingStatus.IN_PROGRESS,
+            });
+            onboarding = await this.onboardingRepo.save(onboarding);
+        }
+        return onboarding;
+    }
     async initializeOnboarding(restaurantId) {
         const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
         if (!restaurant) {
@@ -118,6 +130,27 @@ let RestaurantOnboardingService = RestaurantOnboardingService_1 = class Restaura
         const updatedOnboarding = await this.onboardingRepo.save(onboarding);
         this.logger.log(Rejected, onboarding);
         return updatedOnboarding;
+    }
+    async submitGSTConfig(restaurantId, gstData) {
+        const onboarding = await this.getOnboardingByRestaurantId(restaurantId);
+        onboarding.currentStep = restaurant_onboarding_entity_1.OnboardingStep.GST_CONFIG;
+        onboarding.businessDetails = { ...onboarding.businessDetails, ...gstData };
+        return this.onboardingRepo.save(onboarding);
+    }
+    async setupPricing(restaurantId, pricing) {
+        const onboarding = await this.getOnboardingByRestaurantId(restaurantId);
+        onboarding.currentStep = restaurant_onboarding_entity_1.OnboardingStep.PRICING_SETUP;
+        if (!onboarding.businessDetails)
+            onboarding.businessDetails = {};
+        onboarding.businessDetails.pricing = pricing;
+        return this.onboardingRepo.save(onboarding);
+    }
+    async setupPayout(restaurantId, payout) {
+        const onboarding = await this.getOnboardingByRestaurantId(restaurantId);
+        onboarding.currentStep = restaurant_onboarding_entity_1.OnboardingStep.PAYOUT_SETUP;
+        onboarding.bankDetails = { ...onboarding.bankDetails, ...payout };
+        onboarding.status = restaurant_onboarding_entity_1.OnboardingStatus.AWAITING_REVIEW;
+        return this.onboardingRepo.save(onboarding);
     }
     async getOnboardingAnalytics() {
         const [totalOnboardings, pendingOnboardings, inProgressOnboardings, completedOnboardings, rejectedOnboardings, avgCompletionTime] = await Promise.all([

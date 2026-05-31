@@ -1,0 +1,48 @@
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { SearchService } from './search.service';
+import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+
+@Controller('search')
+export class SearchController {
+  constructor(private searchService: SearchService) {}
+
+  @Get()
+  async search(
+    @Query('q') query: string,
+    @Query('cuisines') cuisines?: string,
+    @Query('deliveryTimeMax') deliveryTimeMax?: string,
+    @Query('ratingMin') ratingMin?: string,
+    @Query('popularOnly') popularOnly?: string,
+    @Query('isVegetarian') isVegetarian?: string,
+    @Query('priceMin') priceMin?: string,
+    @Query('priceMax') priceMax?: string
+  ) {
+    const filters = {
+      cuisines: cuisines ? cuisines.split(',') : undefined,
+      deliveryTimeMax: deliveryTimeMax ? Number(deliveryTimeMax) : undefined,
+      ratingMin: ratingMin ? Number(ratingMin) : undefined,
+      popularOnly: popularOnly === 'true',
+      isVegetarian: isVegetarian === 'true',
+      priceMin: priceMin ? Number(priceMin) : undefined,
+      priceMax: priceMax ? Number(priceMax) : undefined,
+    };
+
+    return this.searchService.search(query || '', filters);
+  }
+
+  @Get('trending')
+  async getTrending() {
+    return this.searchService.getTrending();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('recommended')
+  async getRecommended(@Req() req: any) {
+    return this.searchService.getRecommended(req.user.userId);
+  }
+
+  @Get('cuisines')
+  async getCuisines() {
+    return this.searchService.getCuisines();
+  }
+}

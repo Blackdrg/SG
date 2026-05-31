@@ -16,7 +16,7 @@ exports.RestaurantOnboardingController = void 0;
 const common_1 = require("@nestjs/common");
 const onboarding_service_1 = require("./onboarding.service");
 const restaurant_onboarding_entity_1 = require("../../db/entities/restaurant-onboarding.entity");
-const switch_1 = require("@nestjs/switch");
+const swagger_1 = require("@nestjs/swagger");
 let RestaurantOnboardingController = class RestaurantOnboardingController {
     constructor(onboardingService) {
         this.onboardingService = onboardingService;
@@ -36,6 +36,15 @@ let RestaurantOnboardingController = class RestaurantOnboardingController {
     async rejectOnboarding(onboardingId, body) {
         return await this.onboardingService.rejectOnboarding(onboardingId, body.reviewedBy, body.reason);
     }
+    async submitGSTConfig(restaurantId, gstData) {
+        return await this.onboardingService.submitGSTConfig(restaurantId, gstData);
+    }
+    async setupPricing(restaurantId, pricing) {
+        return await this.onboardingService.setupPricing(restaurantId, pricing);
+    }
+    async setupPayout(restaurantId, payout) {
+        return await this.onboardingService.setupPayout(restaurantId, payout);
+    }
     async getOnboardingAnalytics() {
         return await this.onboardingService.getOnboardingAnalytics();
     }
@@ -44,10 +53,10 @@ exports.RestaurantOnboardingController = RestaurantOnboardingController;
 __decorate([
     (0, common_1.Post)('initialize/:restaurantId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Initialize onboarding for a restaurant' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Onboarding initialized successfully' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Restaurant not found' }),
-    (0, switch_1.ApiParam)({ name: 'restaurantId', type: 'string' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Initialize onboarding for a restaurant' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Onboarding initialized successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Restaurant not found' }),
+    (0, swagger_1.ApiParam)({ name: 'restaurantId', type: 'string' }),
     __param(0, (0, common_1.Param)('restaurantId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -56,11 +65,11 @@ __decorate([
 __decorate([
     (0, common_1.Put)('step/:onboardingId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Update onboarding step' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Onboarding step updated successfully' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
-    (0, switch_1.ApiParam)({ name: 'onboardingId', type: 'string' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Update onboarding step' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Onboarding step updated successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
+    (0, swagger_1.ApiParam)({ name: 'onboardingId', type: 'string' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -79,10 +88,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)('status/:restaurantId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get onboarding status for a restaurant' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Onboarding status retrieved successfully' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
-    (0, switch_1.ApiParam)({ name: 'restaurantId', type: 'string' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get onboarding status for a restaurant' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Onboarding status retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
+    (0, swagger_1.ApiParam)({ name: 'restaurantId', type: 'string' }),
     __param(0, (0, common_1.Param)('restaurantId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -91,11 +100,11 @@ __decorate([
 __decorate([
     (0, common_1.Post)('complete/:onboardingId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Complete onboarding' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Onboarding completed successfully' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
-    (0, switch_1.ApiParam)({ name: 'onboardingId', type: 'string' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Complete onboarding' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Onboarding completed successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
+    (0, swagger_1.ApiParam)({ name: 'onboardingId', type: 'string' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -113,11 +122,11 @@ __decorate([
 __decorate([
     (0, common_1.Post)('reject/:onboardingId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Reject onboarding' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Onboarding rejected successfully' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
-    (0, switch_1.ApiParam)({ name: 'onboardingId', type: 'string' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Reject onboarding' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Onboarding rejected successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Onboarding record not found' }),
+    (0, swagger_1.ApiParam)({ name: 'onboardingId', type: 'string' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -134,16 +143,46 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], RestaurantOnboardingController.prototype, "rejectOnboarding", null);
 __decorate([
+    (0, common_1.Put)('gst/:restaurantId'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Configure GST for a restaurant' }),
+    __param(0, (0, common_1.Param)('restaurantId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], RestaurantOnboardingController.prototype, "submitGSTConfig", null);
+__decorate([
+    (0, common_1.Put)('pricing/:restaurantId'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Setup pricing for a restaurant' }),
+    __param(0, (0, common_1.Param)('restaurantId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], RestaurantOnboardingController.prototype, "setupPricing", null);
+__decorate([
+    (0, common_1.Put)('payout/:restaurantId'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Setup payout settings for a restaurant' }),
+    __param(0, (0, common_1.Param)('restaurantId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], RestaurantOnboardingController.prototype, "setupPayout", null);
+__decorate([
     (0, common_1.Get)('analytics/overview'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get onboarding analytics' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Onboarding analytics retrieved successfully' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get onboarding analytics' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Onboarding analytics retrieved successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], RestaurantOnboardingController.prototype, "getOnboardingAnalytics", null);
 exports.RestaurantOnboardingController = RestaurantOnboardingController = __decorate([
-    (0, switch_1.ApiTags)('restaurant-onboarding'),
+    (0, swagger_1.ApiTags)('restaurant-onboarding'),
     (0, common_1.Controller)('restaurant-onboarding'),
     __metadata("design:paramtypes", [onboarding_service_1.RestaurantOnboardingService])
 ], RestaurantOnboardingController);

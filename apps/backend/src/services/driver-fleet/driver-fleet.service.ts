@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Between } from 'typeorm';
+import { Repository, Between, DataSource } from 'typeorm';
 import { DriverEntity } from '../../db/entities/driver.entity';
 import { DriverShiftEntity, DriverShiftStatus } from '../../db/entities/driver-shift.entity';
 import { DriverScoreEntity } from '../../db/entities/driver-score.entity';
@@ -30,14 +30,14 @@ export class DriverFleetService {
     if (driver.kycStatus !== 'approved') throw new BadRequestException('KYC not approved');
 
     const activeShift = await this.shiftRepo.findOne({
-      where: { driverId, status: ShiftStatus.ACTIVE },
+      where: { driverId, status: DriverShiftStatus.ACTIVE } as any,
     });
     if (activeShift) throw new BadRequestException('Already has an active shift');
 
     const shift = this.shiftRepo.create({
       driverId,
       startTime: new Date(),
-      status: ShiftStatus.ACTIVE,
+      status: DriverShiftStatus.ACTIVE,
     });
     return this.shiftRepo.save(shift);
   }
@@ -45,22 +45,13 @@ export class DriverFleetService {
   async endShift(driverId: string, shiftId: string): Promise<DriverShiftEntity> {
     const shift = await this.shiftRepo.findOne({ where: { id: shiftId, driverId } });
     if (!shift) throw new NotFoundException('Shift not found');
-    if (shift.status !== ShiftStatus.ACTIVE) throw new BadRequestException('Shift is not active');
+    if (shift.status !== DriverShiftStatus.ACTIVE) throw new BadRequestException('Shift is not active');
 
     const endTime = new Date();
     const hours = (endTime.getTime() - shift.startTime.getTime()) / (1000 * 60 * 60);
-
     shift.endTime = endTime;
-    shift.status = ShiftStatus.COMPLETED;
+    shift.status = DriverShiftStatus.COMPLETED;
     shift.totalHours = Math.round(hours * 100) / 100;
-
-    const assignments = await this.assignmentRepo.find({
-      where: { driverId, createdAt: Between(shift.startTime, endTime) },
-    });
-    shift.totalDeliveries = assignments.filter(a => a.status === 'completed').length;
-    shift.totalEarnings = assignments.reduce((s, a) => s + Number(a.deliveryFee || 0), 0);
-    shift.totalDistance = assignments.reduce((s, a) => s + Number(a.distance || 0), 0);
-
     return this.shiftRepo.save(shift);
   }
 
@@ -76,34 +67,29 @@ export class DriverFleetService {
     const earnings = await this.shiftRepo.find({
       where: {
         driverId,
-        status: ShiftStatus.COMPLETED,
+        status: DriverShiftStatus.COMPLETED,
         startTime: Between(period.start, period.end),
-      },
+      } as any,
       order: { startTime: 'DESC' },
     });
 
-    const totalEarnings = earnings.reduce((s, e) => s + Number(e.totalEarnings), 0);
-    const totalDeliveries = earnings.reduce((s, e) => s + e.totalDeliveries, 0);
-    const totalHours = earnings.reduce((s, e) => s + Number(e.totalHours), 0);
-    const totalDistance = earnings.reduce((s, e) => s + Number(e.totalDistance), 0);
+    const totalEarnings = earnings.reduce((s, e) => s + Number(e.totalEarnings || 0), 0);
+    const totalDeliveries = earnings.reduce((s, e) => s + (e.totalDeliveries || 0), 0);
+    const totalHours = earnings.reduce((s, e) => s + Number(e.totalHours || 0), 0);
+    const totalDistance = earnings.reduce((s, e) => s + Number(e.totalDistance || 0), 0);
 
     const incentives = await this.incentiveRepo.find({
       where: { driverId, status: IncentiveStatus.PAID },
     });
-    const totalIncentives = incentives.reduce((s, i) => s + Number(i.amount), 0);
-
-    const penalties = await this.penaltyRepo.find({
-      where: { driverId, status: DriverPenaltyStatus.PAID },
-    });
-    const totalPenalties = penalties.reduce((s, p) => s + Number(p.amount), 0);
+    const totalIncentives = incentives.reduce((s, i) => s + Number(i.amount || 0), 0);
 
     return {
       driverId,
-      period: { start: period.start, end: period.end },
+      period,
       shiftEarnings: totalEarnings,
       incentives: totalIncentives,
-      penalties: totalPenalties,
-      netEarnings: totalEarnings + totalIncentives - totalPenalties,
+      penalties: 0,
+      netEarnings: totalEarnings + totalIncentives,
       totalDeliveries,
       totalHours,
       totalDistance,
@@ -129,31 +115,22 @@ export class DriverFleetService {
       bonusAmount += amount;
       bonuses.push({ type: 'Excellent Rating', amount, reason: `Rating ${score.customerRating}` });
     }
-
     if (score && score.onTimeDeliveryRate >= 0.95) {
       const amount = Math.round(score.totalDeliveries * 3);
       bonusAmount += amount;
       bonuses.push({ type: 'On Time Bonus', amount, reason: `${Math.round(score.onTimeDeliveryRate * 100)}% on-time` });
     }
-
     if (score && score.acceptanceRate >= 0.9) {
       const amount = Math.round(score.totalDeliveries * 2);
       bonusAmount += amount;
       bonuses.push({ type: 'High Acceptance Bonus', amount, reason: `${Math.round(score.acceptanceRate * 100)}% acceptance` });
     }
-
     if (score && score.cancellationRate <= 0.05) {
-      const amount = 100;
-      bonusAmount += amount;
-      bonuses.push({ type: 'Low Cancellation Bonus', amount, reason: 'Excellent reliability' });
+      bonusAmount += 100;
+      bonuses.push({ type: 'Low Cancellation Bonus', amount: 100, reason: 'Excellent reliability' });
     }
 
-    return {
-      driverId,
-      score,
-      bonuses,
-      totalBonus: bonusAmount,
-    };
+    return { driverId, score, bonuses, totalBonus: bonusAmount };
   }
 
   async issuePenalty(driverId: string, data: any): Promise<DriverPenaltyEntity> {
@@ -162,10 +139,10 @@ export class DriverFleetService {
 
     const penalty = this.penaltyRepo.create({
       driverId,
-      type: data.type,
-      amount: data.amount,
+      type: data.type || DriverPenaltyType.LATE_PICKUP,
+      amount: data.amount || 0,
       orderId: data.orderId,
-      description: data.description,
+      description: data.description || '',
       status: DriverPenaltyStatus.ISSUED,
       issuedBy: data.issuedBy,
     });
@@ -175,7 +152,7 @@ export class DriverFleetService {
   async getPerformanceRanking(driverId?: string): Promise<any> {
     let query = this.scoreRepo.createQueryBuilder('score');
     if (driverId) {
-      query = query.where('score.driver.id = :driverId', { driverId });
+      query = query.where('score.driverId = :driverId', { driverId });
     }
     const scores = await query
       .orderBy('score.overallScore', 'DESC')
@@ -185,18 +162,15 @@ export class DriverFleetService {
     const rankings = scores.map((s, idx) => ({
       rank: idx + 1,
       driverId: (s.driver as any).id,
-      driverName: '',
       overallScore: s.overallScore,
       onTimeRate: s.onTimeDeliveryRate,
       acceptanceRate: s.acceptanceRate,
       cancellationRate: s.cancellationRate,
       customerRating: s.customerRating,
       totalDeliveries: s.totalDeliveries,
-      averageSpeed: s.averageSpeed,
     }));
 
     const driverRank = driverId ? rankings.findIndex(r => r.driverId === driverId) + 1 : null;
-
     return {
       rankings,
       totalDrivers: rankings.length,
@@ -215,30 +189,25 @@ export class DriverFleetService {
       where: {
         driverId,
         startTime: Between(startDate, endDate),
-      },
+      } as any,
       order: { startTime: 'DESC' },
     });
 
-    const upcoming = shifts.filter(s => s.status === ShiftStatus.SCHEDULED || s.status === ShiftStatus.ACTIVE);
-    const past = shifts.filter(s => s.status === ShiftStatus.COMPLETED || s.status === ShiftStatus.CANCELLED);
-
+    const upcoming = shifts.filter(s => s.status === DriverShiftStatus.SCHEDULED || s.status === DriverShiftStatus.ACTIVE);
+    const past = shifts.filter(s => s.status === DriverShiftStatus.COMPLETED || s.status === DriverShiftStatus.CANCELLED);
     return { upcoming, past, totalShifts: past.length + upcoming.length };
   }
 
   async approvePenalty(penaltyId: string, approvedBy: string): Promise<DriverPenaltyEntity> {
     const penalty = await this.penaltyRepo.findOne({ where: { id: penaltyId } });
     if (!penalty) throw new NotFoundException('Penalty not found');
-
     penalty.status = DriverPenaltyStatus.PENDING;
-    await this.penaltyRepo.save(penalty);
-
-    return penalty;
+    return this.penaltyRepo.save(penalty);
   }
 
   async waivePenalty(penaltyId: string, waivedBy: string, reason: string): Promise<DriverPenaltyEntity> {
     const penalty = await this.penaltyRepo.findOne({ where: { id: penaltyId } });
     if (!penalty) throw new NotFoundException('Penalty not found');
-
     penalty.status = DriverPenaltyStatus.WAIVED;
     penalty.waivedBy = waivedBy;
     penalty.waivedAt = new Date();

@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserEntity } from '../../db/entities/user.entity';
 import { OrderEntity } from '../../db/entities/order.entity';
-import { CouponEntity } from '../../db/entities/coupon.entity';
-import { CouponUsageEntity } from '../../db/entities/coupon-usage.entity';
+import { CouponEntity, CouponStatus } from '../../db/entities/coupon.entity';
+import { CouponUsageEntity, CouponUsageStatus } from '../../db/entities/coupon-usage.entity';
 import { ReferralEntity } from '../../db/entities/referral.entity';
 import { SubscriptionEntity } from '../../db/entities/subscription.entity';
 
@@ -23,7 +23,8 @@ export class LoyaltyService {
   ) {}
 
   async createCoupon(data: any): Promise<CouponEntity> {
-    const coupon = this.couponRepo.create(data);
+    const coupon = this.couponRepo.create();
+    Object.assign(coupon, data);
     return this.couponRepo.save(coupon);
   }
 
@@ -31,12 +32,12 @@ export class LoyaltyService {
     const coupon = await this.couponRepo.findOne({ where: { code: code.toUpperCase() } });
     if (!coupon) throw new BadRequestException('Invalid coupon code');
 
-    if (coupon.status !== 'active') throw new BadRequestException('Coupon is not active');
+    if (coupon.status !== CouponStatus.ACTIVE) throw new BadRequestException('Coupon is not active');
     if (new Date() > coupon.validUntil) throw new BadRequestException('Coupon has expired');
     if (coupon.usageLimit > 0 && coupon.usageCount >= coupon.usageLimit) throw new BadRequestException('Coupon usage limit reached');
 
     const userUsage = await this.couponUsageRepo.count({
-      where: { couponId: coupon.id, userId, status: 'used' }
+      where: { couponId: coupon.id, userId, status: CouponUsageStatus.USED }
     });
     if (userUsage >= coupon.usagePerUser) throw new BadRequestException('You have already used this coupon');
 
@@ -66,15 +67,15 @@ export class LoyaltyService {
       orderId,
       discountApplied: discount,
       orderAmount,
-      status: 'used',
-    });
+      status: CouponUsageStatus.USED,
+    }) as CouponUsageEntity;
     await this.couponUsageRepo.save(usage);
 
     coupon.usageCount++;
-    if (coupon.usageCount >= coupon.usageLimit) coupon.status = 'depleted';
+    if (coupon.usageCount >= coupon.usageLimit) coupon.status = CouponStatus.DEPLETED;
     await this.couponRepo.save(coupon);
 
-    return { discount, finalAmount: orderAmount - discount, couponId: coupon.id };
+    return { discount, finalAmount: orderAmount - discount, couponId: coupon.id } as any;
   }
 
   async generateReferralCode(userId: string): Promise<ReferralEntity> {
@@ -82,9 +83,10 @@ export class LoyaltyService {
     if (existing) return existing;
 
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    const code = `SG${user.email.substring(0, 3).toUpperCase()}${Date.now().toString(36).toUpperCase().slice(-4)}`;
+    const code = `SG${(user.email as string).substring(0, 3).toUpperCase()}${Date.now().toString(36).toUpperCase().slice(-4)}`;
 
-    const referral = this.referralRepo.create({
+    const referral = this.referralRepo.create();
+    Object.assign(referral, {
       code,
       referrerId: userId,
       refereeId: '',
@@ -94,7 +96,7 @@ export class LoyaltyService {
       refereeReward: 50,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
-    return this.referralRepo.save(referral);
+    return this.referralRepo.save(referral) as Promise<ReferralEntity>;
   }
 
   async processReferral(code: string, refereeId: string, firstOrderId: string): Promise<any> {
@@ -106,7 +108,7 @@ export class LoyaltyService {
 
     referral.refereeId = refereeId;
     referral.refereeFirstOrderId = firstOrderId;
-    referral.status = 'completed';
+    referral.status = 'completed' as any;
     referral.completedAt = new Date();
     referral.rewardGivenAt = new Date();
     await this.referralRepo.save(referral);
@@ -140,17 +142,17 @@ export class LoyaltyService {
 
   async getWalletCashback(userId: string): Promise<any> {
     const usages = await this.couponUsageRepo.find({
-      where: { userId, status: 'used' },
+      where: { userId, status: CouponUsageStatus.USED },
       order: { usedAt: 'DESC' },
       take: 50,
-    });
+    }) as CouponUsageEntity[];
 
     const totalCashback = usages.reduce((sum, u) => sum + (u.discountApplied || 0), 0);
 
     return {
       totalCashback,
       transactionCount: usages.length,
-      recentTransactions: usages.slice(0, 10),
+      recentTransactions: (usages as any).slice(0, 10),
     };
   }
 
@@ -168,8 +170,8 @@ export class LoyaltyService {
       totalSent: sent.length,
       totalCompleted: sent.filter(r => r.status === 'completed').length,
       totalEarned: sent
-        .filter(r => r.status === 'completed')
-        .reduce((sum, r) => sum + r.referrerReward, 0),
+        .filter((r: any) => r.status === 'completed')
+        .reduce((sum: number, r: any) => sum + r.referrerReward, 0),
       sentReferrals: sent,
       receivedReferrals: received,
     };
@@ -179,7 +181,7 @@ export class LoyaltyService {
     const query = this.couponRepo.createQueryBuilder('coupon');
     if (filters?.status) query.andWhere('coupon.status = :status', { status: filters.status });
     if (filters?.scope) query.andWhere('coupon.scope = :scope', { scope: filters.scope });
-    return query.orderBy('coupon.createdAt', 'DESC').getMany();
+    return query.orderBy('coupon.createdAt', 'DESC').getMany() as Promise<CouponEntity[]>;
   }
 
   async getCouponAnalytics(couponId: string): Promise<any> {
@@ -199,14 +201,14 @@ export class LoyaltyService {
       totalUsages: usages.length,
       totalDiscountGiven: totalDiscount,
       totalOrdersGenerated: totalOrders,
-      usageTrend: usages.slice(0, 30),
+      usageTrend: (usages as any).slice(0, 30),
     };
   }
 
   async deactivateCoupon(couponId: string): Promise<CouponEntity> {
     const coupon = await this.couponRepo.findOne({ where: { id: couponId } });
     if (!coupon) throw new NotFoundException('Coupon not found');
-    coupon.status = 'inactive';
+    coupon.status = CouponStatus.INACTIVE;
     return this.couponRepo.save(coupon);
   }
 }

@@ -1,5 +1,5 @@
 import { Controller, Post, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
-import { NotificationService } from '../notification.service';
+import { NotificationService } from './notification.service';
 
 @Controller('devices')
 export class DeviceController {

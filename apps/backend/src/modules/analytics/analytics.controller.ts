@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
-import { JwtAuthGuard } from '../security/jwt-auth.guard';
+import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 
 @ApiTags('analytics')
 @ApiBearerAuth()

@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
-import { CouponEntity } from './coupon.entity';
-import { UserEntity } from './user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 export enum CouponUsageStatus {
   ACTIVE = 'active',
@@ -14,14 +12,8 @@ export class CouponUsageEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @ManyToOne(() => CouponEntity)
-  coupon!: CouponEntity;
-
   @Column()
   couponId!: string;
-
-  @ManyToOne(() => UserEntity)
-  user!: UserEntity;
 
   @Column()
   userId!: string;

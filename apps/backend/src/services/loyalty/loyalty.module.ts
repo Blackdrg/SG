@@ -7,7 +7,7 @@ import { CouponUsageEntity } from '../../db/entities/coupon-usage.entity';
 import { ReferralEntity } from '../../db/entities/referral.entity';
 import { SubscriptionEntity } from '../../db/entities/subscription.entity';
 import { UserEntity } from '../../db/entities/user.entity';
-import { OrderEntity } from '../order/order.entity';
+import { OrderEntity } from '../../db/entities/order.entity';
 
 @Module({
   imports: [

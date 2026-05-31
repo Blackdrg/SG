@@ -328,7 +328,7 @@ export class AnalyticsService {
     const heatmap = await this.getDeliveryHeatmap(undefined);
     const peakHours = await this.getPeakHours(undefined);
 
-    const activeBranches = await this.branchRepo.count({ where: { isActive: true } });
+    const activeBranches = await this.branchRepo.count({ where: { isOnline: true } });
 
     return {
       platform: true,

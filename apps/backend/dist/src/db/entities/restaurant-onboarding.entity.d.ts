@@ -29,6 +29,7 @@ export declare class RestaurantOnboardingEntity {
         gstin?: string;
         businessType?: string;
         registrationDate?: string;
+        pricing?: any;
     };
     documentStatus: {
         fssai?: boolean;

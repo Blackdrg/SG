@@ -26,10 +26,14 @@ let ChargebackController = class ChargebackController {
     async getDisputesForOrder(orderId) {
         return await this.chargebackService.getDisputesForOrder(orderId);
     }
-    async getDisputesByStatus(status, startDate, endDate) {
+    async getDisputes(status, startDate, endDate) {
         const start = startDate ? new Date(startDate) : undefined;
         const end = endDate ? new Date(endDate) : undefined;
         if (status) {
+            const validStatuses = ['warning', 'needs_response', 'under_review', 'won', 'lost'];
+            if (!validStatuses.includes(status)) {
+                throw new common_1.BadRequestException(`Invalid status: ${status}. Must be one of ${validStatuses.join(', ')}`);
+            }
             return await this.chargebackService.getDisputesByStatus(status);
         }
         if (startDate || endDate) {
@@ -70,18 +74,13 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Get chargeback disputes by status' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Chargeback disputes retrieved successfully' }),
-    (0, swagger_1.ApiQuery)({ name: 'status', type: 'string', required: false }),
-    (0, swagger_1.ApiQuery)({ name: 'startDate', type: 'string', required: false }),
-    (0, swagger_1.ApiQuery)({ name: 'endDate', type: 'string', required: false }),
     __param(0, (0, common_1.Query)('status')),
     __param(1, (0, common_1.Query)('startDate')),
     __param(2, (0, common_1.Query)('endDate')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
-], ChargebackController.prototype, "getDisputesByStatus", null);
+], ChargebackController.prototype, "getDisputes", null);
 __decorate([
     (0, common_1.Post)(':disputeId/initiate-refund'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

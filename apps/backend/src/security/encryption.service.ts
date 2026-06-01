@@ -13,19 +13,20 @@ export class EncryptionService {
   }
 
   encrypt(text: string): string {
-    // @ts-ignore
     const CryptoJS = require('crypto-js');
     return CryptoJS.AES.encrypt(text, this.secretKey).toString();
   }
 
   decrypt(ciphertext: string): string {
-    // @ts-ignore
-    const CryptoJS = require('crypto-js');
-    const bytes = CryptoJS.AES.decrypt(ciphertext, this.secretKey);
-    return bytes.toString(CryptoJS.enc.Utf8);
+    try {
+      const CryptoJS = require('crypto-js');
+      const bytes = CryptoJS.AES.decrypt(ciphertext, this.secretKey);
+      return bytes.toString(CryptoJS.enc.Utf8);
+    } catch (error) {
+      throw new Error('Decryption failed');
+    }
   }
 
-  // Encrypt PII fields
   encryptPiiFields(obj: any, fields: string[]): any {
     const encryptedObj = { ...obj };
     for (const field of fields) {
@@ -36,7 +37,6 @@ export class EncryptionService {
     return encryptedObj;
   }
 
-  // Decrypt PII fields
   decryptPiiFields(obj: any, fields: string[]): any {
     const decryptedObj = { ...obj };
     for (const field of fields) {
@@ -44,8 +44,8 @@ export class EncryptionService {
         try {
           decryptedObj[field] = this.decrypt(decryptedObj[field]);
         } catch (error) {
-          // If decryption fails, return original value (might not be encrypted)
-          console.warn(`Failed to decrypt field ${field}:`, (error as Error).message);
+          const errMsg = error instanceof Error ? error.message : 'unknown';
+          throw new Error(`Failed to decrypt field ${field}: ${errMsg}`);
         }
       }
     }

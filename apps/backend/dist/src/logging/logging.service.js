@@ -10,7 +10,52 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoggingService = void 0;
+exports.sanitizeForLog = sanitizeForLog;
+exports.sanitizeErrorMessage = sanitizeErrorMessage;
 const common_1 = require("@nestjs/common");
+const SENSITIVE_KEYS = [
+    'password',
+    'passwordHash',
+    'token',
+    'secret',
+    'apiKey',
+    'accessToken',
+    'refreshToken',
+    'creditCard',
+    'cvv',
+    'cvc',
+];
+function sanitizeForLog(obj) {
+    if (obj === null || typeof obj !== 'object')
+        return obj;
+    if (Array.isArray(obj))
+        return obj.map(item => sanitizeForLog(item));
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+        const lowerKey = key.toLowerCase();
+        if (SENSITIVE_KEYS.some(sk => lowerKey.includes(sk))) {
+            sanitized[key] = '[REDACTED]';
+        }
+        else if (typeof value === 'object' && value !== null) {
+            sanitized[key] = sanitizeForLog(value);
+        }
+        else {
+            sanitized[key] = value;
+        }
+    }
+    return sanitized;
+}
+function sanitizeErrorMessage(error) {
+    if (error instanceof Error) {
+        return {
+            message: error.message,
+            stack: error.stack,
+        };
+    }
+    return {
+        message: String(error),
+    };
+}
 let LoggingService = class LoggingService {
     constructor(context = 'Application') {
         this.context = context;
@@ -39,6 +84,13 @@ let LoggingService = class LoggingService {
         const timestamp = new Date().toISOString();
         const logContext = context || this.context;
         console.log(`[${timestamp}] [VERBOSE] [${logContext}] ${message}`);
+    }
+    secureError(message, error, context) {
+        const timestamp = new Date().toISOString();
+        const logContext = context || this.context;
+        const sanitizedError = sanitizeErrorMessage(error);
+        const safeContext = sanitizeForLog(logContext);
+        console.error(`[${timestamp}] [SECURE-ERROR] [${safeContext}] ${message}`, sanitizedError.message);
     }
 };
 exports.LoggingService = LoggingService;

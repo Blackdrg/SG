@@ -1,6 +1,4 @@
 import { io, Socket } from 'socket.io-client';
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface MessageEnvelope {
   id: string;
@@ -87,11 +85,11 @@ class WebSocketService {
       this.handleIncomingMessage(data);
     });
 
-    this.socket.io.on('reconnect_attempt', (attempt) => {
-      this.reconnectAttempts = attempt;
+    this.socket.io.on('reconnect_attempt', (_attempt) => {
+      this.reconnectAttempts++;
     });
 
-    this.socket.io.on('reconnect', (attempt) => {
+    this.socket.io.on('reconnect', (_attempt) => {
       this.reconnectAttempts = 0;
       this.flushMessageQueue();
     });

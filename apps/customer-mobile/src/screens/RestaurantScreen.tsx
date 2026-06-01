@@ -3,6 +3,9 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ScrollView, 
 import { useRoute, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
+import { getCartSafe, saveCartSafe } from '../utils/secure-storage';
+import { STORAGE_KEYS } from '../constants/storage.keys';
+import { clampQuantity, clampPrice } from '../utils/validation';
 
 interface MenuItem {
   id: string;
@@ -104,50 +107,46 @@ const RestaurantScreen = () => {
     loadCartCount();
   }, [restaurantId, fadeAnim]);
 
-  const loadCartCount = async () => {
-    try {
-      const cartJson = await AsyncStorage.getItem('sg_cart');
-      if (cartJson) {
-        const cart = JSON.parse(cartJson);
-        setCartCount(cart.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0));
-      }
-    } catch (error) {
-      console.error('Failed to load cart:', error);
-    }
-  };
+   const loadCartCount = async () => {
+     try {
+       const cart = await getCartSafe();
+       const count = (cart as any[]).reduce((sum, item) => sum + (Number.isInteger(item?.quantity) ? item.quantity : 0), 0);
+       setCartCount(count);
+     } catch (error) {
+       setCartCount(0);
+     }
+   };
 
   const addToCart = useCallback(async (item: MenuItem) => {
     setAddingItem(item.id);
-    
+
     try {
-      const cartJson = await AsyncStorage.getItem('sg_cart');
-      let cart: CartItem[] = [];
-      if (cartJson) {
-        cart = JSON.parse(cartJson);
-      }
-      
-      const existingItemIndex = cart.findIndex((cartItem) => cartItem.id === item.id);
+      const cart = await getCartSafe();
+      const safeCart = cart as any[];
+      const existingItemIndex = safeCart.findIndex((cartItem) => cartItem.id === item.id);
       if (existingItemIndex >= 0) {
-        cart[existingItemIndex].quantity += 1;
+        safeCart[existingItemIndex].quantity = clampQuantity(safeCart[existingItemIndex].quantity + 1);
       } else {
-        cart.push({
-  id: item.id,
-  restaurantId: restaurantId,
-  name: item.name,
-  image: item.image,
-  price: item.price,
-  quantity: 1,
-  category: item.category,
-  itemTotal: item.price * 1,
-});
+        safeCart.push({
+          id: item.id,
+          restaurantId: restaurantId,
+          name: item.name,
+          image: item.image,
+          price: clampPrice(item.price),
+          quantity: 1,
+          category: item.category,
+          itemTotal: item.price * 1,
+        });
       }
-      
-      await AsyncStorage.setItem('sg_cart', JSON.stringify(cart));
-      setCartCount(cart.reduce((sum: number, cartItem: { quantity: number }) => sum + cartItem.quantity, 0));
-      
+
+      const saved = await saveCartSafe(safeCart);
+      if (saved) {
+        setCartCount(safeCart.reduce((sum, cartItem) => sum + cartItem.quantity, 0));
+      }
+
       const scaleAnim = scaleAnims.get(item.id) || new Animated.Value(1);
       scaleAnims.set(item.id, scaleAnim);
-      
+
       Animated.sequence([
         Animated.timing(scaleAnim, { toValue: 1.2, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }),
         Animated.timing(scaleAnim, { toValue: 1, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true }),
@@ -157,7 +156,7 @@ const RestaurantScreen = () => {
     } finally {
       setTimeout(() => setAddingItem(null), 300);
     }
-  }, [scaleAnims]);
+  }, [scaleAnims, restaurantId]);
 
   const handleCartPress = () => {
     navigation.navigate('Cart');

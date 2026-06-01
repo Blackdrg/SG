@@ -58,6 +58,7 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
             const paymentDispute = this.disputeRepo.create({
                 disputeId: dispute.id,
                 orderId: order ? order.id : null,
+                order: order,
                 disputeType: dispute.reason,
                 disputedAmount: dispute.amount / 100,
                 currency: dispute.currency,
@@ -67,18 +68,15 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
             });
             const savedDispute = await this.disputeRepo.save(paymentDispute);
             if (order) {
-                await this.productionNotification.sendPaymentNotification(order.userId, `chargeback-${dispute.id}`, {
+                await this.productionNotification.sendPaymentNotification(order.userId, dispute.id, {
                     type: 'fraud_detected',
                     severity: 'high',
-                    userId: order.userId,
                     orderId: order.id,
-                    paymentId: dispute.id,
                     amount: dispute.amount / 100,
                     message: `Chargeback received for amount ${(dispute.amount / 100).toFixed(2)}. Reason: ${dispute.reason}`,
                     metadata: {
                         disputeId: dispute.id,
                         stripeDisputeReason: dispute.reason,
-                        chargeId: dispute.charge
                     }
                 });
             }
@@ -114,9 +112,7 @@ let ChargebackService = ChargebackService_1 = class ChargebackService {
                 await this.productionNotification.sendPaymentNotification(order.userId, `chargeback-resolution-${dispute.id}`, {
                     type: dispute.status === 'won' ? 'payment_success' : 'payment_failure',
                     severity: dispute.status === 'won' ? 'medium' : 'high',
-                    userId: order.userId,
                     orderId: order.id,
-                    paymentId: dispute.id,
                     amount: paymentDispute.disputedAmount,
                     message: `Chargeback ${dispute.id}: ${dispute.status}`,
                     metadata: {

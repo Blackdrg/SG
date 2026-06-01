@@ -8,72 +8,72 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RestaurantServiceModule = void 0;
 const common_1 = require("@nestjs/common");
-const module_1 = require();
-const module_2 = require();
-const module_3 = require();
-const module_4 = require();
-const module_5 = require();
-const module_6 = require();
-const module_7 = require();
-const module_8 = require();
-const module_9 = require();
-const module_10 = require();
-const module_11 = require();
-const module_12 = require();
-const module_13 = require();
-const module_14 = require();
-const module_15 = require();
-const module_16 = require();
-const module_17 = require();
-const module_18 = require();
-const module_19 = require();
-const module_20 = require();
-const module_21 = require();
-const module_22 = require();
-const module_23 = require();
+const typeorm_1 = require("@nestjs/typeorm");
+const restaurant_service_1 = require("./restaurant.service");
+const restaurant_controller_1 = require("./restaurant.controller");
+const restaurant_ops_controller_1 = require("./restaurant-ops.controller");
+const restaurant_ops_service_1 = require("./restaurant-ops.service");
+const menu_moderation_service_1 = require("./menu-moderation.service");
+const payout_service_1 = require("./payout.service");
+const branch_management_service_1 = require("./branch-management.service");
+const commission_service_1 = require("./commission.service");
+const onboarding_service_1 = require("./onboarding.service");
+const onboarding_controller_1 = require("./onboarding.controller");
+const restaurant_entity_1 = require("../../db/entities/restaurant.entity");
+const restaurant_branch_entity_1 = require("../../db/entities/restaurant-branch.entity");
+const menu_category_entity_1 = require("../../db/entities/menu-category.entity");
+const menu_item_entity_1 = require("../../db/entities/menu-item.entity");
+const inventory_item_entity_1 = require("../../db/entities/inventory-item.entity");
+const restaurant_onboarding_entity_1 = require("../../db/entities/restaurant-onboarding.entity");
+const menu_moderation_entity_1 = require("../../db/entities/menu-moderation.entity");
+const payout_report_entity_1 = require("../../db/entities/payout-report.entity");
+const commission_rule_entity_1 = require("../../db/entities/commission-rule.entity");
+const order_entity_1 = require("../../db/entities/order.entity");
+const gst_detail_entity_1 = require("../../db/entities/gst-detail.entity");
+const user_entity_1 = require("../../db/entities/user.entity");
 let RestaurantServiceModule = class RestaurantServiceModule {
 };
 exports.RestaurantServiceModule = RestaurantServiceModule;
 exports.RestaurantServiceModule = RestaurantServiceModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            module_1.TypeOrmModule.forFeature([
-                module_12.RestaurantEntity,
-                module_13.RestaurantBranchEntity,
-                module_14.MenuCategoryEntity,
-                module_15.MenuItemEntity,
-                module_16.InventoryItemEntity,
-                module_17.RestaurantOnboardingEntity,
-                module_18.MenuModerationEntity,
-                module_19.PayoutReportEntity,
-                module_20.CommissionRuleEntity,
-                module_21.OrderEntity,
-                module_22.GSTDetailEntity,
-                module_23.UserEntity,
+            typeorm_1.TypeOrmModule.forFeature([
+                restaurant_entity_1.RestaurantEntity,
+                restaurant_branch_entity_1.RestaurantBranchEntity,
+                menu_category_entity_1.MenuCategoryEntity,
+                menu_item_entity_1.MenuItemEntity,
+                inventory_item_entity_1.InventoryItemEntity,
+                restaurant_onboarding_entity_1.RestaurantOnboardingEntity,
+                menu_moderation_entity_1.MenuModerationEntity,
+                payout_report_entity_1.PayoutReportEntity,
+                commission_rule_entity_1.CommissionRuleEntity,
+                order_entity_1.OrderEntity,
+                gst_detail_entity_1.GSTDetailEntity,
+                user_entity_1.UserEntity,
             ]),
         ],
         providers: [
-            module_2.RestaurantService,
-            module_5.RestaurantOpsService,
-            module_6.MenuModerationService,
-            module_7.PayoutService,
-            module_8.BranchManagementService,
-            module_9.CommissionService,
-            module_10.OnboardingService
+            restaurant_service_1.RestaurantService,
+            restaurant_ops_service_1.RestaurantOpsService,
+            menu_moderation_service_1.MenuModerationService,
+            payout_service_1.PayoutService,
+            branch_management_service_1.BranchManagementService,
+            commission_service_1.CommissionService,
+            onboarding_service_1.RestaurantOnboardingService
         ],
         controllers: [
-            module_3.RestaurantController,
-            module_4.RestaurantOpsController,
-            module_11.OnboardingController
+            restaurant_controller_1.RestaurantController,
+            restaurant_ops_controller_1.RestaurantOpsController,
+            onboarding_controller_1.RestaurantOnboardingController
         ],
         exports: [
-            module_2.RestaurantService,
-            module_5.RestaurantOpsService,
-            module_6.MenuModerationService,
-            module_7.PayoutService,
-            module_8.BranchManagementService,
-            module_9.CommissionService,
-            module_10.OnboardingService
+            restaurant_service_1.RestaurantService,
+            restaurant_ops_service_1.RestaurantOpsService,
+            menu_moderation_service_1.MenuModerationService,
+            payout_service_1.PayoutService,
+            branch_management_service_1.BranchManagementService,
+            commission_service_1.CommissionService,
+            onboarding_service_1.RestaurantOnboardingService
         ],
     })
 ], RestaurantServiceModule);

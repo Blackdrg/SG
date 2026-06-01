@@ -1,15 +1,16 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator, createBottomTabNavigator } from '@react-navigation/native-stack';
+import { RootStackParamList, TabParamList } from './src/navigation/types';
 import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import CartScreen from './src/screens/CartScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import TrackingScreen from './src/screens/TrackingScreen';
 
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 
 function AppNavigator() {
   return (
@@ -17,6 +18,7 @@ function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Auth" component={AuthScreen} />
         <Stack.Screen name="Main" component={MainTabNavigator} />
+        <Stack.Screen name="Tracking" component={TrackingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -53,10 +55,6 @@ function MainTabNavigator() {
   );
 }
 
-// (Text imported at the top)
-
 export default function App() {
-  return (
-    <AppNavigator />
-  );
+  return <AppNavigator />;
 }

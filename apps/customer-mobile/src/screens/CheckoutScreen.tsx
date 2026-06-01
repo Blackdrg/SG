@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing, ScrollView } from 'react-native';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CartItem } from './CartScreen';
@@ -30,27 +30,32 @@ const CheckoutScreen = () => {
       useNativeDriver: true,
     }).start();
 
-    AsyncStorage.getItem('sg_address').then((addressJson) => {
+    AsyncStorage.getItem(STORAGE_KEYS.ADDRESS).then((addressJson) => {
       if (addressJson) {
-        setAddress(JSON.parse(addressJson));
+        try {
+          const parsed = JSON.parse(addressJson);
+          if (typeof parsed === 'string' && parsed.trim().length > 0) {
+            setAddress(parsed);
+          }
+        } catch {
+          AsyncStorage.removeItem(STORAGE_KEYS.ADDRESS).catch(() => undefined);
+        }
       }
-    }).catch((error) => {
-      console.error('Failed to load address:', error);
-    });
+    }).catch(() => undefined);
   }, [fadeAnim]);
 
-  const calculateSubtotal = () => {
+  const calculateSubtotal = useCallback(() => {
     return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  };
+  }, [cartItems]);
 
-  const calculateTax = () => {
+  const calculateTax = useCallback(() => {
     return calculateSubtotal() * 0.05;
-  };
+  }, [calculateSubtotal]);
 
   const calculatePromoDiscount = () => {
     if (!promoCode) return 0;
     const subtotal = calculateSubtotal();
-    
+
     if (promoCode.toUpperCase() === 'WELCOME50') {
       return Math.min(subtotal * 0.5, 100);
     } else if (promoCode.toUpperCase() === 'SAVE20') {
@@ -63,7 +68,8 @@ const CheckoutScreen = () => {
     const subtotal = calculateSubtotal();
     const tax = calculateTax();
     const promoDiscount = calculatePromoDiscount();
-    return subtotal + tax + tip + 20 - promoDiscount;
+    const total = Math.max(0, subtotal + tax + tip + 20 - promoDiscount);
+    return Math.round(total * 100) / 100;
   };
 
   const applyPromo = () => {
@@ -84,13 +90,12 @@ const CheckoutScreen = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!cartItems || cartItems.length === 0) {
-      Alert.alert('Error', 'Your cart is empty');
+    if (cartItems.length === 0) {
       return;
     }
 
     setLoading(true);
-    
+
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 1.05,
@@ -107,13 +112,11 @@ const CheckoutScreen = () => {
     ]).start();
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
       await AsyncStorage.removeItem('sg_cart');
-      
+
       const orderId = 'SG' + Math.floor(Math.random() * 900000 + 100000).toString();
       navigation.navigate('Tracking', { orderId });
     } catch (error) {
-      console.error('Failed to place order:', error);
       navigation.navigate('Tracking');
     } finally {
       setLoading(false);

@@ -12,7 +12,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var NotificationQueueService_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationQueueService = void 0;
 const common_1 = require("@nestjs/common");
@@ -22,7 +21,7 @@ const config_1 = require("@nestjs/config");
 const notification_entity_1 = require("../../../db/entities/notification.entity");
 const notification_status_enum_1 = require("../../../db/entities/notification-status.enum");
 const notification_service_1 = require("../notification.service");
-const queue_service_1 = require("../../../../infra/queue/queue.service");
+const queue_service_1 = require("../../../infra/queue/queue.service");
 let NotificationQueueService = NotificationQueueService_1 = class NotificationQueueService {
     constructor(notificationRepo, configService, notificationService, queueService) {
         this.notificationRepo = notificationRepo;
@@ -110,9 +109,9 @@ let NotificationQueueService = NotificationQueueService_1 = class NotificationQu
         }
         catch (error) {
             notification.errorInfo = {
-                message: error.message,
-                code: error.code || 'UNKNOWN_ERROR',
-                providerResponse: error.response || null
+                message: error?.message || 'Unknown error',
+                code: error?.code || 'UNKNOWN_ERROR',
+                providerResponse: error?.response || null
             };
             if (notification.attemptCount < (notification.maxAttempts || 3)) {
                 notification.status = notification_status_enum_1.NotificationStatus.RETRYING;
@@ -193,6 +192,7 @@ exports.NotificationQueueService = NotificationQueueService = NotificationQueueS
     __param(0, (0, typeorm_1.InjectRepository)(notification_entity_1.NotificationEntity)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         config_1.ConfigService,
-        notification_service_1.NotificationService, typeof (_a = typeof queue_service_1.QueueService !== "undefined" && queue_service_1.QueueService) === "function" ? _a : Object])
+        notification_service_1.NotificationService,
+        queue_service_1.QueueService])
 ], NotificationQueueService);
 //# sourceMappingURL=notification-queue.service.js.map

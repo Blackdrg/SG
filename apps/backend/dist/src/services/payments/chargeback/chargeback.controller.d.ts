@@ -4,6 +4,6 @@ export declare class ChargebackController {
     constructor(chargebackService: ChargebackService);
     getDisputeById(disputeId: string): Promise<import("../../../db/entities/payment-dispute.entity").PaymentDisputeEntity>;
     getDisputesForOrder(orderId: string): Promise<import("../../../db/entities/payment-dispute.entity").PaymentDisputeEntity[]>;
-    getDisputesByStatus(status?: string, startDate?: string, endDate?: string): Promise<any>;
+    getDisputes(status?: string, startDate?: string, endDate?: string): Promise<any>;
     getDisputeStatsOverview(startDate?: string, endDate?: string): Promise<any>;
 }

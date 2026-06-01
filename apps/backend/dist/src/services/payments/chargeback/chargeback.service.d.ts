@@ -19,7 +19,7 @@ export declare class ChargebackService {
     handleDisputeClosed(event: any): Promise<PaymentDisputeEntity>;
     getDisputeById(disputeId: string): Promise<PaymentDisputeEntity>;
     getDisputesForOrder(orderId: string): Promise<PaymentDisputeEntity[]>;
-    getDisputesByStatus(status: string): Promise<PaymentDisputeEntity[]>;
+    getDisputesByStatus(status: 'warning' | 'needs_response' | 'under_review' | 'won' | 'lost'): Promise<PaymentDisputeEntity[]>;
     private mapStripeDisputeStatus;
     getDisputeStats(startDate?: Date, endDate?: Date): Promise<any>;
 }

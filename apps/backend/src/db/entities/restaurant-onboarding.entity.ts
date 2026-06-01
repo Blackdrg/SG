@@ -38,14 +38,15 @@ export class RestaurantOnboardingEntity {
   @Column({ type: 'enum', enum: OnboardingStatus, default: OnboardingStatus.PENDING })
   status!: OnboardingStatus;
 
-  @Column('simple-json', { nullable: true })
-  businessDetails!: {
-    legalName?: string;
-    tradeName?: string;
-    gstin?: string;
-    businessType?: string;
-    registrationDate?: string;
-  };
+   @Column('simple-json', { nullable: true })
+   businessDetails!: {
+     legalName?: string;
+     tradeName?: string;
+     gstin?: string;
+     businessType?: string;
+     registrationDate?: string;
+     pricing?: any;
+   };
 
   @Column('simple-json', { nullable: true })
   documentStatus!: {

@@ -1,8 +1,6 @@
 import { NotificationQueueService } from './notification-queue.service';
 import { NotificationEntity } from '../../../db/entities/notification.entity';
 export declare class NotificationQueueController {
-}
-export declare class NotificationQueueController {
     private readonly notificationQueueService;
     constructor(notificationQueueService: NotificationQueueService);
     queueNotification(body: any): Promise<NotificationEntity>;

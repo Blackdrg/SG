@@ -247,7 +247,7 @@ let RefundService = RefundService_1 = class RefundService {
     }
     async notifyRefundRequest(approval) {
         try {
-            await this.productionNotification.sendPaymentNotification('system', order.paymentIntentId || `refund-request-${approval.id}`, {
+            await this.productionNotification.sendPaymentNotification('system', approval.order.paymentIntentId || `refund-request-${approval.id}`, {
                 type: 'refund_initiated',
                 severity: 'medium',
                 orderId: approval.order.id,
@@ -267,7 +267,7 @@ let RefundService = RefundService_1 = class RefundService {
     }
     async notifyRefundApproval(approval) {
         try {
-            await this.productionNotification.sendPaymentNotification('system', order.paymentIntentId || `refund-approval-${approval.id}`, {
+            await this.productionNotification.sendPaymentNotification('system', approval.order.paymentIntentId || `refund-approval-${approval.id}`, {
                 type: 'refund_initiated',
                 severity: 'medium',
                 orderId: approval.order.id,

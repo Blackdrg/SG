@@ -1,144 +1,209 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Animated, Easing } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Animated, Easing, RefreshControl, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
+import { orderService, Order, OrderStatus } from '../services/order.service';
+import { OrderCardMemo } from '../components/SkeletonLoader';
+import { STRINGS } from '../constants/strings';
+import Toast from 'react-native-root-toast';
+import { isValidOrderId } from '../utils/validation';
 
-interface OrderItem {
-  name: string;
-  quantity: number;
-  price: number;
-}
-
-interface Order {
-  id: string;
-  restaurantName: string;
-  items: OrderItem[];
-  total: number;
-  status: 'preparing' | 'ready' | 'pickedup' | 'delivered' | 'cancelled';
-  date: string;
-  time: string;
-  rating: number;
-}
+type FilterStatus = 'all' | OrderStatus;
 
 const HistoryScreen = () => {
   const navigation = useNavigation();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filter, setFilter] = useState<'all' | 'preparing' | 'ready' | 'pickedup' | 'delivered' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<FilterStatus>('all');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const loadHistory = useCallback(async (pageNum = 1, append = false) => {
+    try {
+      if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      setError(null);
+
+      const response = await orderService.fetchOrders(pageNum, 20);
+      
+      if (!response.orders || response.orders.length === 0) {
+        if (pageNum === 1) {
+          setOrders([]);
+        }
+        setHasMore(false);
+      } else {
+        setOrders(prev => append ? [...prev, ...response.orders] : response.orders);
+        setHasMore(response.hasMore);
+      }
+    } catch (err) {
+      setError(STRINGS.orderHistory.error);
+      console.error('Failed to load order history:', err);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        const mockOrders: Order[] = [
-          {
-            id: 'SG12345',
-            restaurantName: 'Burger King',
-            items: [
-              { name: 'Whopper', quantity: 2, price: 149 },
-              { name: 'Large Coke', quantity: 1, price: 79 },
-            ],
-            total: 377,
-            status: 'delivered',
-            date: '2026-05-20',
-            time: '19:30',
-            rating: 5,
-          },
-          {
-            id: 'SG12344',
-            restaurantName: 'Pizza Hut',
-            items: [
-              { name: 'Margherita Pizza', quantity: 1, price: 299 },
-            ],
-            total: 299,
-            status: 'delivered',
-            date: '2026-05-18',
-            time: '12:15',
-            rating: 4,
-          },
-        ];
-        
-        setOrders(mockOrders);
-        setLoading(false);
-        
+    loadHistory();
+  }, [loadHistory, retryCount]);
+
+  const filteredOrders = useMemo(() => {
+    if (filter === 'all') return orders;
+    return orders.filter(order => order.status === filter);
+  }, [orders, filter]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setPage(1);
+    await loadHistory(1);
+  }, [loadHistory]);
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loadingMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadHistory(nextPage, true);
+    }
+  }, [hasMore, loadingMore, page, loadHistory]);
+
+  const handleReorder = useCallback(async (orderId: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      if (!isValidOrderId(orderId)) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Toast.show(STRINGS.orderHistory.orderNotFound, {
+          duration: Toast.durations.LONG,
+          position: Toast.positions.BOTTOM,
+          backgroundColor: DESIGN_TOKENS.colors.danger,
+          textColor: 'white',
+        });
+        return;
+      }
+
+      const existingCart = await orderService.getCart();
+      const updatedCart = await orderService.reorderItems(orderId, existingCart);
+
+      await orderService.saveCart(updatedCart);
+
+      Toast.show(STRINGS.orderHistory.reorderSuccess, {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+        backgroundColor: DESIGN_TOKENS.colors.success,
+        textColor: 'white',
+      });
+
+      navigation.navigate('Cart');
+    } catch (err) {
+      Toast.show(STRINGS.orderHistory.reorderError, {
+        duration: Toast.durations.LONG,
+        position: Toast.positions.BOTTOM,
+        backgroundColor: DESIGN_TOKENS.colors.danger,
+        textColor: 'white',
+      });
+    }
+  }, [navigation]);
+
+  const handleTrack = useCallback((orderId: string) => {
+    Haptics.selectionAsync();
+    if (!isValidOrderId(orderId)) return;
+    navigation.navigate('Tracking', { orderId });
+  }, [navigation]);
+
+  const handleRetry = useCallback(() => {
+    setRetryCount(prev => prev + 1);
+  }, []);
+
+  const handleCardPress = useCallback((orderId: string) => {
+    Haptics.selectionAsync();
+    if (!isValidOrderId(orderId)) return;
+    navigation.navigate('OrderDetails', { orderId });
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!loading) {
+      Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: DESIGN_TOKENS.motion.page,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
-        }).start();
-      } catch (error) {
-        setError('Failed to load order history');
-        setLoading(false);
-        console.error('Failed to load order history:', error);
-      }
-    };
-
-    loadHistory();
-  }, [fadeAnim]);
-
-  const filteredOrders = filter === 'all' ? orders : orders.filter(order => order.status === filter);
-
-
-
-  const handleReorder = useCallback(async (orderId: string) => {
-    try {
-      const order = orders.find(o => o.id === orderId);
-      if (!order) {
-        Alert.alert('Error', 'Order not found');
-        return;
-      }
-      
-      const cartItems = order.items.map(item => ({
-        id: `${item.name}-${Date.now()}`,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: '',
-        description: '',
-      }));
-      
-      const cartJson = await AsyncStorage.getItem('sg_cart');
-      let cart = [];
-      if (cartJson) {
-        cart = JSON.parse(cartJson);
-      }
-      
-      cart.push(...cartItems);
-      await AsyncStorage.setItem('sg_cart', JSON.stringify(cart));
-      
-      Alert.alert('Success', 'Items added to cart!');
-      navigation.navigate('Cart');
-    } catch (error) {
-      console.error('Failed to reorder:', error);
-      Alert.alert('Error', 'Failed to reorder. Please try again.');
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  }, [orders, navigation]);
+  }, [loading, fadeAnim, scaleAnim]);
+
+  const renderOrder = useCallback(({ item }: { item: Order }) => (
+    <TouchableOpacity 
+      activeOpacity={0.7}
+      onPress={() => handleCardPress(item.id)}
+    >
+      <OrderCardMemo 
+        order={item} 
+        onReorder={item.status === 'delivered' ? handleReorder : undefined}
+        onTrack={['preparing', 'ready', 'pickedup'].includes(item.status) ? handleTrack : undefined}
+      />
+    </TouchableOpacity>
+  ), [handleCardPress, handleReorder, handleTrack]);
+
+  const keyExtractor = useCallback((item: Order) => item.id, []);
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}
+      <View 
+        style={styles.loadingContainer}
         accessible={true}
-        accessibilityLabel="Loading order history"
+        accessibilityLabel={STRINGS.accessibility.loading}
         accessibilityRole="progressbar"
       >
-        <View style={styles.loadingSpinner} />
-        <Text style={styles.loadingText}>Loading order history...</Text>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+          <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.primary} />
+          <Text style={styles.loadingText} accessibilityLabel={STRINGS.orderHistory.loading}>
+            {STRINGS.orderHistory.loading}
+          </Text>
+        </Animated.View>
       </View>
     );
   }
 
-  if (error) {
+  if (error && orders.length === 0) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Back to Home</Text>
+        <TouchableOpacity 
+          onPress={handleRetry} 
+          style={styles.primaryButton}
+          accessibilityLabel={STRINGS.orderHistory.retry}
+          accessibilityRole="button"
+        >
+          <Text style={styles.primaryButtonText}>{STRINGS.orderHistory.retry}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Home')} 
+          style={[styles.primaryButton, styles.secondaryButton]}
+          accessibilityLabel={STRINGS.orderHistory.backToHome}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.primaryButtonText, styles.secondaryButtonText]}>
+            {STRINGS.orderHistory.backToHome}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -151,12 +216,12 @@ const HistoryScreen = () => {
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
             style={styles.backButton}
-            accessibilityLabel="Go back"
+            accessibilityLabel={STRINGS.accessibility.backButton}
             accessibilityRole="button"
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerText}>Order History</Text>
+          <Text style={styles.headerText}>{STRINGS.orderHistory.title}</Text>
         </View>
 
         <View style={styles.tabsContainer}>
@@ -166,10 +231,13 @@ const HistoryScreen = () => {
                 key={key}
                 onPress={() => setFilter(key)}
                 style={[styles.tabButton, filter === key && styles.activeTab]}
-                accessibilityLabel={`Filter by ${key} orders`}
+                accessibilityLabel={STRINGS.accessibility.filterTab(key)}
                 accessibilityRole="tab"
+                accessibilityState={{ selected: filter === key }}
               >
-                <Text style={styles.tabText}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
+                <Text style={[styles.tabText, filter === key && styles.activeTabText]}>
+                  {STRINGS.orderHistory.status[key]}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -178,73 +246,51 @@ const HistoryScreen = () => {
         <View style={styles.ordersContainer}>
           {filteredOrders.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No orders found</Text>
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={styles.emptyText}>{STRINGS.orderHistory.empty}</Text>
+              <Text style={styles.emptySubtext}>Your past orders will appear here</Text>
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('Home')} 
+                style={styles.primaryButton}
+                accessibilityLabel={STRINGS.cart.browseRestaurants}
+                accessibilityRole="button"
+              >
+                <Text style={styles.primaryButtonText}>{STRINGS.cart.browseRestaurants}</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <FlatList
               data={filteredOrders}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.orderCard}>
-                  <View style={styles.orderInfo}>
-                    <View style={styles.orderHeader}>
-                      <Text style={styles.orderId}>#{item.id}</Text>
-                      <View style={[styles.orderStatusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                        <Text style={[styles.orderStatusText, { color: getStatusColor(item.status) }]}>
-                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.orderRestaurant}>{item.restaurantName}</Text>
-                    <View style={styles.orderDetails}>
-                      <Text style={styles.orderItemsText}>
-                        {item.items.reduce((sum, i) => sum + i.quantity, 0)} items
-                      </Text>
-                      <Text style={styles.orderTimeText}>{item.date} • {item.time}</Text>
-                    </View>
-                    <View style={styles.orderTotal}>
-                      <Text style={styles.orderTotalLabel}>Total:</Text>
-                      <Text style={styles.orderTotalAmount}>₹{item.total}</Text>
-                    </View>
+              keyExtractor={keyExtractor}
+              renderItem={renderOrder}
+              refreshControl={
+                <RefreshControl 
+                  refreshing={refreshing} 
+                  onRefresh={onRefresh}
+                  colors={[DESIGN_TOKENS.colors.primary]}
+                />
+              }
+              onEndReached={loadMore}
+              onEndReachedThreshold={0.2}
+              ListFooterComponent={
+                loadingMore ? (
+                  <View style={styles.loadingMoreContainer}>
+                    <ActivityIndicator size="small" color={DESIGN_TOKENS.colors.primary} />
                   </View>
-                  <View style={styles.orderActions}>
-                    {item.status === 'delivered' && (
-                      <TouchableOpacity 
-                        onPress={() => handleReorder(item.id)}
-                        style={styles.reorderButton}
-                        accessibilityLabel="Reorder this order"
-                        accessibilityRole="button"
-                      >
-                        <Text style={styles.reorderButtonText}>Reorder</Text>
-                      </TouchableOpacity>
-                    )}
-                    {['preparing', 'ready', 'pickedup'].includes(item.status) && (
-                      <TouchableOpacity 
-                        onPress={() => navigation.navigate('Tracking', { orderId: item.id })}
-                        style={styles.trackButton}
-                        accessibilityLabel="Track this order"
-                        accessibilityRole="button"
-                      >
-                        <Text style={styles.trackButtonText}>Track</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              )}
+                ) : null
+              }
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
+              contentContainerStyle={{ flexGrow: 1 }}
+              showsVerticalScrollIndicator={false}
             />
           )}
         </View>
       </View>
     </Animated.View>
   );
-};
-
-const getStatusColor = (status: Order['status']) => {
-  switch (status) {
-    case 'delivered': return DESIGN_TOKENS.colors.success;
-    case 'cancelled': return DESIGN_TOKENS.colors.danger;
-    default: return DESIGN_TOKENS.colors.warning;
-  }
 };
 
 const styles = StyleSheet.create({
@@ -256,20 +302,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingSpinner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: DESIGN_TOKENS.colors.primary,
-    borderTopColor: 'transparent',
+    backgroundColor: DESIGN_TOKENS.colors.background,
   },
   loadingText: {
     fontSize: 16,
     color: DESIGN_TOKENS.colors.textSecondary,
     marginTop: 16,
     fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  loadingMoreContainer: {
+    padding: 20,
+    alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
@@ -282,18 +325,28 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.danger,
     marginBottom: 20,
     fontFamily: DESIGN_TOKENS.typography.fontFamily,
+    textAlign: 'center',
   },
   primaryButton: {
     backgroundColor: DESIGN_TOKENS.colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: DESIGN_TOKENS.radius.button,
+    marginBottom: 12,
   },
   primaryButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: DESIGN_TOKENS.typography.fontFamily,
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+  },
+  secondaryButtonText: {
+    color: DESIGN_TOKENS.colors.textPrimary,
   },
   header: {
     flexDirection: 'row',
@@ -334,6 +387,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: DESIGN_TOKENS.colors.primary,
   },
+  activeTabText: {
+    color: DESIGN_TOKENS.colors.primary,
+    fontWeight: '600',
+  },
   tabText: {
     fontSize: 14,
     color: DESIGN_TOKENS.colors.textSecondary,
@@ -342,112 +399,29 @@ const styles = StyleSheet.create({
   ordersContainer: {
     flex: 1,
   },
-  orderCard: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    marginHorizontal: DESIGN_TOKENS.spacing.md,
-    marginVertical: DESIGN_TOKENS.spacing.xs,
-    borderRadius: DESIGN_TOKENS.radius.card,
-    overflow: 'hidden',
-    elevation: 2,
-  },
-  orderInfo: {
-    padding: DESIGN_TOKENS.spacing.md,
-  },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: DESIGN_TOKENS.spacing.sm,
-  },
-  orderId: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: DESIGN_TOKENS.radius.sm,
-  },
-  orderStatusText: {
-    fontSize: 12,
-    fontWeight: '500',
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderRestaurant: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: DESIGN_TOKENS.colors.textPrimary,
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: DESIGN_TOKENS.spacing.sm,
-  },
-  orderItemsText: {
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textSecondary,
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderTimeText: {
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textSecondary,
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  orderTotalLabel: {
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textSecondary,
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderTotalAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: DESIGN_TOKENS.colors.primary,
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  orderActions: {
-    flexDirection: 'row',
-  },
-  reorderButton: {
-    flex: 1,
-    backgroundColor: DESIGN_TOKENS.colors.primary,
-    paddingVertical: 12,
-  },
-  reorderButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
-  trackButton: {
-    flex: 1,
-    backgroundColor: '#2196f3',
-    paddingVertical: 12,
-  },
-  trackButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-    fontFamily: DESIGN_TOKENS.typography.fontFamily,
-  },
   emptyState: {
-    padding: DESIGN_TOKENS.spacing.xxl,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: DESIGN_TOKENS.spacing.xxl,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: DESIGN_TOKENS.spacing.md,
   },
   emptyText: {
-    fontSize: 16,
-    color: DESIGN_TOKENS.colors.textSecondary,
+    fontSize: 18,
+    color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: 8,
     fontFamily: DESIGN_TOKENS.typography.fontFamily,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: DESIGN_TOKENS.colors.textSecondary,
+    marginBottom: 20,
+    fontFamily: DESIGN_TOKENS.typography.fontFamily,
+    textAlign: 'center',
   },
 });
 

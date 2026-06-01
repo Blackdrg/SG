@@ -15,5 +15,8 @@
     "test:integration": "npm run --workspaces test:integration",
     "test:e2e": "npm run --workspaces test:e2e",
     "test:all": "npm run --workspaces test:all"
+  },
+  "dependencies": {
+    "mongodb": "^6.21.0"
   }
 }

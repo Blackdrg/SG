@@ -9,7 +9,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DbModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const mongoose_1 = require("@nestjs/mongoose");
 const config_1 = require("@nestjs/config");
 const user_entity_1 = require("./entities/user.entity");
 const order_entity_1 = require("./entities/order.entity");
@@ -35,18 +34,20 @@ const batch_entity_1 = require("./entities/batch.entity");
 const food_prep_entity_1 = require("./entities/food-prep.entity");
 const kitchen_sla_entity_1 = require("./entities/kitchen-sla.entity");
 const supplier_entity_1 = require("./entities/supplier.entity");
+const inventory_alert_entity_1 = require("./entities/inventory-alert.entity");
 const driver_assignment_entity_1 = require("./entities/driver-assignment.entity");
+const sla_alert_entity_1 = require("./entities/sla-alert.entity");
+const menu_item_availability_entity_1 = require("./entities/menu-item-availability.entity");
 const driver_score_entity_1 = require("./entities/driver-score.entity");
 const delivery_sla_entity_1 = require("./entities/delivery-sla.entity");
 const driver_fraud_entity_1 = require("./entities/driver-fraud.entity");
 const stripe_webhook_entity_1 = require("./entities/stripe-webhook.entity");
+const payment_dispute_entity_1 = require("./entities/payment-dispute.entity");
 const idempotency_entity_1 = require("../services/payments/idempotency.entity");
 const payment_validation_entity_1 = require("../services/payments/payment-validation.entity");
 const payment_fraud_entity_1 = require("../services/payments/payment-fraud.entity");
 const payment_event_entity_1 = require("../services/payments/payment-event.entity");
-const review_schema_1 = require("./schemas/review.schema");
 const postgres_adapter_1 = require("./postgres.adapter");
-const mongo_adapter_1 = require("./mongo.adapter");
 const redis_adapter_1 = require("./redis.adapter");
 const entities = [
     user_entity_1.UserEntity,
@@ -73,10 +74,14 @@ const entities = [
     food_prep_entity_1.FoodPrepEntity,
     kitchen_sla_entity_1.KitchenSLAEntity,
     supplier_entity_1.SupplierEntity,
+    inventory_alert_entity_1.InventoryAlertEntity,
     driver_assignment_entity_1.DriverAssignmentEntity,
+    sla_alert_entity_1.SLAAlertEntity,
+    menu_item_availability_entity_1.MenuItemAvailabilityEntity,
     driver_score_entity_1.DriverScoreEntity,
     delivery_sla_entity_1.DeliverySLAEntity,
     driver_fraud_entity_1.DriverFraudEntity,
+    payment_dispute_entity_1.PaymentDisputeEntity,
     stripe_webhook_entity_1.StripeWebhookEntity,
     idempotency_entity_1.IdempotencyEntity,
     payment_validation_entity_1.PaymentValidationEventEntity,
@@ -104,16 +109,10 @@ exports.DbModule = DbModule = __decorate([
                 }),
                 inject: [config_1.ConfigService],
             }),
-            mongoose_1.MongooseModule.forRootAsync({
-                imports: [config_1.ConfigModule],
-                useFactory: () => ({ uri: "mongodb://localhost:27017/spicegarden" }),
-                inject: [],
-            }),
             typeorm_1.TypeOrmModule.forFeature(entities),
-            mongoose_1.MongooseModule.forFeature([{ name: review_schema_1.ReviewDocument.name, schema: review_schema_1.ReviewSchema }]),
         ],
-        providers: [postgres_adapter_1.PostgresAdapter, mongo_adapter_1.MongoAdapter, redis_adapter_1.RedisAdapter],
-        exports: [postgres_adapter_1.PostgresAdapter, mongo_adapter_1.MongoAdapter, redis_adapter_1.RedisAdapter, typeorm_1.TypeOrmModule, mongoose_1.MongooseModule],
+        providers: [postgres_adapter_1.PostgresAdapter, redis_adapter_1.RedisAdapter],
+        exports: [postgres_adapter_1.PostgresAdapter, redis_adapter_1.RedisAdapter, typeorm_1.TypeOrmModule],
     })
 ], DbModule);
 //# sourceMappingURL=db.module.js.map

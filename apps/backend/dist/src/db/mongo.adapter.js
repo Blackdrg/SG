@@ -18,15 +18,21 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 let MongoAdapter = class MongoAdapter {
     constructor(connection) {
-        this.connection = connection;
+        this.connection = null;
+        this.connection = connection || null;
     }
     async connect() {
     }
     async disconnect() {
-        await this.connection.close();
+        if (this.connection) {
+            await this.connection.close();
+        }
     }
     async query(query, params) {
-        return this.connection.db?.command({ ping: 1 });
+        if (this.connection) {
+            return this.connection.db?.command({ ping: 1 });
+        }
+        return null;
     }
     async findOne(filter) { return null; }
     async findMany(filter) { return []; }
@@ -37,6 +43,7 @@ let MongoAdapter = class MongoAdapter {
 exports.MongoAdapter = MongoAdapter;
 exports.MongoAdapter = MongoAdapter = __decorate([
     (0, common_1.Injectable)(),
+    __param(0, (0, common_1.Optional)()),
     __param(0, (0, mongoose_1.InjectConnection)()),
     __metadata("design:paramtypes", [mongoose_2.Connection])
 ], MongoAdapter);

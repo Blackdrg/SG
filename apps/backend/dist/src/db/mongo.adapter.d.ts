@@ -2,7 +2,7 @@ import { Connection } from 'mongoose';
 import { IDatabaseAdapter } from './interfaces/database-adapter.interface';
 export declare class MongoAdapter<T> implements IDatabaseAdapter<T> {
     private connection;
-    constructor(connection: Connection);
+    constructor(connection?: Connection);
     connect(): Promise<void>;
     disconnect(): Promise<void>;
     query(query: string, params?: any[]): Promise<any>;

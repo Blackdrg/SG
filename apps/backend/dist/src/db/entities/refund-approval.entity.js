@@ -65,6 +65,10 @@ __decorate([
 ], RefundApprovalEntity.prototype, "rejectionReason", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], RefundApprovalEntity.prototype, "approvalNotes", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Date)
 ], RefundApprovalEntity.prototype, "processedAt", void 0);
 __decorate([

@@ -39,9 +39,9 @@ constructor(
         return this.stripeGateway;
       case 'razorpay':
         return this.razorpayGateway;
-      default:
-        this.logger.warn(Unknown payment gateway: , falling back to default);
-        return this.defaultGateway;
+       default:
+         this.logger.warn(`Unknown payment gateway: ${gatewayName}, falling back to default`);
+         return this.defaultGateway;
     }
   }
 

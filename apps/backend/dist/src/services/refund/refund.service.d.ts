@@ -4,9 +4,9 @@ import { RefundApprovalEntity } from '../../db/entities/refund-approval.entity';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { UserEntity } from '../../db/entities/user.entity';
 import { PaymentService } from '../payments/payments.service';
-import { NotificationService } from '../../notifications/notification.service';
+import { NotificationService } from '../../services/notifications/notification.service';
 import { LedgerService } from '../../modules/ledger/ledger.service';
-import { ProductionNotificationService } from '../../notifications/production-notification.service';
+import { ProductionNotificationService } from '../../services/notifications/production-notification.service';
 import { ConfigService } from '@nestjs/config';
 export declare enum RefundRequestType {
     CUSTOMER_REQUEST = "customer_request",
@@ -35,9 +35,11 @@ export declare class RefundService {
     }>;
     getRefundRequest(approvalId: string): Promise<RefundApprovalEntity>;
     getRefundRequestsForOrder(orderId: string): Promise<RefundApprovalEntity[]>;
-    getRefundRequestsByStatus(status: string): Promise<RefundApprovalEntity[]>;
+    getRefundRequestsByStatus(status: 'pending' | 'approved' | 'rejected' | 'processed' | 'failed'): Promise<RefundApprovalEntity[]>;
     private isRefundEligible;
     private mapRequestTypeToRefundType;
     private notifyRefundRequest;
-    catch(error: any): void;
+    private notifyRefundApproval;
+    private notifyRefundRejection;
+    private notifyRefundProcessed;
 }

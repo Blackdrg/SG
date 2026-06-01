@@ -15,8 +15,8 @@ const payment_fraud_entity_1 = require("../payment-fraud.entity");
 const payment_dispute_entity_1 = require("../../../db/entities/payment-dispute.entity");
 const webhook_service_1 = require("./webhook.service");
 const webhook_controller_1 = require("./webhook.controller");
-const notification_module_1 = require("../../notifications/notification.module");
-const chargeback_module_1 = require("./chargeback/chargeback.module");
+const notification_module_1 = require("../../../services/notifications/notification.module");
+const chargeback_module_1 = require("../chargeback/chargeback.module");
 let WebhookModule = class WebhookModule {
 };
 exports.WebhookModule = WebhookModule;

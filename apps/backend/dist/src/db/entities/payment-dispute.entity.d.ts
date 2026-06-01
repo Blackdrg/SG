@@ -2,6 +2,7 @@ import { OrderEntity } from './order.entity';
 export declare class PaymentDisputeEntity {
     id: string;
     order: OrderEntity;
+    orderId: string;
     disputeId: string;
     disputeType: string;
     disputedAmount: number;

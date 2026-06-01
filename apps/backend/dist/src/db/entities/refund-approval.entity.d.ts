@@ -8,10 +8,11 @@ export declare class RefundApprovalEntity {
     reason: string;
     requestedBy: string;
     requestType: 'customer_request' | 'agent_initiated' | 'policy_exception' | 'dispute_resolution';
-    approvalStatus: 'pending' | 'approved' | 'rejected' | 'processed';
+    approvalStatus: 'pending' | 'approved' | 'rejected' | 'processed' | 'failed';
     approverId?: string;
     approvedAt?: Date;
     rejectionReason?: string;
+    approvalNotes?: string;
     processedAt?: Date;
     processedBy?: string;
     requiresManagerApproval: boolean;

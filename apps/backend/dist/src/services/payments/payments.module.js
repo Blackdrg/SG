@@ -33,6 +33,7 @@ const ledger_module_1 = require("../../modules/ledger/ledger.module");
 const gst_module_1 = require("../../services/gst/gst.module");
 const chargeback_module_1 = require("./chargeback/chargeback.module");
 const payment_dispute_entity_1 = require("../../db/entities/payment-dispute.entity");
+const chargeback_service_1 = require("./chargeback/chargeback.service");
 let PaymentServiceModule = class PaymentServiceModule {
 };
 exports.PaymentServiceModule = PaymentServiceModule;
@@ -66,7 +67,7 @@ exports.PaymentServiceModule = PaymentServiceModule = __decorate([
             gateway_factory_service_1.PaymentGatewayFactory,
             stripe_gateway_service_1.StripeGateway,
             razorpay_gateway_service_1.RazorpayGateway,
-            ChargebackService
+            chargeback_service_1.ChargebackService
         ],
         controllers: [payments_controller_1.PaymentsController],
         exports: [
@@ -76,7 +77,7 @@ exports.PaymentServiceModule = PaymentServiceModule = __decorate([
             fraud_hardening_service_1.FraudHardeningService,
             idempotency_service_1.IdempotencyService,
             gateway_factory_service_1.PaymentGatewayFactory,
-            ChargebackService
+            chargeback_service_1.ChargebackService
         ],
     })
 ], PaymentServiceModule);

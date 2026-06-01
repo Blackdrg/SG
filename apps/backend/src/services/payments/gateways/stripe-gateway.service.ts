@@ -51,11 +51,11 @@ export class StripeGateway implements PaymentGateway {
       // Retrieve payment intent from Stripe
       const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentId);
       
-      if (paymentIntent.status === 'succeeded') {
-        return paymentIntent;
-      } else {
-        throw new BadRequestException(Payment not successful: );
-      }
+       if (paymentIntent.status === 'succeeded') {
+         return paymentIntent;
+       } else {
+         throw new BadRequestException(`Payment not successful: ${paymentIntent.status}`);
+       }
     } catch (error) {
       this.logger.error('Stripe payment confirmation failed:', error);
       throw error;
@@ -76,9 +76,9 @@ export class StripeGateway implements PaymentGateway {
       const refundAmount = amount ?? (paymentIntent.amount / 100);
       const maxRefund = paymentIntent.amount / 100;
       
-      if (refundAmount > maxRefund) {
-        throw new BadRequestException(Refund amount cannot exceed original payment: {maxRefund});
-      }
+       if (refundAmount > maxRefund) {
+         throw new BadRequestException(`Refund amount cannot exceed original payment: ${maxRefund}`);
+       }
       
       if (refundAmount <= 0) {
         throw new BadRequestException('Refund amount must be greater than zero');

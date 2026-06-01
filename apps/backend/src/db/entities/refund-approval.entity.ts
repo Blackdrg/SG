@@ -28,7 +28,7 @@ export class RefundApprovalEntity {
    requestType!: 'customer_request' | 'agent_initiated' | 'policy_exception' | 'dispute_resolution';
 
    @Column()
-   approvalStatus!: 'pending' | 'approved' | 'rejected' | 'processed';
+    approvalStatus!: 'pending' | 'approved' | 'rejected' | 'processed' | 'failed';
 
    @Column({ nullable: true })
    approverId?: string;
@@ -36,10 +36,13 @@ export class RefundApprovalEntity {
    @Column({ nullable: true })
    approvedAt?: Date;
 
-   @Column({ nullable: true })
-   rejectionReason?: string;
+    @Column({ nullable: true })
+    rejectionReason?: string;
 
-   @Column({ nullable: true })
+    @Column({ nullable: true })
+    approvalNotes?: string;
+
+    @Column({ nullable: true })
    processedAt?: Date;
 
    @Column({ nullable: true })

@@ -15,10 +15,9 @@ const refund_entity_1 = require("../../db/entities/refund.entity");
 const refund_approval_entity_1 = require("../../db/entities/refund-approval.entity");
 const order_entity_1 = require("../../db/entities/order.entity");
 const user_entity_1 = require("../../db/entities/user.entity");
-const payment_service_module_1 = require("../payments/payment-service.module");
-const notification_module_1 = require("../../notifications/notification.module");
-const ledger_module_1 = require("../../modules/ledger/ledger.module");
-const production_notification_module_1 = require("../../notifications/production-notification.module");
+const payments_module_1 = require("../../../services/payments/payments.module");
+const notification_module_1 = require("../../services/notifications/notification.module");
+const ledger_module_1 = require("../../../modules/ledger/ledger.module");
 let RefundModule = class RefundModule {
 };
 exports.RefundModule = RefundModule;
@@ -26,10 +25,24 @@ exports.RefundModule = RefundModule = __decorate([
     (0, common_1.Module)({
         imports: [
             typeorm_1.TypeOrmModule.forFeature([refund_entity_1.RefundEntity, refund_approval_entity_1.RefundApprovalEntity, order_entity_1.OrderEntity, user_entity_1.UserEntity]),
-            payment_service_module_1.PaymentServiceModule,
+            payments_module_1.PaymentServiceModule,
             notification_module_1.NotificationModule,
-            ledger_module_1.LedgerModule,
-            production_notification_module_1.ProductionNotificationModule
+            ledger_module_1.LedgerModule
+        ],
+        providers: [refund_service_1.RefundService],
+        controllers: [refund_controller_1.RefundController],
+        exports: [refund_service_1.RefundService]
+    })
+], RefundModule);
+let RefundModule = class RefundModule {
+};
+exports.RefundModule = RefundModule;
+exports.RefundModule = RefundModule = __decorate([
+    (0, common_1.Module)({
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([refund_entity_1.RefundEntity, refund_approval_entity_1.RefundApprovalEntity, order_entity_1.OrderEntity, user_entity_1.UserEntity]),
+            payments_module_1.PaymentServiceModule,
+            notification_module_1.NotificationModule
         ],
         providers: [refund_service_1.RefundService],
         controllers: [refund_controller_1.RefundController],

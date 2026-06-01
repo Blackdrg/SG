@@ -12,7 +12,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var RefundService_1;
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefundService = exports.RefundRequestType = void 0;
 const common_1 = require("@nestjs/common");
@@ -21,11 +20,12 @@ const typeorm_2 = require("typeorm");
 const refund_entity_1 = require("../../db/entities/refund.entity");
 const refund_approval_entity_1 = require("../../db/entities/refund-approval.entity");
 const order_entity_1 = require("../../db/entities/order.entity");
+const order_interface_1 = require("../../shared/domain/order.interface");
 const user_entity_1 = require("../../db/entities/user.entity");
 const payments_service_1 = require("../payments/payments.service");
-const notification_service_1 = require("../../notifications/notification.service");
+const notification_service_1 = require("../../services/notifications/notification.service");
 const ledger_service_1 = require("../../modules/ledger/ledger.service");
-const production_notification_service_1 = require("../../notifications/production-notification.service");
+const production_notification_service_1 = require("../../services/notifications/production-notification.service");
 const config_1 = require("@nestjs/config");
 var RefundRequestType;
 (function (RefundRequestType) {
@@ -50,34 +50,30 @@ let RefundService = RefundService_1 = class RefundService {
     async createRefundRequest(orderId, requestedBy, amount, reason, requestType = RefundRequestType.CUSTOMER_REQUEST) {
         const order = await this.orderRepo.findOne({ where: { id: orderId } });
         if (!order) {
-            throw new common_1.NotFoundException(Order, not, found);
+            throw new common_1.NotFoundException(`Order not found: ${orderId}`);
         }
         const user = await this.userRepo.findOne({ where: { id: requestedBy } });
         if (!user && requestedBy !== 'system') {
-            throw new common_1.NotFoundException(User, not, found);
+            throw new common_1.NotFoundException(`User not found: ${requestedBy}`);
         }
         if (!this.isRefundEligible(order)) {
-            throw new common_1.BadRequestException(Order, is, not, eligible);
-            for (refund;;)
-                ;
+            throw new common_1.BadRequestException('Order is not eligible for refund');
         }
         if (order.paymentStatus === 'refunded') {
-            throw new common_1.BadRequestException(Order, has, already, been, refunded);
+            throw new common_1.BadRequestException('Order has already been refunded');
         }
         const existingApproval = await this.refundApprovalRepo.findOne({
-            where: { orderId, approvalStatus: 'pending' }
+            where: { order: { id: orderId }, approvalStatus: 'pending' }
         });
         if (existingApproval) {
-            throw new common_1.BadRequestException(There, is, already, a, pending, refund, request);
-            for (this; order;)
-                ;
+            throw new common_1.BadRequestException('There is already a pending refund request for this order');
         }
         const managerApprovalThreshold = this.configService.get('REFUND_MANAGER_APPROVAL_THRESHOLD', 1000);
         const requiresManagerApproval = amount >= managerApprovalThreshold;
         const refundApproval = this.refundApprovalRepo.create({
-            orderId,
+            order,
             refundAmount: amount,
-            currency: order.currency || 'USD',
+            currency: 'USD',
             reason,
             requestedBy,
             requestType,
@@ -85,23 +81,21 @@ let RefundService = RefundService_1 = class RefundService {
             requiresManagerApproval
         });
         const savedApproval = await this.refundApprovalRepo.save(refundApproval);
-        this.logger.log(Created, refund, request);
-        for (order;;)
-            ;
+        this.logger.log(`Created refund request for order ${orderId}`);
         await this.notifyRefundRequest(savedApproval);
         return savedApproval;
     }
     async approveRefundRequest(approvalId, approverId, notes) {
         const approval = await this.refundApprovalRepo.findOne({ where: { id: approvalId } });
         if (!approval) {
-            throw new common_1.NotFoundException(Refund, approval, not, found);
+            throw new common_1.NotFoundException(`Refund approval not found: ${approvalId}`);
         }
         const approver = await this.userRepo.findOne({ where: { id: approverId } });
         if (!approver) {
-            throw new common_1.NotFoundException(Approver, not, found);
+            throw new common_1.NotFoundException(`Approver not found: ${approverId}`);
         }
         if (approval.approvalStatus !== 'pending') {
-            throw new common_1.BadRequestException(Refund, request, is, already);
+            throw new common_1.BadRequestException(`Refund request is already ${approval.approvalStatus}`);
         }
         if (approval.requiresManagerApproval) {
         }
@@ -110,100 +104,97 @@ let RefundService = RefundService_1 = class RefundService {
         approval.approvedAt = new Date();
         approval.approvalNotes = notes;
         const savedApproval = await this.refundApprovalRepo.save(approval);
-        this.logger.log(Approved, refund, request, by);
+        this.logger.log(`Approved refund request by ${approverId}`);
         await this.notifyRefundApproval(savedApproval);
         return savedApproval;
     }
     async rejectRefundRequest(approvalId, approverId, reason) {
         const approval = await this.refundApprovalRepo.findOne({ where: { id: approvalId } });
         if (!approval) {
-            throw new common_1.NotFoundException(Refund, approval, not, found);
+            throw new common_1.NotFoundException(`Refund approval not found: ${approvalId}`);
         }
-        const approver = await this.userRepo.findOne({ where: { id: approberId } });
+        const approver = await this.userRepo.findOne({ where: { id: approverId } });
         if (!approver) {
-            throw new common_1.NotFoundException(Approver, not, found);
+            throw new common_1.NotFoundException(`Approver not found: ${approverId}`);
         }
         if (approval.approvalStatus !== 'pending') {
-            throw new common_1.BadRequestException(Refund, request, is, already);
+            throw new common_1.BadRequestException(`Refund request is already ${approval.approvalStatus}`);
         }
         approval.approvalStatus = 'rejected';
-        approval.approverId = approberId;
+        approval.approverId = approverId;
         approval.approvedAt = new Date();
         approval.rejectionReason = reason;
         const savedApproval = await this.refundApprovalRepo.save(approval);
-        this.logger.log(Rejected, refund, request, by);
+        this.logger.log(`Rejected refund request by ${approverId}`);
         await this.notifyRefundRejection(savedApproval);
         return savedApproval;
     }
     async processRefund(approvalId, processedBy, gatewayName) {
         const approval = await this.refundApprovalRepo.findOne({ where: { id: approvalId } });
         if (!approval) {
-            throw new common_1.NotFoundException(Refund, approval, not, found);
+            throw new common_1.NotFoundException(`Refund approval not found: ${approvalId}`);
         }
         const processor = await this.userRepo.findOne({ where: { id: processedBy } });
         if (!processor) {
-            throw new common_1.NotFoundException(Processor, not, found);
-        }
-        if (approval.approvalStatus !== 'approved') {
-            throw new common_1.BadRequestException(Refund, request, is, not, approved(current, status));
+            throw new common_1.NotFoundException(`Processor not found: ${processedBy}`);
         }
         if (approval.approvalStatus === 'processed') {
-            throw new common_1.BadRequestException(Refund, request, has, already, been, processed);
+            throw new common_1.BadRequestException('Refund request has already been processed');
         }
-        const order = await this.orderRepo.findOne({ where: { id: approval.orderId } });
+        if (approval.approvalStatus !== 'approved') {
+            throw new common_1.BadRequestException(`Refund request is not approved (current status: ${approval.approvalStatus})`);
+        }
+        const order = await this.orderRepo.findOne({ where: { id: approval.order.id } });
         if (!order) {
-            throw new common_1.NotFoundException(Order, not, found);
+            throw new common_1.NotFoundException(`Order not found: ${approval.order.id}`);
         }
         if (order.paymentStatus === 'refunded') {
-            throw new common_1.BadRequestException(Order, has, already, been, refunded);
+            throw new common_1.BadRequestException('Order has already been refunded');
         }
         try {
             const paymentRefund = await this.paymentService.refundPayment(order.paymentIntentId || '', approval.refundAmount, order.userId, approval.reason, undefined, gatewayName);
+            const requester = await this.userRepo.findOne({ where: { id: approval.requestedBy } });
+            if (!requester && approval.requestedBy !== 'system') {
+                throw new common_1.NotFoundException(`User not found: ${approval.requestedBy}`);
+            }
             const refund = this.refundRepo.create({
                 orderId: order.id,
                 requestedBy: approval.requestedBy,
-                requester: await this.userRepo.findOne({ where: { id: approval.requestedBy } }),
+                requester: requester,
                 type: this.mapRequestTypeToRefundType(approval.requestType),
                 amount: approval.refundAmount,
-                status: 'processed',
+                status: refund_entity_1.RefundStatus.PROCESSED,
                 reason: approval.reason,
                 approvalNotes: approval.approvalNotes,
                 approvedBy: approval.approverId,
                 approvedAt: approval.approvedAt,
                 processedBy: processedBy,
                 processedAt: new Date(),
-                paymentReference: paymentRefund.id
+                paymentReference: paymentRefund.id,
+                evidence: {}
             });
             const savedRefund = await this.refundRepo.save(refund);
             approval.approvalStatus = 'processed';
             approval.processedBy = processedBy;
             approval.processedAt = new Date();
             await this.refundApprovalRepo.save(approval);
-            order.paymentStatus = 'refunded';
+            order.paymentStatus = order_interface_1.PaymentStatus.REFUNDED;
             order.updatedAt = new Date();
             await this.orderRepo.save(order);
             try {
-                await this.ledgerService.createTransaction(paymentRefund.id, 'refund', 'cash', paymentRefund.amount / 100, order.currency || 'USD', 'refund', paymentRefund.id, Refund, processed);
-                for (order, reason; ; )
-                    : ;
-                ;
+                await this.ledgerService.createTransaction(paymentRefund.id, 'refund', 'cash', paymentRefund.amount / 100, 'USD', 'refund', paymentRefund.id, `Refund processed for order ${order.id}, reason: ${approval.reason}`);
             }
             catch (ledgerError) {
                 this.logger.error('Failed to create ledger entry for refund:', ledgerError);
             }
             await this.notifyRefundProcessed(savedRefund, order);
-            this.logger.log(Processed, refund);
-            for (order;;)
-                ;
+            this.logger.log(`Processed refund for order ${order.id}`);
             return { refund: savedRefund, approval };
         }
         catch (error) {
             approval.approvalStatus = 'failed';
             await this.refundApprovalRepo.save(approval);
-            this.logger.error(Failed, to, process, refund);
-            for (approval; ; )
-                : , error;
-            ;
+            this.logger.error(`Failed to process refund for approval ${approval.id}:`, error);
             throw new common_1.InternalServerErrorException('Refund processing failed');
         }
     }
@@ -213,13 +204,13 @@ let RefundService = RefundService_1 = class RefundService {
             relations: ['order', 'requester', 'approver']
         });
         if (!approval) {
-            throw new common_1.NotFoundException(Refund, approval, not, found);
+            throw new common_1.NotFoundException(`Refund approval not found: ${approvalId}`);
         }
         return approval;
     }
     async getRefundRequestsForOrder(orderId) {
         return await this.refundApprovalRepo.find({
-            where: { orderId },
+            where: { order: { id: orderId } },
             relations: ['requester', 'approver'],
             order: { createdAt: 'DESC' }
         });
@@ -256,33 +247,77 @@ let RefundService = RefundService_1 = class RefundService {
     }
     async notifyRefundRequest(approval) {
         try {
-            await this.productionNotification.sendPaymentNotification('system', 'refund-request-' + approval.id, {
+            await this.productionNotification.sendPaymentNotification('system', order.paymentIntentId || `refund-request-${approval.id}`, {
                 type: 'refund_initiated',
                 severity: 'medium',
-                userId: 'system',
-                orderId: approval.orderId,
+                orderId: approval.order.id,
                 amount: approval.refundAmount,
-                message: New, refund, request, of
-            }, { approval, : .refundAmount });
-            for (order; .Reason; )
-                : ,
-                    metadata;
-            {
-                approvalId: approval.id,
-                    requestedBy;
-                approval.requestedBy,
-                    requestType;
-                approval.requestType,
-                    requiresManagerApproval;
-                approval.requiresManagerApproval;
-            }
+                message: `New refund request of ${approval.refundAmount} for order #${approval.order.id}. Reason: ${approval.reason}`,
+                metadata: {
+                    approvalId: approval.id,
+                    requestedBy: approval.requestedBy,
+                    requestType: approval.requestType,
+                    requiresManagerApproval: approval.requiresManagerApproval
+                }
+            });
         }
-        finally {
+        catch (error) {
+            this.logger.error('Failed to send refund request notification:', error);
         }
-        ;
     }
-    catch(error) {
-        this.logger.error('Failed to send refund request notification:', error);
+    async notifyRefundApproval(approval) {
+        try {
+            await this.productionNotification.sendPaymentNotification('system', order.paymentIntentId || `refund-approval-${approval.id}`, {
+                type: 'refund_initiated',
+                severity: 'medium',
+                orderId: approval.order.id,
+                amount: approval.refundAmount,
+                message: `Refund request approved for ${approval.refundAmount} for order #${approval.order.id}`,
+                metadata: {
+                    approvalId: approval.id,
+                    approverId: approval.approverId
+                }
+            });
+        }
+        catch (error) {
+            this.logger.error('Failed to send refund approval notification:', error);
+        }
+    }
+    async notifyRefundRejection(approval) {
+        try {
+            await this.productionNotification.sendPaymentNotification(approval.requestedBy, approval.order.paymentIntentId || `refund-rejection-${approval.id}`, {
+                type: 'refund_initiated',
+                severity: 'medium',
+                orderId: approval.order.id,
+                amount: 0,
+                message: `Your refund request for order #${approval.order.id} has been rejected. Reason: ${approval.rejectionReason}`,
+                metadata: {
+                    approvalId: approval.id,
+                    rejectionReason: approval.rejectionReason
+                }
+            });
+        }
+        catch (error) {
+            this.logger.error('Failed to send refund rejection notification:', error);
+        }
+    }
+    async notifyRefundProcessed(refund, order) {
+        try {
+            await this.productionNotification.sendPaymentNotification(order.userId, refund.paymentReference, {
+                type: 'refund_completed',
+                severity: 'low',
+                orderId: order.id,
+                amount: refund.amount,
+                message: `Your refund of ${refund.amount} for order #${order.id} has been processed.`,
+                metadata: {
+                    refundId: refund.id,
+                    paymentReference: refund.paymentReference
+                }
+            });
+        }
+        catch (error) {
+            this.logger.error('Failed to send refund processed notification:', error);
+        }
     }
 };
 exports.RefundService = RefundService;
@@ -296,68 +331,10 @@ exports.RefundService = RefundService = RefundService_1 = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        payments_service_1.PaymentService, typeof (_a = typeof notification_service_1.NotificationService !== "undefined" && notification_service_1.NotificationService) === "function" ? _a : Object, ledger_service_1.LedgerService, typeof (_b = typeof production_notification_service_1.ProductionNotificationService !== "undefined" && production_notification_service_1.ProductionNotificationService) === "function" ? _b : Object, config_1.ConfigService])
+        payments_service_1.PaymentService,
+        notification_service_1.NotificationService,
+        ledger_service_1.LedgerService,
+        production_notification_service_1.ProductionNotificationService,
+        config_1.ConfigService])
 ], RefundService);
-async;
-notifyRefundApproval(approval, refund_approval_entity_1.RefundApprovalEntity);
-Promise < void  > {
-    try: {
-        await, this: .productionNotification.sendPaymentNotification('system', 'refund-approval-' + approval.id, {
-            type: 'refund_initiated',
-            severity: 'medium',
-            userId: 'system',
-            orderId: approval.orderId,
-            amount: approval.refundAmount,
-            message: Refund, request, approved, for: { approval, : .refundAmount }, for: order, : ,
-            metadata: {
-                approvalId: approval.id,
-                approverId: approval.approverId
-            }
-        })
-    }, catch(error) {
-        this.logger.error('Failed to send refund approval notification:', error);
-    }
-};
-async;
-notifyRefundRejection(approval, refund_approval_entity_1.RefundApprovalEntity);
-Promise < void  > {
-    try: {
-        await, this: .productionNotification.sendPaymentNotification(approval.requestedBy, 'refund-rejection-' + approval.id, {
-            type: 'refund_initiated',
-            severity: 'medium',
-            userId: approval.requestedBy,
-            orderId: approval.orderId,
-            amount: 0,
-            message: Your, refund, request, for: order, : has, been, rejected, : .Reason,
-            metadata: {
-                approvalId: approval.id,
-                rejectionReason: approval.rejectionReason
-            }
-        })
-    }, catch(error) {
-        this.logger.error('Failed to send refund rejection notification:', error);
-    }
-};
-async;
-notifyRefundProcessed(refund, refund_entity_1.RefundEntity, order, order_entity_1.OrderEntity);
-Promise < void  > {
-    try: {
-        await, this: .productionNotification.sendPaymentNotification(order.userId, 'refund-processed-' + refund.id, {
-            type: 'refund_completed',
-            severity: 'low',
-            userId: order.userId,
-            orderId: order.id,
-            amount: refund.amount,
-            message: Your, refund, of
-        }, { refund, : .amount }), for: order, : has, been, processed, : .,
-        metadata: {
-            refundId: refund.id,
-            paymentReference: refund.paymentReference
-        }
-    }
-};
-try { }
-catch (error) {
-    this.logger.error('Failed to send refund processed notification:', error);
-}
 //# sourceMappingURL=refund.service.js.map

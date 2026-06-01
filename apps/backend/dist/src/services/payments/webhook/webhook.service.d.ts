@@ -4,11 +4,11 @@ import { PaymentWebhookEntity } from '../../../db/entities/payment-webhook.entit
 import { PaymentEventEntity } from '../payment-event.entity';
 import { OrderEntity } from '../../../db/entities/order.entity';
 import { PaymentFraudFlagEntity } from '../payment-fraud.entity';
-import { NotificationService } from '../../notifications/notification.service';
-import { ProductionNotificationService } from '../../notifications/production-notification.service';
+import { NotificationService } from '../../../services/notifications/notification.service';
+import { ProductionNotificationService } from '../../../services/notifications/production-notification.service';
 import { LedgerService } from '../../../modules/ledger/ledger.service';
-import { PaymentGatewayFactory } from './gateway-factory.service';
-import { ChargebackService } from './chargeback/chargeback.service';
+import { PaymentGatewayFactory } from '../../../services/payments/gateway-factory.service';
+import { ChargebackService } from '../chargeback/chargeback.service';
 export declare class WebhookService {
     private configService;
     private readonly webhookRepo;

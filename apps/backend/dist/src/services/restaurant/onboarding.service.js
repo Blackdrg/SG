@@ -58,9 +58,7 @@ let RestaurantOnboardingService = RestaurantOnboardingService_1 = class Restaura
             status: restaurant_onboarding_entity_1.OnboardingStatus.IN_PROGRESS,
         });
         const savedOnboarding = await this.onboardingRepo.save(onboarding);
-        this.logger.log(Initialized, onboarding);
-        for (restaurant;;)
-            ;
+        this.logger.log(`Initialized onboarding for restaurant ${restaurantId}`);
         return savedOnboarding;
     }
     async updateStep(onboardingId, step, data) {
@@ -91,9 +89,7 @@ let RestaurantOnboardingService = RestaurantOnboardingService_1 = class Restaura
             onboarding.status = restaurant_onboarding_entity_1.OnboardingStatus.COMPLETED;
         }
         const updatedOnboarding = await this.onboardingRepo.save(onboarding);
-        this.logger.log(Updated, onboarding, step, to);
-        for (onboarding;;)
-            ;
+        this.logger.log(`Updated onboarding step to ${step} for onboarding ${onboardingId}`);
         return updatedOnboarding;
     }
     async getOnboardingStatus(restaurantId) {
@@ -115,7 +111,7 @@ let RestaurantOnboardingService = RestaurantOnboardingService_1 = class Restaura
         onboarding.reviewedAt = new Date();
         onboarding.currentStep = restaurant_onboarding_entity_1.OnboardingStep.COMPLETION;
         const updatedOnboarding = await this.onboardingRepo.save(onboarding);
-        this.logger.log(Completed, onboarding);
+        this.logger.log(`Completed onboarding ${onboardingId}`);
         return updatedOnboarding;
     }
     async rejectOnboarding(onboardingId, reviewedBy, reason) {
@@ -128,7 +124,7 @@ let RestaurantOnboardingService = RestaurantOnboardingService_1 = class Restaura
         onboarding.reviewedAt = new Date();
         onboarding.rejectionReason = reason;
         const updatedOnboarding = await this.onboardingRepo.save(onboarding);
-        this.logger.log(Rejected, onboarding);
+        this.logger.log(`Rejected onboarding ${onboardingId}`);
         return updatedOnboarding;
     }
     async submitGSTConfig(restaurantId, gstData) {

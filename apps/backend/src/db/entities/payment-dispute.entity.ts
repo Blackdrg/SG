@@ -10,6 +10,9 @@ export class PaymentDisputeEntity {
    order!: OrderEntity;
 
    @Column()
+   orderId!: string; // Foreign key to order
+
+   @Column()
    disputeId!: string; // External dispute ID from payment processor (Stripe, etc.)
 
    @Column()

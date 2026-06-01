@@ -13,8 +13,8 @@ export class PaymentEventEntity {
   @Column()
   orderId: string;
 
-  @Column()
-  event: 'payment_intent_created' | 'payment_succeeded' | 'payment_failed' | 'refund_initiated' | 'refund_completed';
+@Column()
+event: 'payment_intent_created' | 'payment_succeeded' | 'payment_failed' | 'refund_initiated' | 'refund_completed' | 'chargeback_received' | 'chargeback_closed' | 'refund_failed';
 
   @Column('jsonb')
   payload: any;

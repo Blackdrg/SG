@@ -47,7 +47,7 @@ let StripeGateway = StripeGateway_1 = class StripeGateway {
                 return paymentIntent;
             }
             else {
-                throw new common_1.BadRequestException(Payment, not, successful);
+                throw new common_1.BadRequestException(`Payment not successful: ${paymentIntent.status}`);
             }
         }
         catch (error) {
@@ -61,7 +61,7 @@ let StripeGateway = StripeGateway_1 = class StripeGateway {
             const refundAmount = amount ?? (paymentIntent.amount / 100);
             const maxRefund = paymentIntent.amount / 100;
             if (refundAmount > maxRefund) {
-                throw new common_1.BadRequestException(Refund, amount, cannot, exceed, original, payment, { maxRefund });
+                throw new common_1.BadRequestException(`Refund amount cannot exceed original payment: ${maxRefund}`);
             }
             if (refundAmount <= 0) {
                 throw new common_1.BadRequestException('Refund amount must be greater than zero');

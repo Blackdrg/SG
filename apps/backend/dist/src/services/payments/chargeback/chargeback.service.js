@@ -18,11 +18,11 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const config_1 = require("@nestjs/config");
-const payment_dispute_entity_1 = require("../../db/entities/payment-dispute.entity");
-const order_entity_1 = require("../../db/entities/order.entity");
-const user_entity_1 = require("../../db/entities/user.entity");
-const notification_service_1 = require("../../notifications/notification.service");
-const production_notification_service_1 = require("../../notifications/production-notification.service");
+const payment_dispute_entity_1 = require("../../../db/entities/payment-dispute.entity");
+const order_entity_1 = require("../../../db/entities/order.entity");
+const user_entity_1 = require("../../../db/entities/user.entity");
+const notification_service_1 = require("../../../services/notifications/notification.service");
+const production_notification_service_1 = require("../../../services/notifications/production-notification.service");
 const stripe_1 = require("stripe");
 let ChargebackService = ChargebackService_1 = class ChargebackService {
     constructor(configService, disputeRepo, orderRepo, userRepo, notificationService, productionNotification) {

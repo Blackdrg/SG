@@ -8,13 +8,33 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticsModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const analytics_service_1 = require("./analytics.service");
+const analytics_controller_1 = require("./analytics.controller");
+const order_entity_1 = require("../../db/entities/order.entity");
+const order_item_entity_1 = require("../../db/entities/order-item.entity");
+const menu_item_entity_1 = require("../../db/entities/menu-item.entity");
+const user_entity_1 = require("../../db/entities/user.entity");
+const restaurant_branch_entity_1 = require("../../db/entities/restaurant-branch.entity");
+const address_entity_1 = require("../../db/entities/address.entity");
 let AnalyticsModule = class AnalyticsModule {
 };
 exports.AnalyticsModule = AnalyticsModule;
 exports.AnalyticsModule = AnalyticsModule = __decorate([
     (0, common_1.Module)({
-        controllers: [],
-        providers: []
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                order_entity_1.OrderEntity,
+                order_item_entity_1.OrderItemEntity,
+                menu_item_entity_1.MenuItemEntity,
+                user_entity_1.UserEntity,
+                restaurant_branch_entity_1.RestaurantBranchEntity,
+                address_entity_1.AddressEntity,
+            ]),
+        ],
+        providers: [analytics_service_1.AnalyticsService],
+        controllers: [analytics_controller_1.AnalyticsController],
+        exports: [analytics_service_1.AnalyticsService],
     })
 ], AnalyticsModule);
 //# sourceMappingURL=analytics.module.js.map

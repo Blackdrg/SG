@@ -12,7 +12,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var WebhookService_1;
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhookService = void 0;
 const common_1 = require("@nestjs/common");
@@ -25,11 +24,11 @@ const order_entity_1 = require("../../../db/entities/order.entity");
 const payment_fraud_entity_1 = require("../payment-fraud.entity");
 const stripe_1 = require("stripe");
 const crypto = require("crypto");
-const notification_service_1 = require("../../notifications/notification.service");
-const production_notification_service_1 = require("../../notifications/production-notification.service");
+const notification_service_1 = require("../../../services/notifications/notification.service");
+const production_notification_service_1 = require("../../../services/notifications/production-notification.service");
 const ledger_service_1 = require("../../../modules/ledger/ledger.service");
-const gateway_factory_service_1 = require("./gateway-factory.service");
-const chargeback_service_1 = require("./chargeback/chargeback.service");
+const gateway_factory_service_1 = require("../../../services/payments/gateway-factory.service");
+const chargeback_service_1 = require("../chargeback/chargeback.service");
 let WebhookService = WebhookService_1 = class WebhookService {
     constructor(configService, webhookRepo, paymentEventRepo, orderRepo, fraudFlagRepo, notificationService, productionNotification, ledgerService, paymentGatewayFactory, chargebackService) {
         this.configService = configService;
@@ -423,6 +422,8 @@ exports.WebhookService = WebhookService = WebhookService_1 = __decorate([
         typeorm_2.Repository,
         notification_service_1.NotificationService,
         production_notification_service_1.ProductionNotificationService,
-        ledger_service_1.LedgerService, typeof (_a = typeof gateway_factory_service_1.PaymentGatewayFactory !== "undefined" && gateway_factory_service_1.PaymentGatewayFactory) === "function" ? _a : Object, typeof (_b = typeof chargeback_service_1.ChargebackService !== "undefined" && chargeback_service_1.ChargebackService) === "function" ? _b : Object])
+        ledger_service_1.LedgerService,
+        gateway_factory_service_1.PaymentGatewayFactory,
+        chargeback_service_1.ChargebackService])
 ], WebhookService);
 //# sourceMappingURL=webhook.service.js.map

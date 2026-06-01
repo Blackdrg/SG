@@ -16,7 +16,7 @@ exports.RefundController = void 0;
 const common_1 = require("@nestjs/common");
 const refund_service_1 = require("./refund.service");
 const refund_service_2 = require("./refund.service");
-const switch_1 = require("@nestjs/switch");
+const swagger_1 = require("@nestjs/swagger");
 let RefundController = class RefundController {
     constructor(refundService) {
         this.refundService = refundService;
@@ -41,6 +41,10 @@ let RefundController = class RefundController {
     }
     async getRefundRequestsByStatus(status) {
         if (status) {
+            const validStatuses = ['pending', 'approved', 'rejected', 'processed', 'failed'];
+            if (!validStatuses.includes(status)) {
+                throw new common_1.BadRequestException(`Invalid status: ${status}. Must be one of ${validStatuses.join(', ')}`);
+            }
             return await this.refundService.getRefundRequestsByStatus(status);
         }
         return await this.refundService.getRefundRequestsByStatus('pending');
@@ -50,11 +54,11 @@ exports.RefundController = RefundController;
 __decorate([
     (0, common_1.Post)('request'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Create a refund request' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund request created successfully' }),
-    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Order or user not found' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Create a refund request' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund request created successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Order or user not found' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -75,12 +79,12 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':approvalId/approve'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Approve a refund request' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund request approved successfully' }),
-    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
-    (0, switch_1.ApiParam)({ name: 'approvalId', type: 'string' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Approve a refund request' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund request approved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
+    (0, swagger_1.ApiParam)({ name: 'approvalId', type: 'string' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -99,12 +103,12 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':approvalId/reject'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Reject a refund request' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund request rejected successfully' }),
-    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
-    (0, switch_1.ApiParam)({ name: 'approvalId', type: 'string' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Reject a refund request' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund request rejected successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
+    (0, swagger_1.ApiParam)({ name: 'approvalId', type: 'string' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -123,12 +127,12 @@ __decorate([
 __decorate([
     (0, common_1.Post)(':approvalId/process'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Process an approved refund' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund processed successfully' }),
-    (0, switch_1.ApiResponse)({ status: 400, description: 'Bad request' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
-    (0, switch_1.ApiParam)({ name: 'approvalId', type: 'string' }),
-    (0, switch_1.ApiBody)({
+    (0, swagger_1.ApiOperation)({ summary: 'Process an approved refund' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund processed successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
+    (0, swagger_1.ApiParam)({ name: 'approvalId', type: 'string' }),
+    (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
@@ -147,10 +151,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':approvalId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get refund request by ID' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund request retrieved successfully' }),
-    (0, switch_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
-    (0, switch_1.ApiParam)({ name: 'approvalId', type: 'string' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get refund request by ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund request retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Refund request not found' }),
+    (0, swagger_1.ApiParam)({ name: 'approvalId', type: 'string' }),
     __param(0, (0, common_1.Param)('approvalId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -159,9 +163,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)('order/:orderId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get refund requests for an order' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund requests retrieved successfully' }),
-    (0, switch_1.ApiParam)({ name: 'orderId', type: 'string' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get refund requests for an order' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund requests retrieved successfully' }),
+    (0, swagger_1.ApiParam)({ name: 'orderId', type: 'string' }),
     __param(0, (0, common_1.Param)('orderId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -170,16 +174,16 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, switch_1.ApiOperation)({ summary: 'Get refund requests by status' }),
-    (0, switch_1.ApiResponse)({ status: 200, description: 'Refund requests retrieved successfully' }),
-    (0, switch_1.ApiQuery)({ name: 'status', type: 'string', required: false }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get refund requests by status' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Refund requests retrieved successfully' }),
+    (0, swagger_1.ApiQuery)({ name: 'status', type: 'string', required: false }),
     __param(0, (0, common_1.Query)('status')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], RefundController.prototype, "getRefundRequestsByStatus", null);
 exports.RefundController = RefundController = __decorate([
-    (0, switch_1.ApiTags)('refunds'),
+    (0, swagger_1.ApiTags)('refunds'),
     (0, common_1.Controller)('refunds'),
     __metadata("design:paramtypes", [refund_service_1.RefundService])
 ], RefundController);

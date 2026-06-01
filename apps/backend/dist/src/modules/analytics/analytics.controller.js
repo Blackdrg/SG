@@ -16,7 +16,7 @@ exports.AnalyticsController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const analytics_service_1 = require("./analytics.service");
-const jwt_auth_guard_1 = require("../security/jwt-auth.guard");
+const jwt_auth_guard_1 = require("../../security/jwt-auth.guard");
 let AnalyticsController = class AnalyticsController {
     constructor(analyticsService) {
         this.analyticsService = analyticsService;

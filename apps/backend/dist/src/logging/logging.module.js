@@ -14,7 +14,12 @@ let LoggingModule = class LoggingModule {
 exports.LoggingModule = LoggingModule;
 exports.LoggingModule = LoggingModule = __decorate([
     (0, common_1.Module)({
-        providers: [logging_service_1.LoggingService],
+        providers: [
+            {
+                provide: logging_service_1.LoggingService,
+                useFactory: () => new logging_service_1.LoggingService('Application'),
+            },
+        ],
         exports: [logging_service_1.LoggingService],
     })
 ], LoggingModule);

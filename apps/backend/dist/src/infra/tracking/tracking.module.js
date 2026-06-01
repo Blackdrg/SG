@@ -18,20 +18,8 @@ exports.TrackingModule = TrackingModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([notification_entity_1.NotificationEntity])],
-        providers: [
-            tracking_gateway_1.TrackingGateway,
-            tracking_gateway_1.TrackingNamespaceGateway,
-            tracking_gateway_1.KDSNamespaceGateway,
-            tracking_gateway_1.AdminNamespaceGateway,
-            tracking_gateway_1.DriverNamespaceGateway,
-        ],
-        exports: [
-            tracking_gateway_1.TrackingGateway,
-            tracking_gateway_1.TrackingNamespaceGateway,
-            tracking_gateway_1.KDSNamespaceGateway,
-            tracking_gateway_1.AdminNamespaceGateway,
-            tracking_gateway_1.DriverNamespaceGateway,
-        ],
+        providers: [tracking_gateway_1.TrackingGateway],
+        exports: [tracking_gateway_1.TrackingGateway],
     })
 ], TrackingModule);
 //# sourceMappingURL=tracking.module.js.map

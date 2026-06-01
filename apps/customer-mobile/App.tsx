@@ -3,11 +3,13 @@ import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, createBottomTabNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList, TabParamList } from './src/navigation/types';
+import { LocaleProvider } from './src/constants/i18n';
 import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import CartScreen from './src/screens/CartScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import TrackingScreen from './src/screens/TrackingScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -19,6 +21,7 @@ function AppNavigator() {
         <Stack.Screen name="Auth" component={AuthScreen} />
         <Stack.Screen name="Main" component={MainTabNavigator} />
         <Stack.Screen name="Tracking" component={TrackingScreen} />
+        <Stack.Screen name="OrderDetails" component={HistoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -56,5 +59,9 @@ function MainTabNavigator() {
 }
 
 export default function App() {
-  return <AppNavigator />;
+  return (
+    <LocaleProvider>
+      <AppNavigator />
+    </LocaleProvider>
+  );
 }

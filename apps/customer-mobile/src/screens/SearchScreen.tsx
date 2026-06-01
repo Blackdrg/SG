@@ -72,15 +72,12 @@ const SearchScreen = () => {
   const saveRecentSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
     
-    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);
-    setRecentSearches(updated);
-    
-    try {
-      await AsyncStorage.setItem('sg_recent_searches', JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to save recent search:', e);
-    }
-  }, [recentSearches]);
+    setRecentSearches(prev => {
+      const updated = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, 5);
+      AsyncStorage.setItem('sg_recent_searches', JSON.stringify(updated)).catch(() => undefined);
+      return updated;
+    });
+  }, []);
 
   const search = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -106,7 +103,7 @@ const SearchScreen = () => {
 
       const data = await response.json();
       setResults(data.results || []);
-      await saveRecentSearch(searchQuery);
+      saveRecentSearch(searchQuery);
     } catch (error) {
       setResults([]);
       if ((error as Error).message.includes('Network')) {
@@ -115,7 +112,7 @@ const SearchScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [recentSearches, saveRecentSearch]);
+  }, [saveRecentSearch]);
 
   const clearRecent = async () => {
     setRecentSearches([]);

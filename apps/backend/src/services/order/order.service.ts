@@ -1,13 +1,15 @@
 import { Injectable, BadRequestException, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Order, OrderStatus, PaymentStatus } from '../../shared/domain/order.interface';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
+import { Order, OrderStatus, PaymentStatus } from '../../shared/domain/order.interface';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { PaymentService } from '../../services/payments/payments.service';
 import { NotificationService } from '../../services/notifications/notification.service';
 import { RetryService } from '../../services/payments/retry.service';
 import { IdempotencyService } from '../../services/payments/idempotency.service';
 import { ProductionNotificationService } from '../../services/notifications/production-notification.service';
+import { LoggingService } from '../../logging/logging.service';
+import { sanitizeForLog } from '../../logging/logging.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -20,16 +22,67 @@ export class OrderService {
     private readonly retryService: RetryService,
     private readonly idempotency: IdempotencyService,
     private readonly productionNotification: ProductionNotificationService,
+    private readonly loggingService: LoggingService,
   ) {}
+
+  validateOrderItems(items: unknown): void {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Order must contain at least one item');
+    }
+    for (const item of items) {
+      if (!item || typeof item !== 'object') {
+        throw new BadRequestException('Invalid order item');
+      }
+      const anyItem = item as any;
+      if (!anyItem.id || typeof anyItem.id !== 'string' || anyItem.id.trim().length === 0) {
+        throw new BadRequestException('Invalid order item ID');
+      }
+      if (!anyItem.name || typeof anyItem.name !== 'string' || anyItem.name.trim().length === 0) {
+        throw new BadRequestException('Invalid order item name');
+      }
+      if (typeof anyItem.price !== 'number' || !Number.isFinite(anyItem.price) || anyItem.price < 0) {
+        throw new BadRequestException('Invalid order item price');
+      }
+      if (!Number.isInteger(anyItem.quantity) || anyItem.quantity < 1) {
+        throw new BadRequestException('Invalid order item quantity');
+      }
+    }
+  }
+
+  validateOrderTotals(orderData: any): boolean {
+    const subtotal = Number(orderData.subtotal) || 0;
+    const tax = Number(orderData.tax) || 0;
+    const deliveryFee = Number(orderData.deliveryFee) || 0;
+    const grandTotal = Number(orderData.grandTotal);
+    if (!Number.isFinite(subtotal) || subtotal < 0) {
+      throw new BadRequestException('Invalid subtotal');
+    }
+    if (!Number.isFinite(tax) || tax < 0) {
+      throw new BadRequestException('Invalid tax');
+    }
+    if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+      throw new BadRequestException('Invalid delivery fee');
+    }
+    if (!Number.isFinite(grandTotal) || grandTotal <= 0) {
+      throw new BadRequestException('Order total must be greater than zero');
+    }
+    const expectedTotal = Math.round((subtotal + tax + deliveryFee) * 100) / 100;
+    if (Math.abs(expectedTotal - grandTotal) > 0.01) {
+      throw new BadRequestException('Order total does not match items');
+    }
+    return true;
+  }
 
   async placeOrder(orderData: any, idempotencyKey?: string): Promise<Order> {
     if (!orderData.userId || !orderData.restaurantId || !orderData.grandTotal) {
       throw new BadRequestException('Missing required order data: userId, restaurantId, or grandTotal');
     }
 
-    if (orderData.grandTotal <= 0) {
-      throw new BadRequestException('Order total must be greater than zero');
+    if (orderData.items) {
+      this.validateOrderItems(orderData.items);
     }
+
+    this.validateOrderTotals(orderData);
 
     if (idempotencyKey) {
       const existing = await this.idempotency.validateOrCreate(
@@ -55,12 +108,12 @@ export class OrderService {
       orderNumber: `ORD-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${orderId.slice(0,6).toUpperCase()}`,
       status: OrderStatus.PLACED,
       paymentStatus: PaymentStatus.PENDING,
-      subtotal: orderData.subtotal || 0,
-      tax: orderData.tax || 0,
-      deliveryFee: orderData.deliveryFee || 0,
-      discount: orderData.discount || 0,
-      tip: orderData.tip || 0,
-      grandTotal: orderData.grandTotal,
+      subtotal: Number(orderData.subtotal) || 0,
+      tax: Number(orderData.tax) || 0,
+      deliveryFee: Number(orderData.deliveryFee) || 0,
+      discount: Number(orderData.discount) || 0,
+      tip: Number(orderData.tip) || 0,
+      grandTotal: Number(orderData.grandTotal),
       couponId: orderData.couponId,
       deliveryAddressId: orderData.deliveryAddressId || '',
       createdAt: now,
@@ -69,14 +122,14 @@ export class OrderService {
 
     try {
       const savedOrder = await this.orderRepo.save(order);
-      
+
       if (idempotencyKey) {
         await this.idempotency.complete(idempotencyKey, 'place_order', savedOrder);
       }
-      
+
       return savedOrder;
     } catch (error) {
-      console.error('[OrderService] Failed to place order:', error);
+      this.loggingService.secureError('[OrderService] Failed to place order', error, 'OrderService');
       if ((error as any)?.code === '23505') {
         throw new ConflictException('Order creation failed due to duplicate');
       }
@@ -96,11 +149,11 @@ export class OrderService {
 
     try {
       const paymentIntent = await this.paymentService.confirmPayment(paymentId, order.userId, request);
-      
+
       order.paymentStatus = PaymentStatus.COMPLETED;
       order.status = OrderStatus.PAYMENT_CONFIRMED;
       order.updatedAt = new Date();
-      
+
       const savedOrder = await this.orderRepo.save(order);
 
       await this.notificationService.sendPush(
@@ -112,12 +165,12 @@ export class OrderService {
 
       return savedOrder;
     } catch (error) {
-      console.error('[OrderService] Payment confirmation failed:', error);
-      
+      this.loggingService.secureError('[OrderService] Payment confirmation failed', error, 'OrderService');
+
       order.paymentStatus = PaymentStatus.FAILED;
       order.updatedAt = new Date();
       await this.orderRepo.save(order);
-      
+
       throw error;
     }
   }
@@ -168,19 +221,19 @@ export class OrderService {
 
       order.paymentStatus = PaymentStatus.REFUNDED;
       order.updatedAt = new Date();
-      
+
       const savedOrder = await this.orderRepo.save(order);
-      
+
       await this.notificationService.sendPush(
         order.userId,
         'Refund Initiated',
-        `A refund of $${order.grandTotal} has been initiated for order #${order.orderNumber}. Reason: ${reason}`,
+        `A refund has been initiated for order #${order.orderNumber}. Reason: ${reason}`,
         { orderId: order.id }
       );
 
       return savedOrder;
     } catch (error) {
-      console.error('[OrderService] Refund failed:', error);
+      this.loggingService.secureError('[OrderService] Refund failed', error, 'OrderService');
       throw new InternalServerErrorException('Refund processing failed');
     }
   }
@@ -209,9 +262,9 @@ export class OrderService {
       order.status = OrderStatus.CANCELLED;
       order.driverId = null;
       order.updatedAt = new Date();
-      
+
       const savedOrder = await this.orderRepo.save(order);
-      
+
       await this.notificationService.sendPush(
         order.userId,
         'Order Cancelled by Driver',
@@ -221,7 +274,7 @@ export class OrderService {
 
       return savedOrder;
     } catch (error) {
-      console.error('[OrderService] Driver cancellation failed:', error);
+      this.loggingService.secureError('[OrderService] Driver cancellation failed', error, 'OrderService');
       throw new InternalServerErrorException('Driver cancellation failed');
     }
   }
@@ -244,9 +297,9 @@ export class OrderService {
     try {
       order.status = OrderStatus.CANCELLED;
       order.updatedAt = new Date();
-      
+
       const savedOrder = await this.orderRepo.save(order);
-      
+
       await this.notificationService.sendPush(
         order.userId,
         'Order Cancelled by Restaurant',
@@ -256,7 +309,7 @@ export class OrderService {
 
       return savedOrder;
     } catch (error) {
-      console.error('[OrderService] Kitchen cancellation failed:', error);
+      this.loggingService.secureError('[OrderService] Kitchen cancellation failed', error, 'OrderService');
       throw new InternalServerErrorException('Kitchen cancellation failed');
     }
   }
@@ -288,19 +341,19 @@ export class OrderService {
       order.status = OrderStatus.PLACED;
       order.paymentStatus = PaymentStatus.PENDING;
       order.updatedAt = new Date();
-      
+
       const savedOrder = await this.orderRepo.save(order);
 
       return savedOrder;
     } catch (error) {
-      console.error('[OrderService] Order retry failed:', error);
+      this.loggingService.secureError('[OrderService] Order retry failed', error, 'OrderService');
       throw new InternalServerErrorException('Order retry failed');
     }
   }
 
   async resolveStuckPreparingState(): Promise<Order[]> {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-    
+
     const stuckOrders = await this.orderRepo.find({
       where: {
         status: OrderStatus.PREPARING,
@@ -314,10 +367,10 @@ export class OrderService {
       try {
         order.status = OrderStatus.RESTAURANT_ACCEPTED;
         order.updatedAt = new Date();
-        
+
         const savedOrder = await this.orderRepo.save(order);
         resolvedOrders.push(savedOrder);
-        
+
         await this.notificationService.sendPush(
           order.userId,
           'Order Delayed',
@@ -325,7 +378,7 @@ export class OrderService {
           { orderId: order.id }
         );
       } catch (error) {
-        console.error('[OrderService] Failed to resolve stuck preparing state for order:', order.id, error);
+        this.loggingService.secureError('[OrderService] Failed to resolve stuck preparing state for order', {id: order.id, error}, 'OrderService');
       }
     }
 
@@ -333,15 +386,15 @@ export class OrderService {
   }
 
   async getOrderWithLock(orderId: string): Promise<Order> {
-    const order = await this.orderRepo.findOne({ 
+    const order = await this.orderRepo.findOne({
       where: { id: orderId },
       lock: { mode: 'pessimistic_write' }
     });
-    
+
     if (!order) {
       throw new NotFoundException(`Order ${orderId} not found`);
     }
-    
+
     return order;
   }
 }

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Easing, ScrollView } from 'react-native';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CartItem } from './CartScreen';
 import { DESIGN_TOKENS } from '@spicegarden/ui';
+import { STORAGE_KEYS } from '../constants/storage.keys';
+import { validateCart } from '../utils/validation';
+import { safeGetItem } from '../utils/secure-storage';
 
 type CheckoutParams = { cartItems?: CartItem[] };
 const CheckoutScreen = () => {
@@ -30,18 +33,17 @@ const CheckoutScreen = () => {
       useNativeDriver: true,
     }).start();
 
-    AsyncStorage.getItem(STORAGE_KEYS.ADDRESS).then((addressJson) => {
-      if (addressJson) {
-        try {
-          const parsed = JSON.parse(addressJson);
-          if (typeof parsed === 'string' && parsed.trim().length > 0) {
-            setAddress(parsed);
-          }
-        } catch {
-          AsyncStorage.removeItem(STORAGE_KEYS.ADDRESS).catch(() => undefined);
+    const addressJson = await safeGetItem(STORAGE_KEYS.ADDRESS);
+    if (addressJson) {
+      try {
+        const parsed = JSON.parse(addressJson);
+        if (typeof parsed === 'string' && parsed.trim().length > 0) {
+          setAddress(parsed);
         }
+      } catch {
+        await AsyncStorage.removeItem(STORAGE_KEYS.ADDRESS);
       }
-    }).catch(() => undefined);
+    }
   }, [fadeAnim]);
 
   const calculateSubtotal = useCallback(() => {
@@ -90,7 +92,8 @@ const CheckoutScreen = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (cartItems.length === 0) {
+    const validCart = validateCart(cartItems as unknown);
+    if (validCart.length === 0) {
       return;
     }
 
@@ -112,11 +115,11 @@ const CheckoutScreen = () => {
     ]).start();
 
     try {
-      await AsyncStorage.removeItem('sg_cart');
+      await AsyncStorage.removeItem(STORAGE_KEYS.CART);
 
       const orderId = 'SG' + Math.floor(Math.random() * 900000 + 100000).toString();
       navigation.navigate('Tracking', { orderId });
-    } catch (error) {
+    } catch {
       navigation.navigate('Tracking');
     } finally {
       setLoading(false);

@@ -16,7 +16,7 @@ const coupon_usage_entity_1 = require("../../db/entities/coupon-usage.entity");
 const referral_entity_1 = require("../../db/entities/referral.entity");
 const subscription_entity_1 = require("../../db/entities/subscription.entity");
 const user_entity_1 = require("../../db/entities/user.entity");
-const order_entity_1 = require("../order/order.entity");
+const order_entity_1 = require("../../db/entities/order.entity");
 let LoyaltyModule = class LoyaltyModule {
 };
 exports.LoyaltyModule = LoyaltyModule;

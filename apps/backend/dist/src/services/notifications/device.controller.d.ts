@@ -1,4 +1,4 @@
-import { NotificationService } from '../notification.service';
+import { NotificationService } from './notification.service';
 export declare class DeviceController {
     private readonly notificationService;
     constructor(notificationService: NotificationService);

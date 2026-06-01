@@ -35,21 +35,22 @@ let LoyaltyService = LoyaltyService_1 = class LoyaltyService {
         this.logger = new common_1.Logger(LoyaltyService_1.name);
     }
     async createCoupon(data) {
-        const coupon = this.couponRepo.create(data);
+        const coupon = this.couponRepo.create();
+        Object.assign(coupon, data);
         return this.couponRepo.save(coupon);
     }
     async applyCoupon(code, userId, orderAmount, orderId) {
         const coupon = await this.couponRepo.findOne({ where: { code: code.toUpperCase() } });
         if (!coupon)
             throw new common_1.BadRequestException('Invalid coupon code');
-        if (coupon.status !== 'active')
+        if (coupon.status !== coupon_entity_1.CouponStatus.ACTIVE)
             throw new common_1.BadRequestException('Coupon is not active');
         if (new Date() > coupon.validUntil)
             throw new common_1.BadRequestException('Coupon has expired');
         if (coupon.usageLimit > 0 && coupon.usageCount >= coupon.usageLimit)
             throw new common_1.BadRequestException('Coupon usage limit reached');
         const userUsage = await this.couponUsageRepo.count({
-            where: { couponId: coupon.id, userId, status: 'used' }
+            where: { couponId: coupon.id, userId, status: coupon_usage_entity_1.CouponUsageStatus.USED }
         });
         if (userUsage >= coupon.usagePerUser)
             throw new common_1.BadRequestException('You have already used this coupon');
@@ -77,12 +78,12 @@ let LoyaltyService = LoyaltyService_1 = class LoyaltyService {
             orderId,
             discountApplied: discount,
             orderAmount,
-            status: 'used',
+            status: coupon_usage_entity_1.CouponUsageStatus.USED,
         });
         await this.couponUsageRepo.save(usage);
         coupon.usageCount++;
         if (coupon.usageCount >= coupon.usageLimit)
-            coupon.status = 'depleted';
+            coupon.status = coupon_entity_1.CouponStatus.DEPLETED;
         await this.couponRepo.save(coupon);
         return { discount, finalAmount: orderAmount - discount, couponId: coupon.id };
     }
@@ -92,7 +93,8 @@ let LoyaltyService = LoyaltyService_1 = class LoyaltyService {
             return existing;
         const user = await this.userRepo.findOne({ where: { id: userId } });
         const code = `SG${user.email.substring(0, 3).toUpperCase()}${Date.now().toString(36).toUpperCase().slice(-4)}`;
-        const referral = this.referralRepo.create({
+        const referral = this.referralRepo.create();
+        Object.assign(referral, {
             code,
             referrerId: userId,
             refereeId: '',
@@ -147,7 +149,7 @@ let LoyaltyService = LoyaltyService_1 = class LoyaltyService {
     }
     async getWalletCashback(userId) {
         const usages = await this.couponUsageRepo.find({
-            where: { userId, status: 'used' },
+            where: { userId, status: coupon_usage_entity_1.CouponUsageStatus.USED },
             order: { usedAt: 'DESC' },
             take: 50,
         });
@@ -171,7 +173,7 @@ let LoyaltyService = LoyaltyService_1 = class LoyaltyService {
             totalSent: sent.length,
             totalCompleted: sent.filter(r => r.status === 'completed').length,
             totalEarned: sent
-                .filter(r => r.status === 'completed')
+                .filter((r) => r.status === 'completed')
                 .reduce((sum, r) => sum + r.referrerReward, 0),
             sentReferrals: sent,
             receivedReferrals: received,
@@ -207,7 +209,7 @@ let LoyaltyService = LoyaltyService_1 = class LoyaltyService {
         const coupon = await this.couponRepo.findOne({ where: { id: couponId } });
         if (!coupon)
             throw new common_1.NotFoundException('Coupon not found');
-        coupon.status = 'inactive';
+        coupon.status = coupon_entity_1.CouponStatus.INACTIVE;
         return this.couponRepo.save(coupon);
     }
 };

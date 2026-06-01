@@ -11,11 +11,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeviceController = void 0;
 const common_1 = require("@nestjs/common");
-const notification_service_1 = require("../notification.service");
+const notification_service_1 = require("./notification.service");
 let DeviceController = class DeviceController {
     constructor(notificationService) {
         this.notificationService = notificationService;
@@ -60,6 +59,6 @@ __decorate([
 ], DeviceController.prototype, "unregisterDevice", null);
 exports.DeviceController = DeviceController = __decorate([
     (0, common_1.Controller)('devices'),
-    __metadata("design:paramtypes", [typeof (_a = typeof notification_service_1.NotificationService !== "undefined" && notification_service_1.NotificationService) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [notification_service_1.NotificationService])
 ], DeviceController);
 //# sourceMappingURL=device.controller.js.map

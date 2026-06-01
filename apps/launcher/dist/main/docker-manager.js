@@ -124,7 +124,8 @@ class DockerManager {
             });
         }
         catch (err) {
-            return { success: false, error: err.message };
+            const message = err instanceof Error ? err.message : String(err);
+            return { success: false, error: message };
         }
     }
     async stopInfrastructure() {
@@ -142,7 +143,8 @@ class DockerManager {
             });
         }
         catch (err) {
-            return { success: false, error: err.message };
+            const message = err instanceof Error ? err.message : String(err);
+            return { success: false, error: message };
         }
     }
     async resetDatabases() {
@@ -153,7 +155,8 @@ class DockerManager {
             return { success: true };
         }
         catch (err) {
-            return { success: false, error: err.message };
+            const message = err instanceof Error ? err.message : String(err);
+            return { success: false, error: message };
         }
     }
 }

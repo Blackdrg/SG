@@ -100,7 +100,7 @@ export async function saveCartSafe(cart: unknown[]): Promise<boolean> {
     return false;
   }
   try {
-    const safeCart = validateCart(cart as any).map(item => ({
+    const safeCart = validateCart(cart).map(item => ({
       id: item.id,
       name: item.name,
       price: item.price,

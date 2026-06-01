@@ -1,4 +1,5 @@
 import { Injectable, LoggerService, Scope } from '@nestjs/common';
+import { sanitizeForLog } from '../../logging/logging.service';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class StructuredLogger implements LoggerService {
@@ -21,17 +22,17 @@ export class StructuredLogger implements LoggerService {
   error(message: any, ...optionalParams: any[]) {
     console.error(JSON.stringify({
       level: 'error',
-      message,
+      message: sanitizeForLog(message),
+      error: sanitizeForLog(optionalParams[0]),
       context: this.context,
       timestamp: new Date().toISOString(),
-      ...optionalParams,
     }));
   }
 
   warn(message: any, ...optionalParams: any[]) {
     console.warn(JSON.stringify({
       level: 'warn',
-      message,
+      message: sanitizeForLog(message),
       context: this.context,
       timestamp: new Date().toISOString(),
       ...optionalParams,

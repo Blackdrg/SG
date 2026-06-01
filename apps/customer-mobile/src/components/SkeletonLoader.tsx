@@ -174,7 +174,7 @@ export const OrderCard: React.FC<OrderCardProps> = memo(function OrderCard({ ord
             <Text style={orderCardStyles.reorderButtonText}>{STRINGS.orderHistory.reorder}</Text>
           </TouchableOpacity>
         )}
-        {['preparing', 'ready', 'pickedup'].includes(order.status) && onTrack && (
+        {['preparing', 'ready', 'pickedUp'].includes(order.status) && onTrack && (
           <TouchableOpacity 
             onPress={() => onTrack(order.id)}
             style={orderCardStyles.trackButton}
@@ -340,3 +340,5 @@ const styles = StyleSheet.create({
     borderRadius: DESIGN_TOKENS.radius.card,
   },
 });
+
+(End of file - total 342 lines)

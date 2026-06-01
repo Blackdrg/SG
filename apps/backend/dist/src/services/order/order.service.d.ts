@@ -1,11 +1,12 @@
-import { Order } from '../../shared/domain/order.interface';
 import { Repository } from 'typeorm';
+import { Order } from '../../shared/domain/order.interface';
 import { OrderEntity } from '../../db/entities/order.entity';
 import { PaymentService } from '../../services/payments/payments.service';
 import { NotificationService } from '../../services/notifications/notification.service';
 import { RetryService } from '../../services/payments/retry.service';
 import { IdempotencyService } from '../../services/payments/idempotency.service';
 import { ProductionNotificationService } from '../../services/notifications/production-notification.service';
+import { LoggingService } from '../../logging/logging.service';
 export declare class OrderService {
     private readonly orderRepo;
     private readonly paymentService;
@@ -13,7 +14,10 @@ export declare class OrderService {
     private readonly retryService;
     private readonly idempotency;
     private readonly productionNotification;
-    constructor(orderRepo: Repository<OrderEntity>, paymentService: PaymentService, notificationService: NotificationService, retryService: RetryService, idempotency: IdempotencyService, productionNotification: ProductionNotificationService);
+    private readonly loggingService;
+    constructor(orderRepo: Repository<OrderEntity>, paymentService: PaymentService, notificationService: NotificationService, retryService: RetryService, idempotency: IdempotencyService, productionNotification: ProductionNotificationService, loggingService: LoggingService);
+    validateOrderItems(items: unknown): void;
+    validateOrderTotals(orderData: any): boolean;
     placeOrder(orderData: any, idempotencyKey?: string): Promise<Order>;
     confirmPayment(orderId: string, paymentId: string, request?: any): Promise<Order>;
     handleWebhookDelayed(orderId: string, paymentId: string): Promise<Order>;

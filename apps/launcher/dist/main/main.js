@@ -182,8 +182,8 @@ class SpiceGardenLauncher {
         electron_1.ipcMain.handle('check-ports', async () => {
             return await this.envManager.checkPorts();
         });
-        electron_1.ipcMain.handle('get-logs', async (_, service) => {
-            return await this.processManager.getLogs(service);
+        electron_1.ipcMain.handle('get-logs', async (_, options) => {
+            return await this.processManager.getLogs(options.service, options.lines);
         });
     }
     async getSystemInfo() {

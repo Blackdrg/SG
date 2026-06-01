@@ -14,32 +14,81 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderService = void 0;
 const common_1 = require("@nestjs/common");
-const order_interface_1 = require("../../shared/domain/order.interface");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const order_interface_1 = require("../../shared/domain/order.interface");
 const order_entity_1 = require("../../db/entities/order.entity");
 const payments_service_1 = require("../../services/payments/payments.service");
 const notification_service_1 = require("../../services/notifications/notification.service");
 const retry_service_1 = require("../../services/payments/retry.service");
 const idempotency_service_1 = require("../../services/payments/idempotency.service");
 const production_notification_service_1 = require("../../services/notifications/production-notification.service");
+const logging_service_1 = require("../../logging/logging.service");
 const crypto = require("crypto");
 let OrderService = class OrderService {
-    constructor(orderRepo, paymentService, notificationService, retryService, idempotency, productionNotification) {
+    constructor(orderRepo, paymentService, notificationService, retryService, idempotency, productionNotification, loggingService) {
         this.orderRepo = orderRepo;
         this.paymentService = paymentService;
         this.notificationService = notificationService;
         this.retryService = retryService;
         this.idempotency = idempotency;
         this.productionNotification = productionNotification;
+        this.loggingService = loggingService;
+    }
+    validateOrderItems(items) {
+        if (!Array.isArray(items) || items.length === 0) {
+            throw new common_1.BadRequestException('Order must contain at least one item');
+        }
+        for (const item of items) {
+            if (!item || typeof item !== 'object') {
+                throw new common_1.BadRequestException('Invalid order item');
+            }
+            const anyItem = item;
+            if (!anyItem.id || typeof anyItem.id !== 'string' || anyItem.id.trim().length === 0) {
+                throw new common_1.BadRequestException('Invalid order item ID');
+            }
+            if (!anyItem.name || typeof anyItem.name !== 'string' || anyItem.name.trim().length === 0) {
+                throw new common_1.BadRequestException('Invalid order item name');
+            }
+            if (typeof anyItem.price !== 'number' || !Number.isFinite(anyItem.price) || anyItem.price < 0) {
+                throw new common_1.BadRequestException('Invalid order item price');
+            }
+            if (!Number.isInteger(anyItem.quantity) || anyItem.quantity < 1) {
+                throw new common_1.BadRequestException('Invalid order item quantity');
+            }
+        }
+    }
+    validateOrderTotals(orderData) {
+        const subtotal = Number(orderData.subtotal) || 0;
+        const tax = Number(orderData.tax) || 0;
+        const deliveryFee = Number(orderData.deliveryFee) || 0;
+        const grandTotal = Number(orderData.grandTotal);
+        if (!Number.isFinite(subtotal) || subtotal < 0) {
+            throw new common_1.BadRequestException('Invalid subtotal');
+        }
+        if (!Number.isFinite(tax) || tax < 0) {
+            throw new common_1.BadRequestException('Invalid tax');
+        }
+        if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+            throw new common_1.BadRequestException('Invalid delivery fee');
+        }
+        if (!Number.isFinite(grandTotal) || grandTotal <= 0) {
+            throw new common_1.BadRequestException('Order total must be greater than zero');
+        }
+        const expectedTotal = Math.round((subtotal + tax + deliveryFee) * 100) / 100;
+        if (Math.abs(expectedTotal - grandTotal) > 0.01) {
+            throw new common_1.BadRequestException('Order total does not match items');
+        }
+        return true;
     }
     async placeOrder(orderData, idempotencyKey) {
         if (!orderData.userId || !orderData.restaurantId || !orderData.grandTotal) {
             throw new common_1.BadRequestException('Missing required order data: userId, restaurantId, or grandTotal');
         }
-        if (orderData.grandTotal <= 0) {
-            throw new common_1.BadRequestException('Order total must be greater than zero');
+        if (orderData.items) {
+            this.validateOrderItems(orderData.items);
         }
+        this.validateOrderTotals(orderData);
         if (idempotencyKey) {
             const existing = await this.idempotency.validateOrCreate(idempotencyKey, 'place_order', orderData.userId, { restaurantId: orderData.restaurantId, grandTotal: orderData.grandTotal });
             if (existing.isDuplicate && existing.response) {
@@ -56,12 +105,12 @@ let OrderService = class OrderService {
             orderNumber: `ORD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${orderId.slice(0, 6).toUpperCase()}`,
             status: order_interface_1.OrderStatus.PLACED,
             paymentStatus: order_interface_1.PaymentStatus.PENDING,
-            subtotal: orderData.subtotal || 0,
-            tax: orderData.tax || 0,
-            deliveryFee: orderData.deliveryFee || 0,
-            discount: orderData.discount || 0,
-            tip: orderData.tip || 0,
-            grandTotal: orderData.grandTotal,
+            subtotal: Number(orderData.subtotal) || 0,
+            tax: Number(orderData.tax) || 0,
+            deliveryFee: Number(orderData.deliveryFee) || 0,
+            discount: Number(orderData.discount) || 0,
+            tip: Number(orderData.tip) || 0,
+            grandTotal: Number(orderData.grandTotal),
             couponId: orderData.couponId,
             deliveryAddressId: orderData.deliveryAddressId || '',
             createdAt: now,
@@ -75,7 +124,7 @@ let OrderService = class OrderService {
             return savedOrder;
         }
         catch (error) {
-            console.error('[OrderService] Failed to place order:', error);
+            this.loggingService.secureError('[OrderService] Failed to place order', error, 'OrderService');
             if (error?.code === '23505') {
                 throw new common_1.ConflictException('Order creation failed due to duplicate');
             }
@@ -100,7 +149,7 @@ let OrderService = class OrderService {
             return savedOrder;
         }
         catch (error) {
-            console.error('[OrderService] Payment confirmation failed:', error);
+            this.loggingService.secureError('[OrderService] Payment confirmation failed', error, 'OrderService');
             order.paymentStatus = order_interface_1.PaymentStatus.FAILED;
             order.updatedAt = new Date();
             await this.orderRepo.save(order);
@@ -140,11 +189,11 @@ let OrderService = class OrderService {
             order.paymentStatus = order_interface_1.PaymentStatus.REFUNDED;
             order.updatedAt = new Date();
             const savedOrder = await this.orderRepo.save(order);
-            await this.notificationService.sendPush(order.userId, 'Refund Initiated', `A refund of $${order.grandTotal} has been initiated for order #${order.orderNumber}. Reason: ${reason}`, { orderId: order.id });
+            await this.notificationService.sendPush(order.userId, 'Refund Initiated', `A refund has been initiated for order #${order.orderNumber}. Reason: ${reason}`, { orderId: order.id });
             return savedOrder;
         }
         catch (error) {
-            console.error('[OrderService] Refund failed:', error);
+            this.loggingService.secureError('[OrderService] Refund failed', error, 'OrderService');
             throw new common_1.InternalServerErrorException('Refund processing failed');
         }
     }
@@ -173,7 +222,7 @@ let OrderService = class OrderService {
             return savedOrder;
         }
         catch (error) {
-            console.error('[OrderService] Driver cancellation failed:', error);
+            this.loggingService.secureError('[OrderService] Driver cancellation failed', error, 'OrderService');
             throw new common_1.InternalServerErrorException('Driver cancellation failed');
         }
     }
@@ -197,7 +246,7 @@ let OrderService = class OrderService {
             return savedOrder;
         }
         catch (error) {
-            console.error('[OrderService] Kitchen cancellation failed:', error);
+            this.loggingService.secureError('[OrderService] Kitchen cancellation failed', error, 'OrderService');
             throw new common_1.InternalServerErrorException('Kitchen cancellation failed');
         }
     }
@@ -227,7 +276,7 @@ let OrderService = class OrderService {
             return savedOrder;
         }
         catch (error) {
-            console.error('[OrderService] Order retry failed:', error);
+            this.loggingService.secureError('[OrderService] Order retry failed', error, 'OrderService');
             throw new common_1.InternalServerErrorException('Order retry failed');
         }
     }
@@ -249,7 +298,7 @@ let OrderService = class OrderService {
                 await this.notificationService.sendPush(order.userId, 'Order Delayed', `Your order #${order.orderNumber} is experiencing delays. We're working on it.`, { orderId: order.id });
             }
             catch (error) {
-                console.error('[OrderService] Failed to resolve stuck preparing state for order:', order.id, error);
+                this.loggingService.secureError('[OrderService] Failed to resolve stuck preparing state for order', { id: order.id, error }, 'OrderService');
             }
         }
         return resolvedOrders;
@@ -274,6 +323,7 @@ exports.OrderService = OrderService = __decorate([
         notification_service_1.NotificationService,
         retry_service_1.RetryService,
         idempotency_service_1.IdempotencyService,
-        production_notification_service_1.ProductionNotificationService])
+        production_notification_service_1.ProductionNotificationService,
+        logging_service_1.LoggingService])
 ], OrderService);
 //# sourceMappingURL=order.service.js.map

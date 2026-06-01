@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "start": "node dist/main.js",
+    "start": "node dist/src/main.js",
     "dev": "nest start --watch",
     "build": "nest build",
     "lint": "echo \"lint placeholder\"",
@@ -12,7 +12,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --coverageThreshold=\"{\\\"global\\\":{\\\"branches\\\":80,\\\"functions\\\":80,\\\"lines\\\":80,\\\"statements\\\":80}}\"",
     "test:unit": "jest --testPathPattern=\"(order|kitchen|delivery).service.spec\"",
-    "test:integration": "jest --testPathPattern=\".integration.\"",
+    "test:integration": "jest --testPathPattern=\\\".integration.\\\"",
     "test:e2e": "jest --testPathPattern=\"e2e.spec\"",
     "test:load": "k6 run test/load/10k-users.js",
     "test:load:20k": "k6 run test/load/20k-users.js",

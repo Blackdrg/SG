@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StructuredLogger = void 0;
 const common_1 = require("@nestjs/common");
+const logging_service_1 = require("../../logging/logging.service");
 let StructuredLogger = class StructuredLogger {
     setContext(context) {
         this.context = context;
@@ -24,16 +25,16 @@ let StructuredLogger = class StructuredLogger {
     error(message, ...optionalParams) {
         console.error(JSON.stringify({
             level: 'error',
-            message,
+            message: (0, logging_service_1.sanitizeForLog)(message),
+            error: (0, logging_service_1.sanitizeForLog)(optionalParams[0]),
             context: this.context,
             timestamp: new Date().toISOString(),
-            ...optionalParams,
         }));
     }
     warn(message, ...optionalParams) {
         console.warn(JSON.stringify({
             level: 'warn',
-            message,
+            message: (0, logging_service_1.sanitizeForLog)(message),
             context: this.context,
             timestamp: new Date().toISOString(),
             ...optionalParams,

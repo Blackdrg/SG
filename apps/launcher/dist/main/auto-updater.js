@@ -20,7 +20,7 @@ class AutoUpdater {
             repo: 'launcher-updates'
         });
         electron_updater_1.autoUpdater.checkForUpdates();
-        electron_updater_1.autoUpdater.on('update-available', (info) => {
+        electron_updater_1.autoUpdater.on('update-available', () => {
             electron_1.dialog.showMessageBox({
                 type: 'info',
                 title: 'Update Available',
@@ -33,7 +33,7 @@ class AutoUpdater {
                 }
             });
         });
-        electron_updater_1.autoUpdater.on('update-downloaded', (info) => {
+        electron_updater_1.autoUpdater.on('update-downloaded', () => {
             electron_1.dialog.showMessageBox({
                 type: 'info',
                 title: 'Update Ready',

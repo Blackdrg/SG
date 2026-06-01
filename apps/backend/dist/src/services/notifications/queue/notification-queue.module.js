@@ -20,7 +20,7 @@ exports.NotificationQueueModule = NotificationQueueModule = __decorate([
     (0, common_1.Module)({
         imports: [
             typeorm_1.TypeOrmModule.forFeature([notification_entity_1.NotificationEntity]),
-            notification_module_1.NotificationModule,
+            (0, common_1.forwardRef)(() => notification_module_1.NotificationModule),
         ],
         providers: [notification_queue_service_1.NotificationQueueService],
         controllers: [notification_queue_controller_1.NotificationQueueController],

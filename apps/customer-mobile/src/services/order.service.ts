@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { formatCurrency } from '../utils/currency';
 import { STORAGE_KEYS } from '../constants/storage.keys';
+import { validateCart } from '../utils/validation';
+import { saveCartSafe } from '../utils/secure-storage';
 
 export interface OrderItem {
   id: string;
@@ -11,7 +12,7 @@ export interface OrderItem {
   description?: string;
 }
 
-export type OrderStatus = 'preparing' | 'ready' | 'pickedup' | 'delivered' | 'cancelled';
+export type OrderStatus = 'preparing' | 'ready' | 'pickedUp' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;

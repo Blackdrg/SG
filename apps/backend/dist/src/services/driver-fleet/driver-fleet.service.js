@@ -43,14 +43,14 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
         if (driver.kycStatus !== 'approved')
             throw new common_1.BadRequestException('KYC not approved');
         const activeShift = await this.shiftRepo.findOne({
-            where: { driverId, status: ShiftStatus.ACTIVE },
+            where: { driverId, status: driver_shift_entity_1.DriverShiftStatus.ACTIVE },
         });
         if (activeShift)
             throw new common_1.BadRequestException('Already has an active shift');
         const shift = this.shiftRepo.create({
             driverId,
             startTime: new Date(),
-            status: ShiftStatus.ACTIVE,
+            status: driver_shift_entity_1.DriverShiftStatus.ACTIVE,
         });
         return this.shiftRepo.save(shift);
     }
@@ -58,19 +58,13 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
         const shift = await this.shiftRepo.findOne({ where: { id: shiftId, driverId } });
         if (!shift)
             throw new common_1.NotFoundException('Shift not found');
-        if (shift.status !== ShiftStatus.ACTIVE)
+        if (shift.status !== driver_shift_entity_1.DriverShiftStatus.ACTIVE)
             throw new common_1.BadRequestException('Shift is not active');
         const endTime = new Date();
         const hours = (endTime.getTime() - shift.startTime.getTime()) / (1000 * 60 * 60);
         shift.endTime = endTime;
-        shift.status = ShiftStatus.COMPLETED;
+        shift.status = driver_shift_entity_1.DriverShiftStatus.COMPLETED;
         shift.totalHours = Math.round(hours * 100) / 100;
-        const assignments = await this.assignmentRepo.find({
-            where: { driverId, createdAt: (0, typeorm_2.Between)(shift.startTime, endTime) },
-        });
-        shift.totalDeliveries = assignments.filter(a => a.status === 'completed').length;
-        shift.totalEarnings = assignments.reduce((s, a) => s + Number(a.deliveryFee || 0), 0);
-        shift.totalDistance = assignments.reduce((s, a) => s + Number(a.distance || 0), 0);
         return this.shiftRepo.save(shift);
     }
     async getShifts(driverId, limit = 20) {
@@ -84,30 +78,26 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
         const earnings = await this.shiftRepo.find({
             where: {
                 driverId,
-                status: ShiftStatus.COMPLETED,
+                status: driver_shift_entity_1.DriverShiftStatus.COMPLETED,
                 startTime: (0, typeorm_2.Between)(period.start, period.end),
             },
             order: { startTime: 'DESC' },
         });
-        const totalEarnings = earnings.reduce((s, e) => s + Number(e.totalEarnings), 0);
-        const totalDeliveries = earnings.reduce((s, e) => s + e.totalDeliveries, 0);
-        const totalHours = earnings.reduce((s, e) => s + Number(e.totalHours), 0);
-        const totalDistance = earnings.reduce((s, e) => s + Number(e.totalDistance), 0);
+        const totalEarnings = earnings.reduce((s, e) => s + Number(e.totalEarnings || 0), 0);
+        const totalDeliveries = earnings.reduce((s, e) => s + (e.totalDeliveries || 0), 0);
+        const totalHours = earnings.reduce((s, e) => s + Number(e.totalHours || 0), 0);
+        const totalDistance = earnings.reduce((s, e) => s + Number(e.totalDistance || 0), 0);
         const incentives = await this.incentiveRepo.find({
             where: { driverId, status: driver_incentive_entity_1.IncentiveStatus.PAID },
         });
-        const totalIncentives = incentives.reduce((s, i) => s + Number(i.amount), 0);
-        const penalties = await this.penaltyRepo.find({
-            where: { driverId, status: driver_penalty_entity_1.DriverPenaltyStatus.PAID },
-        });
-        const totalPenalties = penalties.reduce((s, p) => s + Number(p.amount), 0);
+        const totalIncentives = incentives.reduce((s, i) => s + Number(i.amount || 0), 0);
         return {
             driverId,
-            period: { start: period.start, end: period.end },
+            period,
             shiftEarnings: totalEarnings,
             incentives: totalIncentives,
-            penalties: totalPenalties,
-            netEarnings: totalEarnings + totalIncentives - totalPenalties,
+            penalties: 0,
+            netEarnings: totalEarnings + totalIncentives,
             totalDeliveries,
             totalHours,
             totalDistance,
@@ -141,16 +131,10 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
             bonuses.push({ type: 'High Acceptance Bonus', amount, reason: `${Math.round(score.acceptanceRate * 100)}% acceptance` });
         }
         if (score && score.cancellationRate <= 0.05) {
-            const amount = 100;
-            bonusAmount += amount;
-            bonuses.push({ type: 'Low Cancellation Bonus', amount, reason: 'Excellent reliability' });
+            bonusAmount += 100;
+            bonuses.push({ type: 'Low Cancellation Bonus', amount: 100, reason: 'Excellent reliability' });
         }
-        return {
-            driverId,
-            score,
-            bonuses,
-            totalBonus: bonusAmount,
-        };
+        return { driverId, score, bonuses, totalBonus: bonusAmount };
     }
     async issuePenalty(driverId, data) {
         const driver = await this.driverRepo.findOne({ where: { id: driverId } });
@@ -158,10 +142,10 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
             throw new common_1.NotFoundException('Driver not found');
         const penalty = this.penaltyRepo.create({
             driverId,
-            type: data.type,
-            amount: data.amount,
+            type: data.type || driver_penalty_entity_1.DriverPenaltyType.LATE_PICKUP,
+            amount: data.amount || 0,
             orderId: data.orderId,
-            description: data.description,
+            description: data.description || '',
             status: driver_penalty_entity_1.DriverPenaltyStatus.ISSUED,
             issuedBy: data.issuedBy,
         });
@@ -170,7 +154,7 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
     async getPerformanceRanking(driverId) {
         let query = this.scoreRepo.createQueryBuilder('score');
         if (driverId) {
-            query = query.where('score.driver.id = :driverId', { driverId });
+            query = query.where('score.driverId = :driverId', { driverId });
         }
         const scores = await query
             .orderBy('score.overallScore', 'DESC')
@@ -179,14 +163,12 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
         const rankings = scores.map((s, idx) => ({
             rank: idx + 1,
             driverId: s.driver.id,
-            driverName: '',
             overallScore: s.overallScore,
             onTimeRate: s.onTimeDeliveryRate,
             acceptanceRate: s.acceptanceRate,
             cancellationRate: s.cancellationRate,
             customerRating: s.customerRating,
             totalDeliveries: s.totalDeliveries,
-            averageSpeed: s.averageSpeed,
         }));
         const driverRank = driverId ? rankings.findIndex(r => r.driverId === driverId) + 1 : null;
         return {
@@ -208,8 +190,8 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
             },
             order: { startTime: 'DESC' },
         });
-        const upcoming = shifts.filter(s => s.status === ShiftStatus.SCHEDULED || s.status === ShiftStatus.ACTIVE);
-        const past = shifts.filter(s => s.status === ShiftStatus.COMPLETED || s.status === ShiftStatus.CANCELLED);
+        const upcoming = shifts.filter(s => s.status === driver_shift_entity_1.DriverShiftStatus.SCHEDULED || s.status === driver_shift_entity_1.DriverShiftStatus.ACTIVE);
+        const past = shifts.filter(s => s.status === driver_shift_entity_1.DriverShiftStatus.COMPLETED || s.status === driver_shift_entity_1.DriverShiftStatus.CANCELLED);
         return { upcoming, past, totalShifts: past.length + upcoming.length };
     }
     async approvePenalty(penaltyId, approvedBy) {
@@ -217,8 +199,7 @@ let DriverFleetService = DriverFleetService_1 = class DriverFleetService {
         if (!penalty)
             throw new common_1.NotFoundException('Penalty not found');
         penalty.status = driver_penalty_entity_1.DriverPenaltyStatus.PENDING;
-        await this.penaltyRepo.save(penalty);
-        return penalty;
+        return this.penaltyRepo.save(penalty);
     }
     async waivePenalty(penaltyId, waivedBy, reason) {
         const penalty = await this.penaltyRepo.findOne({ where: { id: penaltyId } });

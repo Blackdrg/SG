@@ -1,5 +1,5 @@
 import { StoreManager } from './store-manager';
-interface DockerService {
+export interface DockerService {
     name: string;
     status: 'running' | 'stopped' | 'starting' | 'error';
     containerId?: string;
@@ -27,5 +27,4 @@ export declare class DockerManager {
         error?: string;
     }>;
 }
-export {};
 //# sourceMappingURL=docker-manager.d.ts.map

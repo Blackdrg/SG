@@ -11,8 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CouponUsageEntity = exports.CouponUsageStatus = void 0;
 const typeorm_1 = require("typeorm");
-const coupon_entity_1 = require("./coupon.entity");
-const user_entity_1 = require("./user.entity");
 var CouponUsageStatus;
 (function (CouponUsageStatus) {
     CouponUsageStatus["ACTIVE"] = "active";
@@ -28,17 +26,9 @@ __decorate([
     __metadata("design:type", String)
 ], CouponUsageEntity.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => coupon_entity_1.CouponEntity),
-    __metadata("design:type", coupon_entity_1.CouponEntity)
-], CouponUsageEntity.prototype, "coupon", void 0);
-__decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], CouponUsageEntity.prototype, "couponId", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => user_entity_1.UserEntity),
-    __metadata("design:type", user_entity_1.UserEntity)
-], CouponUsageEntity.prototype, "user", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
